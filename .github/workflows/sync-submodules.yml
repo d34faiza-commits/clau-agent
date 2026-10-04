@@ -1,0 +1,56 @@
+name: Sync Submodules
+
+# Harian + manual + dipicu repo upstream (repository_dispatch "submodule-updated").
+# Butuh secret SUBMODULE_TOKEN (fine-grained PAT, lihat SUBMODULE.md): GITHUB_TOKEN
+# bawaan tidak bisa membaca repo private lain. Tanpa secret, job dilewati (notice).
+on:
+  schedule:
+    - cron: "17 22 * * *" # 06.17 WITA
+  workflow_dispatch:
+  repository_dispatch:
+    types: [submodule-updated]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-submodules
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      HAS_TOKEN: ${{ secrets.SUBMODULE_TOKEN != '' }}
+    steps:
+      - name: Token check
+        if: env.HAS_TOKEN != 'true'
+        run: echo "::notice::SUBMODULE_TOKEN belum diset; sync dilewati. Lihat SUBMODULE.md §Setup GitHub Actions."
+
+      - name: Checkout (with submodules)
+        if: env.HAS_TOKEN == 'true'
+        uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.SUBMODULE_TOKEN }}
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Python
+        if: env.HAS_TOKEN == 'true'
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install validator dependencies
+        if: env.HAS_TOKEN == 'true'
+        run: |
+          python -m pip install jsonschema==4.26.0
+          if [ -f backend/requirements.txt ]; then python -m pip install -r backend/requirements.txt; fi
+
+      - name: Sync, validate, commit, push
+        if: env.HAS_TOKEN == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bash scripts/sync-submodules.sh

@@ -14,7 +14,7 @@
 
 ```text
 clau-ai-agents/
-├── README.md · ACKNOWLEDGMENT.md · LICENSE
+├── README.md · SUBMODULE.md · ACKNOWLEDGMENT.md · LICENSE
 ├── core/                 # submodule → clau-ai-core
 ├── agents/
 │   ├── README.md
@@ -24,10 +24,13 @@ clau-ai-agents/
 │   └── tests/            # test API + konsistensi registry ↔ core router
 ├── frontend/             # Next.js 16 (App Router): halaman registry agent
 │   ├── app/layout.tsx · app/page.tsx · next.config.mjs · package.json · package-lock.json · tsconfig.json
-└── .github/workflows/ci.yml   # pytest backend + build frontend
+├── scripts/              # sync-submodules.sh, check-core-pins.sh
+└── .github/workflows/    # ci.yml, cross-repo-validate.yml, sync-submodules.yml, notify-downstream.yml
 ```
 
 ## Setup
+
+Panduan submodule (update, sync, troubleshooting, GitHub Actions): [SUBMODULE.md](./SUBMODULE.md).
 
 ```bash
 git clone --recurse-submodules https://github.com/d34faiza-commits/clau-ai-agents.git
