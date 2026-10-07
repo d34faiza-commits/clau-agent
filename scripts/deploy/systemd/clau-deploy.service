@@ -1,0 +1,10 @@
+[Unit]
+Description=CLAU frontend pull-based deploy (VPS 1)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=dea
+ExecStart=/srv/clau/clau-ai-agents/scripts/deploy/vps1-deploy.sh
+TimeoutStartSec=15min

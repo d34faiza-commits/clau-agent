@@ -11,8 +11,9 @@
 | 7a–7b. Node 22 + Nginx + swap 2 GB | DATA FINAL — 2026-10-07 |
 | 7c. Tailscale | DATA FINAL — 2026-10-07: `clau-vps1` join tailnet milik Dea Karisna. NEXT ACTION: disable key expiry, undang Pak Indra sebagai Admin, ACL setelah VPS 2 join |
 | 8. Deploy frontend (akses via IP, HTTP) | DATA FINAL — 2026-10-07: service `clau-frontend` active, Nginx proxy ke 127.0.0.1:3000, halaman registry tampil di `http://<IP_VPS_1>` |
-| 9. Domain + Cloudflare + SSL | Ditunda — domain belum ditentukan |
-| 10. Backup config (tanpa `.env`) | Ditunda — setelah domain & Tailscale |
+| 9. Auto-deploy dari repo (pull-based) | NEXT ACTION — `scripts/deploy/vps1-deploy.sh` + `clau-deploy.timer` |
+| 10. Domain + Cloudflare + SSL | Ditunda — domain belum ditentukan |
+| 11. Backup config (tanpa `.env`) | Ditunda — setelah domain & Tailscale |
 
 ## 2. Aturan
 
@@ -162,7 +163,56 @@ cd /srv/clau/clau-ai-agents && git pull
 cd frontend && npm ci && npm run build && sudo systemctl restart clau-frontend
 ```
 
-## 6. RISK
+## 6. Bagian 9 — Auto-Deploy dari Repo
+
+Setiap 5 menit VPS 1 mengecek branch `main`. Bila ada perubahan di `frontend/` atau `agents/registry.json`, server build rilis baru **di samping** rilis yang sedang jalan, lalu pindah ke rilis baru. Commit yang hanya mengubah dokumen tidak memicu build.
+
+| Sifat | Keterangan |
+|---|---|
+| Pull-based | GitHub tidak punya akses ke server (tidak ada SSH key/secret server di GitHub). Server menarik kode dengan deploy key read-only |
+| Build gagal | Rilis lama tetap jalan; commit itu tidak dicoba ulang tiap 5 menit sampai ada commit baru atau `--force` |
+| Health check gagal | Otomatis rollback ke rilis sebelumnya |
+| Riwayat | 3 rilis terakhir disimpan di `/srv/clau/releases/`; `/srv/clau/current` menunjuk rilis aktif |
+
+Pasang (sekali):
+
+```bash
+cd /srv/clau/clau-ai-agents && git pull --ff-only
+
+# izinkan dea me-restart service frontend saja, tanpa password
+echo 'dea ALL=(root) NOPASSWD: /usr/bin/systemctl restart clau-frontend' | sudo tee /etc/sudoers.d/clau-deploy
+sudo chmod 440 /etc/sudoers.d/clau-deploy && sudo visudo -c
+
+# rilis pertama (membuat /srv/clau/current)
+scripts/deploy/vps1-deploy.sh --force
+
+# service frontend pindah ke rilis aktif
+sudo sed -i 's#^WorkingDirectory=.*#WorkingDirectory=/srv/clau/current/frontend#' /etc/systemd/system/clau-frontend.service
+sudo systemctl daemon-reload && sudo systemctl restart clau-frontend
+
+# timer
+sudo cp scripts/deploy/systemd/clau-deploy.service scripts/deploy/systemd/clau-deploy.timer /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now clau-deploy.timer
+```
+
+Operasional:
+
+```bash
+systemctl list-timers clau-deploy.timer          # jadwal cek berikutnya
+journalctl -u clau-deploy -n 30 --no-pager       # log deploy
+/srv/clau/clau-ai-agents/scripts/deploy/vps1-deploy.sh --force   # deploy manual sekarang
+ls -l /srv/clau/current                          # rilis aktif
+```
+
+Rollback manual ke rilis sebelumnya:
+
+```bash
+ls -1t /srv/clau/releases/                       # pilih folder rilis
+ln -sfn /srv/clau/releases/<folder> /srv/clau/current && sudo systemctl restart clau-frontend
+```
+
+## 7. RISK
 
 - Selama belum ada domain + SSL, akses masih **HTTP via IP**. Aman untuk scaffold saat ini (tidak ada login/data), tetapi **jangan** menambahkan login, form, atau data client sebelum Bagian 9 (HTTPS) selesai.
 - Service masih berjalan sebagai user `dea`. Pindahkan ke user service khusus (non-login) sebelum produksi dengan data client.
+- Push ke `main` tampil di VPS 1 dalam ±5 menit. `main` harus lewat CI hijau (build frontend sudah dicek di CI) dan sebaiknya diproteksi (PR + review) agar perubahan tidak langsung live tanpa dicek.
