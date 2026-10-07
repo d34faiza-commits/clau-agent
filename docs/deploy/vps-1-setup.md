@@ -8,9 +8,9 @@
 |---|---|
 | 1–5. OS, hostname, user admin `dea` + SSH key | DATA FINAL — Ubuntu 24.04 LTS, kernel 6.8.0-146, 2 vCPU / 3.8 GB RAM / 79 GB |
 | 6. Hardening (UFW, sshd, fail2ban, unattended-upgrades) | DATA FINAL — diverifikasi: UFW active (22/80/443), root & password login ditolak, fail2ban jail `sshd` active |
-| 7a–7b. Node 22 + Nginx | Dikerjakan 2026-10-07 |
+| 7a–7b. Node 22 + Nginx + swap 2 GB | DATA FINAL — 2026-10-07 |
 | 7c. Tailscale | NEXT ACTION — memakai tailnet milik Pak Indra; join dilakukan bersama Pak Indra |
-| 8. Deploy frontend (akses via IP, HTTP) | NEXT ACTION |
+| 8. Deploy frontend (akses via IP, HTTP) | Berjalan — deploy key read-only `clau-vps1` sudah ditambahkan |
 | 9. Domain + Cloudflare + SSL | Ditunda — domain belum ditentukan |
 | 10. Backup config (tanpa `.env`) | Ditunda — setelah domain & Tailscale |
 
@@ -111,7 +111,7 @@ After=network.target
 User=dea
 WorkingDirectory=/srv/clau/clau-ai-agents/frontend
 Environment=NODE_ENV=production
-ExecStart=/usr/bin/npx next start -H 127.0.0.1 -p 3000
+ExecStart=/usr/bin/node node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3000
 Restart=on-failure
 NoNewPrivileges=true
 ProtectSystem=full
