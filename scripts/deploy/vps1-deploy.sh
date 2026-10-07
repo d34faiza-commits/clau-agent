@@ -59,7 +59,7 @@ $RESTART 9>&-
 
 healthy() {
   for _ in $(seq 1 30); do
-    curl -fsS -o /dev/null "$HEALTH_URL" && return 0
+    curl -fs -o /dev/null "$HEALTH_URL" && return 0
     sleep 1
   done
   return 1
