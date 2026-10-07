@@ -1,0 +1,63 @@
+{
+  "agent": "report-builder",
+  "version": "1.0.0",
+  "cases": [
+    {
+      "id": "rb-01",
+      "scenario": "Ringkasan laporan bulanan",
+      "input": {
+        "metrics": "Saves Agustus 1.088, September 1.284; reach turun 6%; post 12→9."
+      },
+      "checks": {
+        "must_include_any": [
+          "sumber",
+          "source"
+        ],
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi",
+          "viral di mana-mana",
+          "luar biasa"
+        ]
+      },
+      "reference": {
+        "good": "Saves naik dari 1.088 ke 1.284 (+18%) dibanding Agustus. Reach turun 6% karena jumlah post berkurang (12 → 9). Bulan depan: kembali ke 12 post dan uji 2 reel. Sumber: Instagram Insights, diambil 1 Okt 2026.",
+        "bad": "Performa luar biasa! Engagement naik drastis sekitar 50%, konten viral di mana-mana."
+      }
+    },
+    {
+      "id": "rb-02",
+      "scenario": "Data metrik tidak lengkap",
+      "input": {
+        "metrics": "Reach September tidak tersedia (akun belum terhubung)."
+      },
+      "checks": {
+        "must_include_any": [
+          "tidak tersedia",
+          "belum tersedia",
+          "data kurang"
+        ],
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi",
+          "sekitar",
+          "kira-kira"
+        ]
+      },
+      "reference": {
+        "good": "Reach September tidak tersedia karena akun Instagram belum terhubung ke Insights. Angka tidak diperkirakan. NEXT ACTION: hubungkan akun sebelum 5 Okt.",
+        "bad": "Reach September kira-kira 40 ribu, sekitar sama seperti bulan lalu."
+      }
+    }
+  ]
+}

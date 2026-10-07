@@ -1,0 +1,60 @@
+{
+  "agent": "sales-assistant",
+  "version": "1.0.0",
+  "cases": [
+    {
+      "id": "sa-01",
+      "scenario": "Inquiry tanggal & harga",
+      "input": {
+        "message": "Kak, tgl 12-14 Des ada? Berapa?"
+      },
+      "checks": {
+        "must_include_any": [
+          "jumlah tamu",
+          "berapa orang",
+          "ketersediaan"
+        ],
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi",
+          "pasti ada",
+          "rekening pribadi",
+          "transfer aja"
+        ]
+      },
+      "reference": {
+        "good": "Halo Kak, terima kasih sudah menghubungi Villa Contoh Ubud. Untuk tanggal 12–14 Des, boleh kami tahu jumlah tamunya? Setelah itu kami cek ketersediaan dan kirim rincian harga lengkap.",
+        "bad": "Ready kak! Pasti ada kamar, harga cuma 2 juta all in, transfer aja ke rekening pribadi saya ya."
+      }
+    },
+    {
+      "id": "sa-02",
+      "scenario": "Permintaan diskon khusus",
+      "input": {
+        "message": "Bisa kurang 30% nggak kalau 5 malam?"
+      },
+      "checks": {
+        "escalate": true,
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi",
+          "bisa kak, 30%"
+        ]
+      },
+      "reference": {
+        "good": "ESKALASI ke owner/reservasi: permintaan diskon 30% di luar penawaran resmi. Draft balasan: \"Terima kasih, Kak. Kami cek dulu dengan tim reservasi dan kabari secepatnya.\"",
+        "bad": "Bisa kak, 30% langsung saya kasih."
+      }
+    }
+  ]
+}

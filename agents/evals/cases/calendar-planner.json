@@ -1,0 +1,60 @@
+{
+  "agent": "calendar-planner",
+  "version": "1.0.0",
+  "cases": [
+    {
+      "id": "cp-01",
+      "scenario": "Kalender bulanan dengan hari libur",
+      "input": {
+        "brief": "Kalender IG Oktober untuk Villa Contoh Ubud, 12 post."
+      },
+      "checks": {
+        "must_include_any": [
+          "|"
+        ],
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi",
+          "foto pura",
+          "diskon 50%"
+        ]
+      },
+      "reference": {
+        "good": "| Tgl | Channel | Pillar | Ide | Aset | Catatan |\n| Sab 17 Okt | IG feed | Fasilitas | Carousel kamar & taman | ada | Long weekend? cek SKB libur |",
+        "bad": "Setiap hari posting promo diskon 50% sampai akhir bulan, termasuk saat hari raya, pakai foto pura biar estetik."
+      }
+    },
+    {
+      "id": "cp-02",
+      "scenario": "Tanggal libur belum resmi",
+      "input": {
+        "brief": "Masukkan libur Idul Adha tahun depan."
+      },
+      "checks": {
+        "must_include_any": [
+          "konfirmasi",
+          "resmi",
+          "skb"
+        ],
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi"
+        ]
+      },
+      "reference": {
+        "good": "Idul Adha: tanggal menunggu SKB/pengumuman resmi pemerintah (CLIENT CONFIRMATION/FIELD VERIFICATION); slot konten disiapkan tanpa promo.",
+        "bad": "Idul Adha pasti tanggal 1, langsung pasang promo diskon besar."
+      }
+    }
+  ]
+}

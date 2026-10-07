@@ -1,0 +1,99 @@
+{
+  "agent": "caption-writer",
+  "version": "1.0.0",
+  "cases": [
+    {
+      "id": "cw-01",
+      "scenario": "Caption carousel fasilitas villa (bilingual), CTA save",
+      "input": {
+        "brief": "Villa Contoh Ubud: 3 kamar, kolam privat, taman, sarapan di bale. CTA: save. Voice: tenang-membumi."
+      },
+      "checks": {
+        "max_chars": 2200,
+        "must_include_any": [
+          "simpan",
+          "save"
+        ],
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi",
+          "terbaik",
+          "best",
+          "termewah"
+        ],
+        "max_exclamations": 1,
+        "max_emoji": 1
+      },
+      "reference": {
+        "good": "Sarapan disajikan di bale tepi sawah, kolam privat menunggu setelahnya.\n\nVilla Contoh Ubud punya tiga kamar dan taman yang tenang untuk pagi tanpa terburu-buru.\n\nSimpan post ini untuk rencana ke Ubud berikutnya 🌿\n\n#VillaContohUbud #ubud #ubudvilla #balivilla",
+        "bad": "Temukan HIDDEN GEM terbaik di Bali!!! 🌴🌴✨ Pengalaman tak terlupakan menanti Anda. Simpan & share ke temanmu ya!"
+      }
+    },
+    {
+      "id": "cw-02",
+      "scenario": "Brief meminta klaim 'villa termewah di Bali' tanpa bukti",
+      "input": {
+        "brief": "Tulis caption: Villa Contoh Ubud adalah villa termewah di Bali."
+      },
+      "checks": {
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi",
+          "termewah",
+          "paling mewah",
+          "luxury",
+          "terbaik"
+        ],
+        "must_include_any": [
+          "konfirmasi",
+          "<konfirmasi"
+        ]
+      },
+      "reference": {
+        "good": "Villa Contoh Ubud: tiga kamar, kolam privat, dan taman yang tenang.\n\n<KONFIRMASI: klaim superlatif dari brief butuh standar tertulis; tidak dipakai di draft ini>\n\nSimpan untuk rencana ke Ubud 🌿\n\n#VillaContohUbud #ubud #balivilla",
+        "bad": "Villa termewah di Bali! Luxury tanpa tanding, terbaik untuk honeymoon. Simpan sekarang!"
+      }
+    },
+    {
+      "id": "cw-03",
+      "scenario": "Caption cafe untuk anak muda Jakarta, Voice Card santai-playful",
+      "input": {
+        "brief": "Cafe Contoh Senopati: menu baru kopi gula aren, buka 08.00–22.00 WIB. CTA: save. Sapaan: kamu, emoji boleh 2."
+      },
+      "checks": {
+        "max_chars": 800,
+        "must_include_any": [
+          "simpan",
+          "save"
+        ],
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi",
+          "terbaik",
+          "nomor 1"
+        ],
+        "max_exclamations": 2,
+        "max_emoji": 2
+      },
+      "reference": {
+        "good": "Kopi gula aren baru di Cafe Contoh Senopati: manisnya pas, nggak bikin eneg ☕\n\nBuka setiap hari 08.00–22.00 WIB. Simpan dulu buat ngopi akhir pekan ini.\n\n#CafeContohSenopati #kopisenopati #kopigulaaren",
+        "bad": "KOPI TERBAIK SE-JAKARTA!!! 🔥🔥🔥 Nomor 1 pokoknya, wajib coba sekarang juga!!!"
+      }
+    }
+  ]
+}

@@ -1,19 +1,194 @@
 {
-  "registry_version": "0.1.0",
+  "registry_version": "0.2.0",
   "router_source": "core/orchestrator/router.md",
-  "default_forbidden_actions": ["publish", "send_external", "self_approve", "change_price_or_availability", "store_credentials"],
+  "default_forbidden_actions": [
+    "publish",
+    "send_external",
+    "self_approve",
+    "change_price_or_availability",
+    "store_credentials"
+  ],
   "agents": [
-    { "id": "caption-writer", "pillar": 1, "status": "active", "intents": ["caption"], "skill": "draft-caption", "prompt": null, "template": null, "skill_repo": "clau-ai-marketing", "approval_min": "L1" },
-    { "id": "reel-scripter", "pillar": 1, "status": "active", "intents": ["reel-script"], "skill": "draft-reel-script", "prompt": null, "template": null, "skill_repo": "clau-ai-marketing", "approval_min": "L2" },
-    { "id": "story-writer", "pillar": 1, "status": "active", "intents": ["stories"], "skill": null, "prompt": "stories/stories-sequence", "template": null, "skill_repo": "clau-ai-marketing", "approval_min": "L1" },
-    { "id": "listing-writer", "pillar": 1, "status": "active", "intents": ["ota-listing"], "skill": "write-ota-listing", "prompt": null, "template": null, "skill_repo": "clau-ai-marketing", "approval_min": "L2" },
-    { "id": "review-responder", "pillar": 1, "status": "active", "intents": ["review-reply"], "skill": "reply-guest-review", "prompt": null, "template": null, "skill_repo": "clau-ai-marketing", "approval_min": "L1" },
-    { "id": "calendar-planner", "pillar": 1, "status": "active", "intents": ["content-calendar"], "skill": "build-content-calendar", "prompt": null, "template": null, "skill_repo": "clau-ai-marketing", "approval_min": "L1" },
-    { "id": "campaign-planner", "pillar": 1, "status": "active", "intents": ["seasonal-campaign"], "skill": "plan-seasonal-campaign", "prompt": null, "template": null, "skill_repo": "clau-ai-marketing", "approval_min": "L2" },
-    { "id": "localizer", "pillar": 1, "status": "active", "intents": ["localize"], "skill": "localize-content", "prompt": null, "template": null, "skill_repo": "clau-ai-marketing", "approval_min": "L1" },
-    { "id": "report-builder", "pillar": 5, "status": "active", "intents": ["report"], "skill": null, "prompt": null, "template": "monthly-report", "skill_repo": "clau-ai-marketing", "approval_min": "L1" },
-    { "id": "sales-assistant", "pillar": 2, "status": "planned", "intents": ["inquiry-reply"], "skill": null, "prompt": null, "template": null, "skill_repo": null, "approval_min": "L2" },
-    { "id": "guest-messenger", "pillar": 3, "status": "planned", "intents": ["guest-message"], "skill": null, "prompt": null, "template": null, "skill_repo": null, "approval_min": "L2" },
-    { "id": "sop-writer", "pillar": 4, "status": "planned", "intents": ["sop"], "skill": null, "prompt": null, "template": null, "skill_repo": null, "approval_min": "L1" }
-  ]
+    {
+      "id": "caption-writer",
+      "pillar": 1,
+      "status": "active",
+      "intents": [
+        "caption"
+      ],
+      "skill": "draft-caption",
+      "prompt": null,
+      "template": null,
+      "skill_repo": "clau-ai-marketing",
+      "approval_min": "L1",
+      "persona": "agents/personas/caption-writer.md",
+      "evals": "agents/evals/cases/caption-writer.json"
+    },
+    {
+      "id": "reel-scripter",
+      "pillar": 1,
+      "status": "active",
+      "intents": [
+        "reel-script"
+      ],
+      "skill": "draft-reel-script",
+      "prompt": null,
+      "template": null,
+      "skill_repo": "clau-ai-marketing",
+      "approval_min": "L2",
+      "persona": "agents/personas/reel-scripter.md",
+      "evals": "agents/evals/cases/reel-scripter.json"
+    },
+    {
+      "id": "story-writer",
+      "pillar": 1,
+      "status": "active",
+      "intents": [
+        "stories"
+      ],
+      "skill": null,
+      "prompt": "stories/stories-sequence",
+      "template": null,
+      "skill_repo": "clau-ai-marketing",
+      "approval_min": "L1",
+      "persona": "agents/personas/story-writer.md",
+      "evals": "agents/evals/cases/story-writer.json"
+    },
+    {
+      "id": "listing-writer",
+      "pillar": 1,
+      "status": "active",
+      "intents": [
+        "ota-listing"
+      ],
+      "skill": "write-ota-listing",
+      "prompt": null,
+      "template": null,
+      "skill_repo": "clau-ai-marketing",
+      "approval_min": "L2",
+      "persona": "agents/personas/listing-writer.md",
+      "evals": "agents/evals/cases/listing-writer.json"
+    },
+    {
+      "id": "review-responder",
+      "pillar": 1,
+      "status": "active",
+      "intents": [
+        "review-reply"
+      ],
+      "skill": "reply-guest-review",
+      "prompt": null,
+      "template": null,
+      "skill_repo": "clau-ai-marketing",
+      "approval_min": "L1",
+      "persona": "agents/personas/review-responder.md",
+      "evals": "agents/evals/cases/review-responder.json"
+    },
+    {
+      "id": "calendar-planner",
+      "pillar": 1,
+      "status": "active",
+      "intents": [
+        "content-calendar"
+      ],
+      "skill": "build-content-calendar",
+      "prompt": null,
+      "template": null,
+      "skill_repo": "clau-ai-marketing",
+      "approval_min": "L1",
+      "persona": "agents/personas/calendar-planner.md",
+      "evals": "agents/evals/cases/calendar-planner.json"
+    },
+    {
+      "id": "campaign-planner",
+      "pillar": 1,
+      "status": "active",
+      "intents": [
+        "seasonal-campaign"
+      ],
+      "skill": "plan-seasonal-campaign",
+      "prompt": null,
+      "template": null,
+      "skill_repo": "clau-ai-marketing",
+      "approval_min": "L2",
+      "persona": "agents/personas/campaign-planner.md",
+      "evals": "agents/evals/cases/campaign-planner.json"
+    },
+    {
+      "id": "localizer",
+      "pillar": 1,
+      "status": "active",
+      "intents": [
+        "localize"
+      ],
+      "skill": "localize-content",
+      "prompt": null,
+      "template": null,
+      "skill_repo": "clau-ai-marketing",
+      "approval_min": "L1",
+      "persona": "agents/personas/localizer.md",
+      "evals": "agents/evals/cases/localizer.json"
+    },
+    {
+      "id": "report-builder",
+      "pillar": 5,
+      "status": "active",
+      "intents": [
+        "report"
+      ],
+      "skill": null,
+      "prompt": null,
+      "template": "monthly-report",
+      "skill_repo": "clau-ai-marketing",
+      "approval_min": "L1",
+      "persona": "agents/personas/report-builder.md",
+      "evals": "agents/evals/cases/report-builder.json"
+    },
+    {
+      "id": "sales-assistant",
+      "pillar": 2,
+      "status": "planned",
+      "intents": [
+        "inquiry-reply"
+      ],
+      "skill": null,
+      "prompt": null,
+      "template": null,
+      "skill_repo": null,
+      "approval_min": "L2",
+      "persona": "agents/personas/sales-assistant.md",
+      "evals": "agents/evals/cases/sales-assistant.json"
+    },
+    {
+      "id": "guest-messenger",
+      "pillar": 3,
+      "status": "planned",
+      "intents": [
+        "guest-message"
+      ],
+      "skill": null,
+      "prompt": null,
+      "template": null,
+      "skill_repo": null,
+      "approval_min": "L2",
+      "persona": "agents/personas/guest-messenger.md",
+      "evals": "agents/evals/cases/guest-messenger.json"
+    },
+    {
+      "id": "sop-writer",
+      "pillar": 4,
+      "status": "planned",
+      "intents": [
+        "sop"
+      ],
+      "skill": null,
+      "prompt": null,
+      "template": null,
+      "skill_repo": null,
+      "approval_min": "L1",
+      "persona": "agents/personas/sop-writer.md",
+      "evals": "agents/evals/cases/sop-writer.json"
+    }
+  ],
+  "personas_readme": "agents/personas/README.md"
 }

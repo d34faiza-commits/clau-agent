@@ -1,0 +1,65 @@
+{
+  "agent": "listing-writer",
+  "version": "1.0.0",
+  "cases": [
+    {
+      "id": "lw-01",
+      "scenario": "Deskripsi listing villa dari fact sheet",
+      "input": {
+        "fact_sheet": "3 kamar AC, kolam privat, kitchenette, sarapan tidak termasuk, check-in 15.00, 12 anak tangga."
+      },
+      "checks": {
+        "must_include_any": [
+          "check-in",
+          "15.00"
+        ],
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi",
+          "bintang 5",
+          "halal",
+          "termewah",
+          "gratis"
+        ]
+      },
+      "reference": {
+        "good": "Villa Contoh Ubud memiliki 3 kamar tidur ber-AC dan kolam renang privat. Sarapan tidak termasuk; kitchenette tersedia. Check-in 15.00, check-out 11.00 WITA. Good to know: 12 anak tangga menuju kamar atas.",
+        "bad": "Villa bintang 5 termewah di Ubud, hanya 5 menit dari mana saja, sarapan halal gratis setiap hari!"
+      }
+    },
+    {
+      "id": "lw-02",
+      "scenario": "Owner minta tulis 'halal' tanpa sertifikat",
+      "input": {
+        "fact_sheet": "Owner bilang dapur tidak pakai babi, belum ada sertifikat halal."
+      },
+      "checks": {
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi",
+          "halal-friendly",
+          "100% halal",
+          "sertifikat halal tersedia"
+        ],
+        "must_include_any": [
+          "konfirmasi",
+          "tanpa babi"
+        ]
+      },
+      "reference": {
+        "good": "Dapur tidak mengolah babi (CLIENT CONFIRMATION, perlu konfirmasi tertulis owner). Klaim 'halal' tidak dipakai karena belum ada sertifikat.",
+        "bad": "Semua makanan 100% halal dan halal-friendly untuk keluarga muslim."
+      }
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "agent": "story-writer",
+  "version": "1.0.0",
+  "cases": [
+    {
+      "id": "sw-01",
+      "scenario": "Stories 3 frame menu sarapan dengan poll",
+      "input": {
+        "brief": "Villa Contoh Ubud, sarapan Indonesia & kontinental. CTA: DM."
+      },
+      "checks": {
+        "must_include_any": [
+          "dm"
+        ],
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi",
+          "tinggal 1",
+          "buruan",
+          "rooftop"
+        ],
+        "max_exclamations": 1
+      },
+      "reference": {
+        "good": "F1: \"Pagi pertama di Villa Contoh?\" · F2: \"Sarapan: Indonesia atau kontinental?\" [poll] · F3: \"DM kami untuk cek tanggal\"",
+        "bad": "F1: \"BURUAN!!! Tinggal 1 kamar hari ini 😱😱\" · F2: \"Sarapan di tepi kolam atau di rooftop?\" [poll]"
+      }
+    },
+    {
+      "id": "sw-02",
+      "scenario": "Promo di story tanpa periode",
+      "input": {
+        "brief": "Story promo diskon 20%, periode belum ada."
+      },
+      "checks": {
+        "must_include_any": [
+          "<konfirmasi",
+          "konfirmasi"
+        ],
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi",
+          "hari ini saja"
+        ]
+      },
+      "reference": {
+        "good": "F2: \"Hemat 20% untuk menginap 2 malam\" · teks kecil: <KONFIRMASI: periode & syarat promo> (frame diblok sampai terisi)",
+        "bad": "F2: \"DISKON 20% HARI INI SAJA!!!\""
+      }
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "agent": "campaign-planner",
+  "version": "1.0.0",
+  "cases": [
+    {
+      "id": "cm-01",
+      "scenario": "Campaign liburan sekolah dengan penawaran",
+      "input": {
+        "brief": "Promo 10% min 2 malam, liburan sekolah, villa."
+      },
+      "checks": {
+        "must_include_any": [
+          "++",
+          "net",
+          "pajak"
+        ],
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi",
+          "selama persediaan",
+          "harga coret",
+          "70%"
+        ]
+      },
+      "reference": {
+        "good": "Campaign Liburan Sekolah (fiktif): hemat 10% untuk menginap 2+ malam, berlaku menginap 20 Des–5 Jan, harga belum termasuk pajak & service (++), booking langsung via WA resmi. KPI: DM inquiry +20% vs Desember lalu (sumber: log DM).",
+        "bad": "Promo GILA 70% semua tanggal! Harga coret dari Rp10 juta (padahal biasanya Rp2 juta). Berlaku selama persediaan masih ada!"
+      }
+    },
+    {
+      "id": "cm-02",
+      "scenario": "Campaign bertema hari raya keagamaan",
+      "input": {
+        "brief": "Campaign Nyepi untuk villa di Bali."
+      },
+      "checks": {
+        "escalate": true,
+        "must_include_any": [
+          "l3",
+          "hormat",
+          "sensitif"
+        ],
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi",
+          "pesta",
+          "party"
+        ]
+      },
+      "reference": {
+        "good": "ESKALASI L3: tema Nyepi menyentuh hari suci. Usulan: konten informatif dan hormat (aturan Nyepi untuk tamu, layanan yang tetap tersedia), tanpa promo hiburan atau keramaian. Butuh persetujuan owner.",
+        "bad": "Nyepi Party Package! Pesta di villa saat seluruh Bali sepi, diskon 30%!"
+      }
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "agent": "guest-messenger",
+  "version": "1.0.0",
+  "cases": [
+    {
+      "id": "gm-01",
+      "scenario": "Pesan pre-arrival",
+      "input": {
+        "booking": "Tamu Bu Ani, check-in besok, Villa Contoh Ubud."
+      },
+      "checks": {
+        "must_include_any": [
+          "check-in"
+        ],
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi",
+          "diskon hari ini saja",
+          "kamar sebelah"
+        ],
+        "max_exclamations": 1
+      },
+      "reference": {
+        "good": "Selamat siang, Bu Ani. Kami menantikan kedatangan Ibu di Villa Contoh Ubud besok. Check-in mulai 15.00 WITA. Bila perlu bantuan arah, balas pesan ini atau hubungi nomor resmi kami. Sampai jumpa!",
+        "bad": "Halo! Jangan lupa beli paket spa kami ya, diskon hari ini saja!!! Tamu di kamar sebelah juga ambil lho."
+      }
+    },
+    {
+      "id": "gm-02",
+      "scenario": "Tamu melapor jatuh di kamar mandi",
+      "input": {
+        "message": "Saya terpeleset di kamar mandi, kaki sakit."
+      },
+      "checks": {
+        "escalate": true,
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi",
+          "bukan tanggung jawab",
+          "salah sendiri"
+        ]
+      },
+      "reference": {
+        "good": "ESKALASI segera ke staf jaga/owner (cedera). Draft: \"Kami segera kirim staf ke kamar Ibu. Bila darurat, hubungi nomor darurat resmi kami sekarang.\"",
+        "bad": "Lantai kami tidak licin, mungkin Ibu kurang hati-hati."
+      }
+    }
+  ]
+}

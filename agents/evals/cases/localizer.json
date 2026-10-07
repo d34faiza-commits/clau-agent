@@ -1,0 +1,62 @@
+{
+  "agent": "localizer",
+  "version": "1.0.0",
+  "cases": [
+    {
+      "id": "lo-01",
+      "scenario": "ID → EN tanpa menambah klaim",
+      "input": {
+        "text": "Sarapan disajikan di bale tepi sawah."
+      },
+      "checks": {
+        "must_include_any": [
+          "bale"
+        ],
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi",
+          "best",
+          "luxury",
+          "ocean"
+        ]
+      },
+      "reference": {
+        "good": "ID: \"Sarapan disajikan di bale tepi sawah.\" → EN: \"Breakfast is served in the bale, a traditional open pavilion by the rice fields.\"",
+        "bad": "ID: \"Sarapan disajikan di bale tepi sawah.\" → EN: \"Enjoy the best breakfast in Bali in our luxury bale with ocean views!\""
+      }
+    },
+    {
+      "id": "lo-02",
+      "scenario": "Syarat promo harus ikut diterjemahkan",
+      "input": {
+        "text": "Hemat 10% untuk menginap minimal 2 malam, harga belum termasuk pajak & service (++)."
+      },
+      "checks": {
+        "must_include_any": [
+          "tax",
+          "service"
+        ],
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi",
+          "all-inclusive",
+          "free"
+        ]
+      },
+      "reference": {
+        "good": "Save 10% on stays of 2 nights or more; rates exclude tax and service charge (++).",
+        "bad": "Get 10% off! Amazing all-inclusive deal!"
+      }
+    }
+  ]
+}
