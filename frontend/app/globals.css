@@ -1,6 +1,7 @@
 /* Design tokens — Enterprise UI brief v1.0 (docs/design/2026-10-07-enterprise-ui-brief.txt §31).
    Rasio: 70–80% netral (putih/slate), 15–20% navy (sidebar, teks), 5–10% teal (aksen & aksi utama).
-   Warna semantik hanya untuk status. Versi UI sebelumnya (palet Pasir) tersimpan di branch ui-v1-pasir. */
+   Warna semantik hanya untuk status. Versi UI sebelumnya (palet Pasir) tersimpan di branch ui-v1-pasir.
+   Nilai = CLAU-AI-CONTENT/design/tokens/tokens.json v1.1.0 semantic.app-v2 (cek kontras WCAG AA). */
 :root {
   --color-primary: #0f766e;
   --color-primary-hover: #115e59;
@@ -17,7 +18,7 @@
 
   --color-text: #0f172a;
   --color-text-secondary: #475569;
-  --color-text-muted: #94a3b8;
+  --color-text-muted: #64748b; /* slate 500: 4,76:1 di atas putih. #94a3b8 hanya non-teks */
   --color-text-label: #64748b;
 
   --color-border: #e2e8f0;
@@ -56,7 +57,7 @@ button { font: inherit; }
 .sidebar__brand { display: flex; align-items: center; justify-content: space-between; height: var(--topbar-h); padding: 0 16px; border-bottom: 1px solid var(--color-navy-line); }
 .sidebar nav { flex: 1; overflow-y: auto; padding: 12px 10px; }
 .nav-group { margin-bottom: 14px; }
-.nav-group__label { display: block; padding: 6px 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; }
+.nav-group__label { display: block; padding: 6px 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #94a3b8; }
 .nav-item { display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 10px; border-radius: var(--radius-sm); color: #cbd5e1; font-weight: 500; transition: background 0.15s, color 0.15s; }
 .nav-item:hover { background: rgba(148, 163, 184, 0.1); color: #fff; }
 .nav-item--active { background: var(--color-primary); color: #fff; }
