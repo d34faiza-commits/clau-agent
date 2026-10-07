@@ -1,32 +1,53 @@
-# Frontend (Next.js scaffold)
+# Frontend (Next.js) — UI v2 Enterprise (pratinjau)
 
-Platform "Tim AI": setiap agent di `../agents/registry.json` tampil sebagai karakter. Belum ada login, form request, atau koneksi ke backend.
+Pratinjau platform **CLAU · Bali AI Content Studio** mengikuti [`docs/design/2026-10-07-enterprise-ui-brief.txt`](../docs/design/2026-10-07-enterprise-ui-brief.txt). Belum ada login, database, atau koneksi ke backend AI.
 
-| Halaman | Isi |
+## Versi UI
+
+| Versi | Branch | Ringkasan |
+|---|---|---|
+| v1 "Pasir" | `ui-v1-pasir` | Palet brand CLAU: Pasir ±60% latar, Arang ±20% teks, Teal Laut ±10% aksen, Terracotta 3–5% highlight. Karakter ilustrasi per agent. **Disimpan** atas permintaan Dea Karisna (2026-10-07) |
+| v2 "Enterprise" | `ui-v2-enterprise` | Navy + Deep Teal + putih + slate, sidebar, dashboard SaaS, agent pakai monogram (tanpa kartun) |
+
+## Halaman
+
+| Route | Isi |
 |---|---|
-| `/` | Hero, carousel karakter, cara kerja (draft → manusia approve → manusia publish), tim per pilar |
-| `/agents/<id>` | Profil agent: keahlian, untuk siapa, approval minimum, kapan berhenti & eskalasi (dibaca saat build dari `../agents/personas/<id>.md`) |
+| `/` | Dashboard: KPI, proyek, perlu tindakan, aktivitas agent, jadwal tayang |
+| `/clients`, `/clients/<id>` | Daftar klien & profil (info bisnis, brand voice, akun sosial, riwayat konten) |
+| `/projects` | Proyek per klien dengan progres |
+| `/content` | Tab status (Draft → Tayang), tabel konten, modal **Buat konten** (tombol generate nonaktif sampai backend AI ada) |
+| `/calendar` | Kalender bulan dengan status semantik |
+| `/agents`, `/agents/<id>` | Kartu agent (monogram, status, level) & profil dari `../agents/personas/<id>.md` |
+| `/workflows` | Alur brief → agent → cek otomatis → review manusia → publish oleh manusia |
+| `/reports` | Produksi konten; engagement **tidak** ditampilkan sampai data platform asli tersedia |
+| `/settings` | Workspace & integrasi (read-only) |
 
-## Karakter
+## Data
 
-- Karakter **orisinal** CLAU, digambar sebagai SVG (`components/Character.tsx`), latar lanskap Nusantara (`components/Scene.tsx`). Tidak menyalin karakter/aset platform lain.
-- Setiap karakter memakai badge **"AI"** di dada dan label "Agent AI": karakter adalah ilustrasi agent, **bukan** staf manusia (`../agents/personas/README.md` prinsip 1).
-- Warna mengikuti `brand-guideline.md` §3: latar Pasir, teks Arang, aksen Teal Laut, highlight Terracotta. Seragam Teal Laut = agent aktif, seragam Batu (abu) = segera hadir (`UNIFORM` di `lib/team.ts`).
-- Logo = konsep 2 "Terasering" (`components/Logo.tsx`), sementara sampai logo vektor final.
-- Nama dan aksesori ada di `lib/team.ts`. Agent baru di registry wajib punya profil di file itu (build gagal bila tidak ada).
-- `ASSUMPTION`: nama karakter (Tara, Raka, Sekar, …) dan gaya ilustrasi semi-3D adalah draft UI atas permintaan Dea Karisna (2026-10-07). `brand-guideline.md` §6 saat ini menyebut ilustrasi *flat*; `NEXT ACTION`: approval Pak Indra/Dea untuk menambahkan gaya karakter ini ke brand guideline.
+- `lib/team.ts`: nama, peran, fokus agent (registry tetap sumber daftar agent).
+- `lib/demo.ts`: **DATA SIMULASI**. Nama properti fiktif mengandung "Contoh"; setiap halaman yang memakainya menampilkan label SIMULASI.
+
+## Design system
+
+- Token warna di `app/globals.css` (`:root`, brief §31). Ganti tema cukup di sana.
+- Font Inter. Ikon garis gaya Lucide di `components/Icon.tsx` (tanpa dependency tambahan).
+- Status: warna semantik + label teks (tidak mengandalkan warna saja).
 
 ## Jalankan
 
 ```bash
-cd frontend
-npm install
+npm ci
 npm run dev        # http://localhost:3000
-npm run build      # cek build produksi
+npm run build
 ```
 
-Versi: Next.js 16.3.8, React 19.3.0, TypeScript 5.9.3 (dipin; dicek dari npm registry 2026-10-04).
+## Keputusan yang masih terbuka
+
+- `ASSUMPTION`: nama produk "Bali AI Content Studio" (brief) vs "CLAU Content Studio" (brand-guideline). Di UI: wordmark **CLAU** + deskriptor **Bali AI Content Studio**.
+- `ASSUMPTION`: palet navy/slate (brief) berbeda dari token brand (stone/pasir). Perlu keputusan Pak Indra/Dea sebelum brand-guideline diubah.
+- Nama agent (Tara, Raka, …) masih draft.
 
 ## Batas
 
-UI tidak boleh punya tombol yang langsung publish ke platform sosial/OTA atau mengirim pesan ke tamu. Release dilakukan manusia di tools resmi platform (`core/AI-CONSTITUTION.md` §4).
+UI tidak boleh punya tombol yang langsung publish ke platform sosial/OTA atau mengirim pesan ke tamu (`core/AI-CONSTITUTION.md` §4).

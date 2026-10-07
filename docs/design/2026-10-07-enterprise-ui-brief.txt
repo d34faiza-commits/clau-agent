@@ -1,0 +1,1165 @@
+BALI AI CONTENT STUDIO
+ENTERPRISE UI REDESIGN BRIEF
+Version 1.0
+
+ROLE
+You are the senior product designer and frontend engineer responsible for redesigning the existing CLAU Content Studio interface into a premium, modern, enterprise-grade AI SaaS platform.
+
+IMPORTANT
+Do NOT rebuild the application from scratch if the current project already has working functionality.
+Preserve existing functionality, routes, components, data structures, and working features wherever possible.
+Focus first on the visual system, UX hierarchy, responsive layout, and professional SaaS appearance.
+
+The attached screenshot shows the current UI. Use it as the visual starting point and improve it substantially.
+
+==================================================
+1. PRODUCT POSITIONING
+==================================================
+
+Product name:
+
+BALI AI CONTENT STUDIO
+
+The product is an AI-powered content marketing platform for hospitality and tourism businesses in Bali.
+
+Target users:
+
+- Villa owners
+- Hotel and resort managers
+- Restaurant and cafe owners
+- Spa and wellness businesses
+- Beach clubs
+- Tourism and experience businesses
+- Marketing managers
+- Hospitality groups
+
+The application should feel like a serious B2B SaaS product.
+
+It must NOT feel like:
+
+- A children's application
+- An educational cartoon application
+- A generic AI chatbot
+- A crypto dashboard
+- A cheap template
+- An overly tropical Bali tourism website
+
+The product should feel:
+
+- Enterprise
+- Premium
+- Modern
+- Calm
+- Intelligent
+- Trustworthy
+- Professional
+- Hospitality-oriented
+- International
+- Scalable
+
+The UI should look credible enough for a hotel General Manager or professional marketing manager.
+
+==================================================
+2. CORE DESIGN DIRECTION
+==================================================
+
+Use:
+
+DEEP NAVY + DEEP TEAL + WHITE + SLATE
+
+The interface should be mostly neutral.
+
+Do not use many competing colors.
+
+Primary brand color:
+
+Deep Teal
+#0F766E
+
+Hover:
+
+Dark Teal
+#115E59
+
+Light brand background:
+
+Pale Teal
+#CCFBF1
+
+Primary dark:
+
+Deep Navy
+#0F172A
+
+Secondary Navy:
+
+#1E3A5F
+
+Main background:
+
+#F8FAFC
+
+Surface / cards:
+
+#FFFFFF
+
+Primary text:
+
+#0F172A
+
+Secondary text:
+
+#475569
+
+Muted text:
+
+#94A3B8
+
+Border:
+
+#E2E8F0
+
+Semantic colors:
+
+Success:
+#16A34A
+
+Warning:
+#D97706
+
+Error:
+#DC2626
+
+Info:
+#2563EB
+
+
+==================================================
+3. COLOR RULE
+==================================================
+
+Use color with discipline.
+
+Approximate visual ratio:
+
+70-80%:
+White / very light slate / neutral surfaces
+
+15-20%:
+Deep navy / dark text / sidebar
+
+5-10%:
+Deep teal brand accents
+
+Semantic colors should only be used for statuses and alerts.
+
+Do NOT use orange as a major brand color.
+
+Orange/amber can only be used for warning or pending states.
+
+Do NOT make every button green/teal.
+
+Primary CTA:
+Deep Teal
+
+Success:
+Green
+
+Warning:
+Amber
+
+Error:
+Red
+
+Information:
+Blue
+
+
+==================================================
+4. IMPORTANT BRAND PRINCIPLE
+==================================================
+
+Do NOT make the interface look excessively "Bali".
+
+Avoid excessive:
+
+- palm trees
+- tropical icons
+- flowers
+- beach illustrations
+- orange sunset graphics
+- tourism clichés
+
+Bali should appear in the CONTENT produced by the platform, not as decorative UI everywhere.
+
+The software itself should look like an international enterprise SaaS product.
+
+Example:
+
+Dashboard UI = Navy / Teal / White
+
+Generated client content = Bali villa, ocean, sunset, restaurant, spa, etc.
+
+
+==================================================
+5. TYPOGRAPHY
+==================================================
+
+Preferred font:
+
+Inter
+
+If Inter is unavailable, use a clean modern sans-serif fallback.
+
+Typography must be:
+
+- clean
+- highly readable
+- professional
+- consistent
+
+Use clear hierarchy:
+
+Large:
+Page titles
+
+Medium:
+Section headings
+
+Small:
+Metadata / labels
+
+Avoid oversized decorative typography.
+
+
+==================================================
+6. GLOBAL UI STYLE
+==================================================
+
+Use:
+
+- subtle borders
+- very soft shadows
+- clean spacing
+- 12-14px border radius
+- consistent padding
+- clear hierarchy
+- restrained animation
+- professional iconography
+
+Avoid:
+
+- excessive gradients
+- excessive shadows
+- huge rounded cards
+- cartoon UI
+- glowing AI effects everywhere
+- excessive glassmorphism
+- unnecessary animation
+
+
+==================================================
+7. SIDEBAR
+==================================================
+
+Introduce a professional enterprise sidebar.
+
+Suggested structure:
+
+BALI AI CONTENT STUDIO
+
+OVERVIEW
+- Dashboard
+
+WORKSPACE
+- Clients
+- Projects
+- Content
+- Calendar
+
+AI
+- AI Agents
+- Workflows
+
+BUSINESS
+- Reports
+
+SYSTEM
+- Settings
+
+
+Sidebar:
+
+Background:
+#0F172A
+
+Text:
+white / slate
+
+Active item:
+Deep Teal #0F766E
+
+Sidebar should be compact, elegant and easy to scan.
+
+On mobile, convert to a responsive drawer/bottom navigation as appropriate.
+
+
+==================================================
+8. TOP BAR
+==================================================
+
+Top navigation should include:
+
+- Current page title
+- Search
+- Notifications
+- User profile
+- Optional workspace/client selector
+
+Keep it clean.
+
+Avoid unnecessary controls.
+
+
+==================================================
+9. DASHBOARD
+==================================================
+
+Create a professional SaaS dashboard.
+
+Example structure:
+
+BALI AI CONTENT STUDIO
+
+Good morning, [User]
+
+Overview
+
+------------------------------------
+
+ACTIVE CLIENTS
+12
+
+CONTENT THIS MONTH
+148
+
+PENDING REVIEW
+16
+
+PUBLISHED
+132
+
+------------------------------------
+
+Recent Projects
+
+Client
+Project
+Status
+Progress
+Updated
+
+
+------------------------------------
+
+AI ACTIVITY
+
+Strategy Agent
+Copywriter
+Visual Agent
+QC Agent
+
+
+------------------------------------
+
+Upcoming Content
+
+Calendar preview
+
+
+Dashboard should prioritize useful information instead of decorative elements.
+
+
+==================================================
+10. CLIENTS
+==================================================
+
+Create a clean client management interface.
+
+Client card/list should show:
+
+Business name
+Business type
+Location
+Status
+Current project
+Content progress
+Last activity
+
+Example:
+
+Sunset Villa Uluwatu
+Villa · Uluwatu, Bali
+
+20 / 20 content completed
+
+Status:
+Active
+
+
+Client profile should contain:
+
+Business Information
+Brand
+Audience
+Services
+Products
+USPs
+Brand Voice
+Visual Identity
+Social Accounts
+Media Library
+Content History
+
+
+==================================================
+11. AI AGENTS
+==================================================
+
+The current screenshot uses cartoon characters for agents.
+
+Replace large cartoon character illustrations with a more sophisticated visual language.
+
+Preferred approach:
+
+- minimal abstract avatar
+- monogram
+- professional icon
+- geometric AI symbol
+- small branded illustration
+- subtle agent identity
+
+Do NOT use childish cartoon characters.
+
+Example agent card:
+
+------------------------------------
+T
+
+TARA
+AI COPYWRITER
+
+Instagram captions
+Hooks
+CTA
+Social copy
+
+● ACTIVE        L1
+Marketing & Content
+------------------------------------
+
+Another:
+
+------------------------------------
+R
+
+RAKA
+AI REELS STRATEGIST
+
+Hooks
+Shot lists
+Short-form scripts
+
+● ACTIVE        L2
+Marketing & Content
+------------------------------------
+
+Agent cards should be compact and professional.
+
+
+==================================================
+12. AI AGENT LEVELS
+==================================================
+
+Keep the concept of levels if it already exists.
+
+Example:
+
+L1
+Standard task execution
+
+L2
+Advanced task execution
+
+L3
+Strategic / high-level tasks
+
+Use a subtle badge.
+
+Do not make level badges visually dominant.
+
+
+==================================================
+13. AI AGENT COLOR SYSTEM
+==================================================
+
+Agent status:
+
+ACTIVE:
+Green dot
+
+PAUSED:
+Amber dot
+
+ERROR:
+Red dot
+
+OFFLINE:
+Slate dot
+
+Do not use random colors per agent.
+
+Agents belong to the same product system and should visually feel related.
+
+
+==================================================
+14. CONTENT WORKSPACE
+==================================================
+
+Content area should feel like a professional marketing production system.
+
+Suggested tabs:
+
+All
+Draft
+AI Review
+Human Review
+Approved
+Scheduled
+Published
+
+Each content item should show:
+
+Content type
+Client
+Campaign
+Status
+Created date
+Assigned agent
+Approval state
+
+
+==================================================
+15. CONTENT CREATION
+==================================================
+
+Primary CTA:
+
++ Create Content
+
+Possible options:
+
+Instagram Post
+Instagram Reel
+Story
+Google Business
+WhatsApp Promotion
+Blog
+Campaign
+
+
+The user should eventually be able to select:
+
+Client
+Campaign
+Content type
+Goal
+Tone
+Audience
+
+Then:
+
+GENERATE WITH AI
+
+
+==================================================
+16. CALENDAR
+==================================================
+
+Create a clean content calendar.
+
+Show:
+
+- scheduled content
+- draft content
+- approved content
+- published content
+
+Use semantic status colors carefully.
+
+Avoid making the calendar visually noisy.
+
+
+==================================================
+17. REPORTS
+==================================================
+
+Reports should look like enterprise analytics.
+
+Include:
+
+Content produced
+Content approved
+Content published
+Engagement
+Reach
+Clicks
+Leads
+
+Use clean charts.
+
+Do not exaggerate or invent business results.
+
+Use neutral chart styling with the brand teal as the primary data accent.
+
+
+==================================================
+18. EMPTY STATES
+==================================================
+
+Create polished empty states.
+
+Example:
+
+No clients yet
+
+"Add your first hospitality client to start building their content system."
+
+Button:
+
++ Add Client
+
+
+Do not use cartoon illustrations.
+
+Use minimal line icons or abstract graphics.
+
+
+==================================================
+19. BUTTONS
+==================================================
+
+Primary:
+
+Background:
+#0F766E
+
+Text:
+white
+
+Hover:
+#115E59
+
+Secondary:
+
+White / transparent
+Border #E2E8F0
+
+Text:
+#0F172A
+
+Danger:
+
+Use red only for destructive actions.
+
+
+==================================================
+20. CARDS
+==================================================
+
+Cards should use:
+
+Background:
+#FFFFFF
+
+Border:
+#E2E8F0
+
+Radius:
+12-14px
+
+Shadow:
+very subtle or none
+
+Avoid giant cards.
+
+Use compact information density appropriate for enterprise software.
+
+
+==================================================
+21. ICONOGRAPHY
+==================================================
+
+Use one consistent icon library if the project already has one.
+
+Icons should be:
+
+- simple
+- modern
+- line-based
+- consistent
+
+Do not mix multiple visual icon styles.
+
+
+==================================================
+22. LOGO / HEADER
+==================================================
+
+Brand:
+
+BALI AI CONTENT STUDIO
+
+Optional short brand:
+
+CLAU
+
+If the existing CLAU logo is already part of the project, preserve it where appropriate, but make the overall brand presentation more premium.
+
+Logo accent:
+
+Deep Teal #0F766E
+
+Text:
+
+Deep Navy #0F172A
+
+
+==================================================
+23. RESPONSIVE DESIGN
+==================================================
+
+The application must work on:
+
+Desktop
+Laptop
+Tablet
+Mobile
+
+Desktop:
+Sidebar visible
+
+Tablet:
+Compact sidebar
+
+Mobile:
+Drawer or bottom navigation
+
+Cards should adapt naturally.
+
+Tables should become scrollable or card-based on mobile.
+
+Never allow text or controls to overflow.
+
+
+==================================================
+24. ACCESSIBILITY
+==================================================
+
+Maintain:
+
+- sufficient contrast
+- visible focus states
+- readable font sizes
+- semantic buttons
+- keyboard navigation where appropriate
+- accessible labels
+
+Do not use color alone to communicate important status.
+
+
+==================================================
+25. MICRO-INTERACTIONS
+==================================================
+
+Use subtle professional animation.
+
+Examples:
+
+- button hover
+- card hover
+- sidebar transitions
+- modal transitions
+- loading states
+- AI generation progress
+
+Animation should feel fast and purposeful.
+
+Avoid flashy AI animations.
+
+
+==================================================
+26. AI GENERATION UX
+==================================================
+
+When the user clicks:
+
+GENERATE CONTENT
+
+Show a professional progress interface.
+
+Example:
+
+AI WORKFLOW
+
+✓ Client context loaded
+✓ Strategy generated
+✓ Content plan generated
+● Writing captions...
+○ Visual generation
+○ Quality control
+
+Do not just show a generic loading spinner.
+
+The user should understand what the AI is doing.
+
+
+==================================================
+27. AI WORKFLOW VISUALIZATION
+==================================================
+
+The system concept is:
+
+CLIENT DATA
+↓
+STRATEGY AGENT
+↓
+CONTENT PLANNER
+↓
+COPYWRITER
+↓
+VISUAL AGENT
+↓
+VIDEO AGENT
+↓
+QUALITY CONTROL
+↓
+HUMAN APPROVAL
+↓
+PUBLISHED
+
+
+Represent this cleanly when appropriate.
+
+Do not make the interface look like a complicated developer tool.
+
+
+==================================================
+28. HOSPITALITY-SPECIFIC UX
+==================================================
+
+The system should support:
+
+Villa
+Hotel
+Resort
+Restaurant
+Cafe
+Beach Club
+Spa
+Wellness
+Retreat
+Tourism Experience
+
+
+The interface should allow selecting:
+
+Business Type
+Location
+Target Audience
+Brand Positioning
+Tone
+Services
+Facilities
+Promotions
+Seasonal Campaigns
+
+
+==================================================
+29. DEMO CLIENT
+==================================================
+
+Use this demo client:
+
+Sunset Villa Uluwatu
+
+Business type:
+Villa
+
+Location:
+Uluwatu, Bali
+
+Target:
+Australian tourists
+
+Positioning:
+Luxury relaxed villa
+
+Tone:
+Elegant
+Relaxed
+Warm
+Premium
+
+
+Example generated content:
+
+"Wake up to the quiet side of Uluwatu."
+
+Do not hard-code fake business claims.
+
+
+==================================================
+30. CURRENT SCREENSHOT IMPROVEMENTS
+==================================================
+
+Compared with the attached current screenshot:
+
+CHANGE:
+
+1. Replace cartoon agent illustrations with sophisticated agent identity.
+2. Remove decorative orange dots and excessive orange.
+3. Use Deep Navy + Deep Teal as the core identity.
+4. Reduce excessive rounded-card feeling.
+5. Reduce card height where possible.
+6. Introduce enterprise sidebar.
+7. Improve typography hierarchy.
+8. Increase information density without making the UI cluttered.
+9. Use subtle borders and shadows.
+10. Make status colors semantic.
+11. Make the dashboard feel like a real B2B SaaS product.
+12. Keep the interface calm and premium.
+13. Keep existing functionality.
+14. Do not introduce unnecessary features just for visual purposes.
+
+
+==================================================
+31. DESIGN TOKENS
+==================================================
+
+Use centralized CSS variables/design tokens.
+
+Example:
+
+--color-primary: #0F766E;
+--color-primary-hover: #115E59;
+--color-primary-light: #CCFBF1;
+
+--color-navy: #0F172A;
+--color-navy-secondary: #1E3A5F;
+
+--color-background: #F8FAFC;
+--color-surface: #FFFFFF;
+
+--color-text: #0F172A;
+--color-text-secondary: #475569;
+--color-text-muted: #94A3B8;
+
+--color-border: #E2E8F0;
+
+--color-success: #16A34A;
+--color-warning: #D97706;
+--color-error: #DC2626;
+--color-info: #2563EB;
+
+Keep all major visual tokens centralized so the theme can be changed later without rewriting components.
+
+
+==================================================
+32. TECHNICAL PRINCIPLE
+==================================================
+
+Do not destroy working functionality just to redesign the UI.
+
+Before modifying:
+
+- inspect the existing project structure
+- identify framework
+- identify reusable components
+- identify routes
+- identify data models
+- identify current styling system
+
+Then implement the new design system systematically.
+
+Reuse components where practical.
+
+Avoid unnecessary dependencies.
+
+Keep the application maintainable and scalable.
+
+
+==================================================
+33. IMPORTANT: DO NOT OVERBUILD
+==================================================
+
+For this redesign:
+
+DO NOT build:
+
+- payment system
+- complex CRM
+- advanced analytics
+- full social publishing infrastructure
+- complicated authentication architecture
+- unnecessary AI models
+
+unless they already exist.
+
+This task is primarily:
+
+ENTERPRISE UI / UX REDESIGN
+
+while preserving existing functionality.
+
+
+==================================================
+34. FINAL VISUAL TARGET
+==================================================
+
+The final result should feel like a combination of:
+
+- premium B2B SaaS
+- modern AI platform
+- hospitality technology
+- professional marketing operations system
+
+It should feel appropriate for:
+
+A villa owner
+A hotel marketing manager
+A restaurant group
+A resort General Manager
+
+The first impression should be:
+
+"Ini software profesional."
+
+Not:
+
+"Ini aplikasi AI kartun."
+
+
+==================================================
+35. IMPLEMENTATION PROCESS
+==================================================
+
+Follow this sequence:
+
+STEP 1
+Inspect the current project.
+
+STEP 2
+Identify framework and existing component architecture.
+
+STEP 3
+Create centralized design tokens.
+
+STEP 4
+Implement typography.
+
+STEP 5
+Implement global colors.
+
+STEP 6
+Redesign navigation/sidebar.
+
+STEP 7
+Redesign dashboard.
+
+STEP 8
+Redesign client cards/list.
+
+STEP 9
+Redesign AI agent cards.
+
+STEP 10
+Redesign content workspace.
+
+STEP 11
+Redesign calendar and reports.
+
+STEP 12
+Implement responsive behavior.
+
+STEP 13
+Test all existing functionality.
+
+STEP 14
+Fix visual inconsistencies.
+
+STEP 15
+Run final build/lint/test.
+
+Do not stop after changing only the colors.
+
+
+==================================================
+36. QUALITY CHECK
+==================================================
+
+Before declaring completion, verify:
+
+[ ] No childish cartoon appearance
+[ ] No excessive orange
+[ ] Deep Navy + Deep Teal identity is consistent
+[ ] Typography is consistent
+[ ] Cards are compact and professional
+[ ] Sidebar works
+[ ] Responsive layout works
+[ ] Mobile layout works
+[ ] Existing routes still work
+[ ] Existing functionality still works
+[ ] No broken buttons
+[ ] No broken forms
+[ ] No console errors
+[ ] No unnecessary dependencies
+[ ] Design tokens are centralized
+[ ] Accessibility is reasonable
+[ ] UI looks enterprise-grade
+
+
+==================================================
+37. FINAL INSTRUCTION TO CLAUDE
+==================================================
+
+Use the attached screenshot as the current-state reference.
+
+Do not merely describe what should be changed.
+
+Actually implement the redesign in the existing project.
+
+If you have access to the project files, inspect them first and then modify the relevant components.
+
+If a decision is unclear, prioritize:
+
+1. Professional enterprise SaaS appearance
+2. Usability
+3. Consistency
+4. Maintainability
+5. Existing functionality
+6. Visual polish
+
+Do not ask me to manually redesign each component one by one.
+
+Make the redesign coherent as one complete design system.
+
+At the end, provide a concise summary of:
+
+- files changed
+- design system implemented
+- major UI changes
+- functionality preserved
+- any issues that still need attention
+
+END OF BRIEF
