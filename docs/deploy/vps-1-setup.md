@@ -11,7 +11,7 @@
 | 7a–7b. Node 22 + Nginx + swap 2 GB | DATA FINAL — 2026-10-07 |
 | 7c. Tailscale | DATA FINAL — 2026-10-07: `clau-vps1` join tailnet milik Dea Karisna. NEXT ACTION: disable key expiry, undang Pak Indra sebagai Admin, ACL setelah VPS 2 join |
 | 8. Deploy frontend (akses via IP, HTTP) | DATA FINAL — 2026-10-07: service `clau-frontend` active, Nginx proxy ke 127.0.0.1:3000, halaman registry tampil di `http://<IP_VPS_1>` |
-| 9. Auto-deploy dari repo (pull-based) | NEXT ACTION — `scripts/deploy/vps1-deploy.sh` + `clau-deploy.timer` |
+| 9. Auto-deploy dari repo (pull-based) | DATA FINAL — 2026-10-07: `clau-deploy.timer` aktif (5 menit), service frontend memakai `/srv/clau/current` |
 | 10. Domain + Cloudflare + SSL | Ditunda — domain belum ditentukan |
 | 11. Backup config (tanpa `.env`) | Ditunda — setelah domain & Tailscale |
 
