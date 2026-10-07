@@ -10,7 +10,7 @@
 | 6. Hardening (UFW, sshd, fail2ban, unattended-upgrades) | DATA FINAL — diverifikasi: UFW active (22/80/443), root & password login ditolak, fail2ban jail `sshd` active |
 | 7a–7b. Node 22 + Nginx + swap 2 GB | DATA FINAL — 2026-10-07 |
 | 7c. Tailscale | NEXT ACTION — memakai tailnet milik Pak Indra; join dilakukan bersama Pak Indra |
-| 8. Deploy frontend (akses via IP, HTTP) | Berjalan — deploy key read-only `clau-vps1` sudah ditambahkan |
+| 8. Deploy frontend (akses via IP, HTTP) | DATA FINAL — 2026-10-07: service `clau-frontend` active, Nginx proxy ke 127.0.0.1:3000, halaman registry tampil di `http://<IP_VPS_1>` |
 | 9. Domain + Cloudflare + SSL | Ditunda — domain belum ditentukan |
 | 10. Backup config (tanpa `.env`) | Ditunda — setelah domain & Tailscale |
 
