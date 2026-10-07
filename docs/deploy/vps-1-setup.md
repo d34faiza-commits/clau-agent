@@ -165,7 +165,7 @@ cd frontend && npm ci && npm run build && sudo systemctl restart clau-frontend
 
 ## 6. Bagian 9 — Auto-Deploy dari Repo
 
-Setiap 5 menit VPS 1 mengecek branch `main`. Bila ada perubahan di `frontend/` atau `agents/registry.json`, server build rilis baru **di samping** rilis yang sedang jalan, lalu pindah ke rilis baru. Commit yang hanya mengubah dokumen tidak memicu build.
+Setiap 5 menit VPS 1 mengecek branch `main`. Bila ada perubahan di `frontend/`, `agents/registry.json`, atau `agents/personas/`, server build rilis baru **di samping** rilis yang sedang jalan, lalu pindah ke rilis baru. Commit yang hanya mengubah dokumen tidak memicu build.
 
 | Sifat | Keterangan |
 |---|---|

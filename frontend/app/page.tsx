@@ -1,58 +1,86 @@
-import registry from "../../agents/registry.json";
+import AgentCard from "../components/AgentCard";
+import Carousel from "../components/Carousel";
+import { PILLARS, getTeam } from "../lib/team";
 
-type Agent = {
-  id: string;
-  pillar: number;
-  status: string;
-  intents: string[];
-  skill: string | null;
-  prompt: string | null;
-  template: string | null;
-  approval_min: string;
-};
-
-const PILLARS: Record<number, string> = {
-  1: "Marketing & Content",
-  2: "Sales & Reservations",
-  3: "Guest Experience & Reputation",
-  4: "Operations",
-  5: "Analytics & Insights",
-};
+const STEPS = [
+  ["Kirim brief", "Ceritakan kebutuhan: caption, balasan review, kalender konten, atau laporan."],
+  ["Agent menyiapkan draft", "Agent AI yang sesuai keahliannya menulis draft dengan gaya brand properti kamu."],
+  ["Manusia mengecek", "Tim kamu mereview dan menyetujui. Draft penting dicek orang kedua."],
+  ["Kamu yang publish", "Konten dipublish atau dikirim oleh manusia lewat aplikasi resmi, bukan oleh AI."],
+];
 
 export default function Home() {
-  const agents = registry.agents as Agent[];
+  const team = getTeam();
+  const active = team.filter((m) => m.status === "active");
+  const pillars = Object.entries(PILLARS)
+    .map(([n, name]) => ({ n: Number(n), name, members: team.filter((m) => m.pillar === Number(n)) }))
+    .filter((p) => p.members.length > 0);
+
   return (
-    <main>
-      <h1>CLAU AI Agents</h1>
-      <p>
-        Scaffold platform. Agent hanya menyiapkan draft. Publish, kirim ke tamu, dan approval tetap dilakukan manusia
-        (<code>core/AI-CONSTITUTION.md</code> §4).
-      </p>
-      <table style={{ borderCollapse: "collapse", width: "100%" }}>
-        <thead>
-          <tr>
-            {["Agent", "Pilar", "Intent", "Artefak", "Approval min", "Status"].map((h) => (
-              <th key={h} style={{ textAlign: "left", borderBottom: "1px solid #ccc", padding: 6 }}>
-                {h}
-              </th>
+    <>
+      <section className="hero">
+        <div className="container">
+          <p className="eyebrow">CLAU AI · Tim AI untuk hospitality Indonesia</p>
+          <h1>
+            Kenalan dengan tim AI <span className="accent">properti kamu</span>
+          </h1>
+          <p className="lead">
+            {team.length} agent AI dengan keahlian masing-masing: dari caption dan review sampai laporan bulanan. Mereka
+            menyiapkan draft. Kamu dan tim yang memutuskan.
+          </p>
+          <div className="stats">
+            <span>
+              <b>{active.length}</b> aktif
+            </span>
+            <span>
+              <b>{team.length - active.length}</b> segera hadir
+            </span>
+            <span>
+              <b>{pillars.length}</b> pilar
+            </span>
+          </div>
+        </div>
+        <div className="container container--wide">
+          <Carousel label="Tim agent AI">
+            {team.map((m) => (
+              <AgentCard key={m.id} member={m} />
             ))}
-          </tr>
-        </thead>
-        <tbody>
-          {agents.map((a) => (
-            <tr key={a.id}>
-              <td style={{ padding: 6 }}>{a.id}</td>
-              <td style={{ padding: 6 }}>
-                {a.pillar} · {PILLARS[a.pillar]}
-              </td>
-              <td style={{ padding: 6 }}>{a.intents.join(", ")}</td>
-              <td style={{ padding: 6 }}>{a.skill ?? a.prompt ?? a.template ?? "—"}</td>
-              <td style={{ padding: 6 }}>{a.approval_min}</td>
-              <td style={{ padding: 6 }}>{a.status}</td>
-            </tr>
+          </Carousel>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="container">
+          <h2>Cara kerja</h2>
+          <ol className="steps">
+            {STEPS.map(([title, body], i) => (
+              <li key={title}>
+                <span className="steps__n">{i + 1}</span>
+                <h3>{title}</h3>
+                <p>{body}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section className="section section--muted">
+        <div className="container">
+          <h2>Tim per pilar</h2>
+          {pillars.map((p) => (
+            <div key={p.n} className="pillar">
+              <h3 className="pillar__title">
+                <span className="pillar__n">{p.n}</span> {p.name}
+              </h3>
+              <div className="grid">
+                {p.members.map((m) => (
+                  <AgentCard key={m.id} member={m} />
+                ))}
+              </div>
+            </div>
           ))}
-        </tbody>
-      </table>
-    </main>
+        </div>
+      </section>
+    </>
   );
 }
