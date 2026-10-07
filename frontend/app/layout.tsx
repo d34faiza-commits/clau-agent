@@ -6,8 +6,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata = {
-  title: "CLAU · Bali AI Content Studio",
-  description: "Platform konten AI untuk bisnis hospitality di Bali. Agent AI menyiapkan draft, manusia yang memutuskan.",
+  title: "CLAU AI Content Studio",
+  description: "Platform konten AI untuk bisnis hospitality Indonesia. Agent AI menyiapkan draft, manusia yang memutuskan.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -41,20 +41,22 @@ Setiap file `<agent-id>.md` berisi:
 
 ## 4. Daftar Agent / Agents
 
-| Agent | Peran | Status | Kartu |
-|---|---|---|---|
-| caption-writer | Penulis caption media sosial | active | [caption-writer.md](./caption-writer.md) |
-| reel-scripter | Penulis naskah reel/video pendek | active | [reel-scripter.md](./reel-scripter.md) |
-| story-writer | Penulis rangkaian Stories | active | [story-writer.md](./story-writer.md) |
-| listing-writer | Penulis deskripsi listing OTA | active | [listing-writer.md](./listing-writer.md) |
-| review-responder | Penanggap review tamu | active | [review-responder.md](./review-responder.md) |
-| calendar-planner | Perencana kalender konten | active | [calendar-planner.md](./calendar-planner.md) |
-| campaign-planner | Perencana campaign musiman | active | [campaign-planner.md](./campaign-planner.md) |
-| localizer | Penyelaras bahasa ID ↔ EN | active | [localizer.md](./localizer.md) |
-| report-builder | Penyusun laporan bulanan | active | [report-builder.md](./report-builder.md) |
-| sales-assistant | Asisten inquiry & reservasi | planned | [sales-assistant.md](./sales-assistant.md) |
-| guest-messenger | Komunikasi tamu (pre-arrival, in-stay) | planned | [guest-messenger.md](./guest-messenger.md) |
-| sop-writer | Penulis SOP operasional | planned | [sop-writer.md](./sop-writer.md) |
+| Agent | Nama di UI | Peran | Status | Kartu |
+|---|---|---|---|---|
+| caption-writer | Tara | Penulis caption media sosial | active | [caption-writer.md](./caption-writer.md) |
+| reel-scripter | Raka | Penulis naskah reel/video pendek | active | [reel-scripter.md](./reel-scripter.md) |
+| story-writer | Sekar | Penulis rangkaian Stories | active | [story-writer.md](./story-writer.md) |
+| listing-writer | Bayu | Penulis deskripsi listing OTA | active | [listing-writer.md](./listing-writer.md) |
+| review-responder | Laras | Penanggap review tamu | active | [review-responder.md](./review-responder.md) |
+| calendar-planner | Dimas | Perencana kalender konten | active | [calendar-planner.md](./calendar-planner.md) |
+| campaign-planner | Ayu | Perencana campaign musiman | active | [campaign-planner.md](./campaign-planner.md) |
+| localizer | Nara | Penyelaras bahasa ID ↔ EN | active | [localizer.md](./localizer.md) |
+| report-builder | Galih | Penyusun laporan bulanan | active | [report-builder.md](./report-builder.md) |
+| sales-assistant | Intan | Asisten inquiry & reservasi | planned | [sales-assistant.md](./sales-assistant.md) |
+| guest-messenger | Sari | Komunikasi tamu (pre-arrival, in-stay) | planned | [guest-messenger.md](./guest-messenger.md) |
+| sop-writer | Teguh | Penulis SOP operasional | planned | [sop-writer.md](./sop-writer.md) |
+
+Nama di UI disetujui Dea Karisna (2026-10-07). Nama adalah identitas agent AI, bukan nama staf: UI selalu menampilkan label agent AI (prinsip 1).
 
 Agent `planned` sudah punya kartu supaya gaya dan batasnya disepakati **sebelum** pilarnya diaktifkan. Kartu tidak membuat agent boleh dijalankan.
 

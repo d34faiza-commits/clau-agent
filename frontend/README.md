@@ -1,13 +1,13 @@
-# Frontend (Next.js) — UI v2 Enterprise (pratinjau)
+# Frontend (Next.js) — UI v2 Enterprise
 
-Pratinjau platform **CLAU · Bali AI Content Studio** mengikuti [`docs/design/2026-10-07-enterprise-ui-brief.txt`](../docs/design/2026-10-07-enterprise-ui-brief.txt). Belum ada login, database, atau koneksi ke backend AI.
+Platform **CLAU AI Content Studio** (tampilan v2) mengikuti [`docs/design/2026-10-07-enterprise-ui-brief.txt`](../docs/design/2026-10-07-enterprise-ui-brief.txt). Belum ada login, database, atau koneksi ke backend AI.
 
 ## Versi UI
 
 | Versi | Branch | Ringkasan |
 |---|---|---|
 | v1 "Pasir" | `ui-v1-pasir` | Palet brand CLAU: Pasir ±60% latar, Arang ±20% teks, Teal Laut ±10% aksen, Terracotta 3–5% highlight. Karakter ilustrasi per agent. **Disimpan** atas permintaan Dea Karisna (2026-10-07) |
-| v2 "Enterprise" | `ui-v2-enterprise` | Navy + Deep Teal + putih + slate, sidebar, dashboard SaaS, agent pakai monogram (tanpa kartun) |
+| v2 "Enterprise" | `main` (live di VPS 1 sejak 2026-10-07) | Navy + Deep Teal + putih + slate, sidebar, dashboard SaaS, agent pakai monogram (tanpa kartun) |
 
 ## Halaman
 
@@ -42,11 +42,11 @@ npm run dev        # http://localhost:3000
 npm run build
 ```
 
-## Keputusan yang masih terbuka
+## Keputusan (Dea Karisna, 2026-10-07) — `DATA FINAL`
 
-- `ASSUMPTION`: nama produk "Bali AI Content Studio" (brief) vs "CLAU Content Studio" (brand-guideline). Di UI: wordmark **CLAU** + deskriptor **Bali AI Content Studio**.
-- `ASSUMPTION`: palet navy/slate (brief) berbeda dari token brand (stone/pasir). Perlu keputusan Pak Indra/Dea sebelum brand-guideline diubah.
-- Nama agent (Tara, Raka, …) masih draft.
+- Nama produk: **CLAU AI Content Studio** (wordmark CLAU + deskriptor "AI Content Studio").
+- Palet UI produk v2: navy + deep teal + putih + slate (token di `app/globals.css`). Dicatat di `CLAU-AI-CONTENT/design/brand/brand-guideline.md` §3b.
+- Nama agent (Tara, Raka, Sekar, Bayu, Laras, Dimas, Ayu, Nara, Galih, Intan, Sari, Teguh) disetujui.
 
 ## Batas
 

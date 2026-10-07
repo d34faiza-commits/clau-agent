@@ -9,7 +9,7 @@ export type Agent = {
 };
 
 export type Member = Agent & {
-  /** Nama panggilan agent. Draft UI, menunggu approval owner. */
+  /** Nama panggilan agent (disetujui Dea Karisna, 2026-10-07). */
   name: string;
   role: string;
   tagline: string;

@@ -16,7 +16,7 @@ export default function Logo() {
       <LogoMark />
       <span className="logo__text">
         <span className="logo__name">CLAU</span>
-        <span className="logo__desc">Bali AI Content Studio</span>
+        <span className="logo__desc">AI Content Studio</span>
       </span>
     </span>
   );

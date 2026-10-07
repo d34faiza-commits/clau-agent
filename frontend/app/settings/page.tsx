@@ -12,7 +12,7 @@ export default function Settings() {
         <Card title="Workspace" flush>
           <dl className="facts">
             <dt>Nama</dt>
-            <dd>CLAU · Bali AI Content Studio</dd>
+            <dd>CLAU AI Content Studio</dd>
             <dt>Zona waktu</dt>
             <dd>WITA (UTC+8)</dd>
             <dt>Bahasa</dt>
