@@ -7,7 +7,21 @@ Platform **CLAU AI Content Studio** (tampilan v2) mengikuti [`docs/design/2026-1
 | Versi | Branch | Ringkasan |
 |---|---|---|
 | v1 "Pasir" | `ui-v1-pasir` | Palet brand CLAU: Pasir ±60% latar, Arang ±20% teks, Teal Laut ±10% aksen, Terracotta 3–5% highlight. Karakter ilustrasi per agent. **Disimpan** atas permintaan Dea Karisna (2026-10-07) |
-| v2 "Enterprise" | `main` (live di VPS 1 sejak 2026-10-07) | Navy + Deep Teal + putih + slate, sidebar, dashboard SaaS, agent pakai monogram (tanpa kartun) |
+| v2 "Enterprise" | `ui-v2-enterprise` (snapshot tersimpan) · `main` (live di VPS 1 sejak 2026-10-07) | Navy + Deep Teal + putih + slate, sidebar, dashboard SaaS, agent pakai monogram (tanpa kartun) |
+
+### Snapshot palet v2 (disimpan atas permintaan Dea Karisna, 2026-10-07)
+
+| Item | Nilai |
+|---|---|
+| Nama produk | CLAU AI Content Studio |
+| Aksi utama & aksen | Deep Teal `#0F766E` (hover `#115E59`, muda `#CCFBF1`) · ± 5–10% |
+| Sidebar & teks utama | Deep Navy `#0F172A` (sekunder `#1E3A5F`) · ± 15–20% |
+| Latar & permukaan | Slate 50 `#F8FAFC` + putih `#FFFFFF` · ± 70–80% |
+| Teks sekunder / muted | `#475569` / `#64748B` (`#94A3B8` hanya non-teks) |
+| Garis | `#E2E8F0` |
+| Status | Success `#16A34A` · Warning `#D97706` · Error `#DC2626` · Info `#2563EB` (selalu dengan label) |
+| Font | Inter |
+| Sumber token | `CLAU-AI-CONTENT/design/tokens/tokens.json` v1.1.0 `semantic.app-v2` (branch snapshot `tokens-v1.1.0-app-v2`) |
 
 ## Halaman
 
