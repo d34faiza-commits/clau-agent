@@ -24,6 +24,9 @@
 | `scripts/` | `sync-submodules.sh`, `check-core-pins.sh` |
 | `SUBMODULE.md` | Panduan submodule & GitHub Actions |
 | `.github/workflows/` | `ci.yml`, `cross-repo-validate.yml`, `sync-submodules.yml`, `notify-downstream.yml` |
+| `docs/post-vps-checklist.md` | **Pengingat:** langkah wajib setelah VPS 1 & 2 siap (AI provider, eval 28 kasus, aktivasi pilar 2–4) |
+
+> 🔔 **Pengingat untuk agent:** bila owner menyebut VPS sudah siap, buka `docs/post-vps-checklist.md` dan ingatkan langkah-langkahnya.
 
 ## 3. Command
 
