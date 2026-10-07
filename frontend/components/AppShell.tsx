@@ -5,90 +5,125 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import Icon, { type IconName } from "./Icon";
 import Logo from "./Logo";
+import { L, useL, useLang } from "../lib/i18n";
+import { useTheme } from "../lib/theme";
 
-const NAV: { group: string; items: { href: string; label: string; icon: IconName }[] }[] = [
-  { group: "Ringkasan", items: [{ href: "/", label: "Dashboard", icon: "dashboard" }] },
-  {
-    group: "Workspace",
-    items: [
-      { href: "/clients", label: "Klien", icon: "users" },
-      { href: "/projects", label: "Proyek", icon: "folder" },
-      { href: "/content", label: "Konten", icon: "content" },
-      { href: "/calendar", label: "Kalender", icon: "calendar" },
-    ],
-  },
-  {
-    group: "AI",
-    items: [
-      { href: "/agents", label: "Agent AI", icon: "bot" },
-      { href: "/workflows", label: "Alur kerja", icon: "workflow" },
-    ],
-  },
-  { group: "Bisnis", items: [{ href: "/reports", label: "Laporan", icon: "reports" }] },
-  { group: "Sistem", items: [{ href: "/settings", label: "Pengaturan", icon: "settings" }] },
-];
+type Item = { href: string; en: string; id: string; icon: IconName; count?: number };
+type Group = { en: string; id: string; items: Item[] };
 
-const TITLES: [string, string][] = NAV.flatMap((g) => g.items.map((i) => [i.href, i.label] as [string, string]));
+export default function AppShell({ children, activeAgents }: { children: ReactNode; activeAgents: number }) {
+  const NAV: Group[] = [
+    { en: "Home", id: "Beranda", items: [{ href: "/", en: "Dashboard", id: "Dashboard", icon: "dashboard" }] },
+    {
+      en: "AI Workforce",
+      id: "Tim AI",
+      items: [
+        { href: "/team", en: "My AI Team", id: "Tim AI Saya", icon: "team", count: activeAgents },
+        { href: "/agents", en: "Agents", id: "Agent", icon: "bot" },
+        { href: "/workflows", en: "Workflows", id: "Alur kerja", icon: "workflow" },
+      ],
+    },
+    {
+      en: "Workspace",
+      id: "Workspace",
+      items: [
+        { href: "/clients", en: "Clients", id: "Klien", icon: "users" },
+        { href: "/projects", en: "Projects", id: "Proyek", icon: "folder" },
+        { href: "/content", en: "Content", id: "Konten", icon: "content" },
+        { href: "/calendar", en: "Calendar", id: "Kalender", icon: "calendar" },
+      ],
+    },
+    { en: "Insights", id: "Insight", items: [{ href: "/reports", en: "Reports", id: "Laporan", icon: "reports" }] },
+    { en: "System", id: "Sistem", items: [{ href: "/settings", en: "Settings", id: "Pengaturan", icon: "settings" }] },
+  ];
 
-function isActive(path: string, href: string) {
-  return href === "/" ? path === "/" : path === href || path.startsWith(`${href}/`);
-}
-
-export default function AppShell({ children }: { children: ReactNode }) {
   const path = usePathname() ?? "/";
   const [open, setOpen] = useState(false);
+  const { lang, setLang } = useLang();
+  const { resolved, setPref } = useTheme();
+  const tr = useL();
   useEffect(() => setOpen(false), [path]);
-  const title = [...TITLES].reverse().find(([href]) => isActive(path, href))?.[1] ?? "CLAU";
+
+  const isActive = (href: string) => (href === "/" ? path === "/" : path === href || path.startsWith(`${href}/`));
+  const current = NAV.flatMap((g) => g.items).filter((i) => isActive(i.href)).pop();
+  const dark = resolved === "dark";
 
   return (
     <div className="shell">
-      <aside className={`sidebar${open ? " sidebar--open" : ""}`} aria-label="Navigasi utama">
+      <aside className={`sidebar${open ? " sidebar--open" : ""}`} aria-label={tr("Main navigation", "Navigasi utama")}>
         <div className="sidebar__brand">
           <Link href="/" aria-label="Dashboard">
             <Logo />
           </Link>
-          <button type="button" className="icon-btn icon-btn--ghost sidebar__close" onClick={() => setOpen(false)} aria-label="Tutup menu">
+          <button type="button" className="icon-btn icon-btn--ghost sidebar__close" onClick={() => setOpen(false)} aria-label={tr("Close menu", "Tutup menu")}>
             <Icon name="x" />
           </button>
         </div>
         <nav>
           {NAV.map((g) => (
-            <div key={g.group} className="nav-group">
-              <span className="nav-group__label">{g.group}</span>
+            <div key={g.en} className="nav-group">
+              <span className="nav-group__label">{lang === "id" ? g.id : g.en}</span>
               {g.items.map((i) => (
-                <Link key={i.href} href={i.href} className={`nav-item${isActive(path, i.href) ? " nav-item--active" : ""}`} aria-current={isActive(path, i.href) ? "page" : undefined}>
+                <Link
+                  key={i.href}
+                  href={i.href}
+                  className={`nav-item${isActive(i.href) ? " nav-item--active" : ""}`}
+                  aria-current={isActive(i.href) ? "page" : undefined}
+                  title={lang === "id" ? i.id : i.en}
+                >
                   <Icon name={i.icon} size={18} />
-                  {i.label}
+                  {lang === "id" ? i.id : i.en}
+                  {i.count !== undefined && <span className="nav-item__count">{i.count}</span>}
                 </Link>
               ))}
             </div>
           ))}
         </nav>
         <div className="sidebar__foot">
-          <Icon name="shield" size={16} />
-          AI hanya menyiapkan draft. Manusia yang menyetujui dan mempublish.
+          <b>
+            <Icon name="shield" size={14} />
+            <L en="Humans stay in control" id="Manusia tetap memegang kendali" />
+          </b>
+          <L en="Agents prepare drafts. Your team approves and publishes." id="Agent menyiapkan draft. Tim kamu yang menyetujui dan mempublish." />
         </div>
       </aside>
-      {open && <button type="button" className="scrim" aria-label="Tutup menu" onClick={() => setOpen(false)} />}
+      {open && <button type="button" className="scrim" aria-label={tr("Close menu", "Tutup menu")} onClick={() => setOpen(false)} />}
 
       <div className="main">
         <header className="topbar">
-          <button type="button" className="icon-btn icon-btn--ghost topbar__menu" onClick={() => setOpen(true)} aria-label="Buka menu">
+          <button type="button" className="icon-btn icon-btn--ghost topbar__menu" onClick={() => setOpen(true)} aria-label={tr("Open menu", "Buka menu")}>
             <Icon name="menu" />
           </button>
-          <span className="topbar__title">{title}</span>
-          <div className="topbar__search" title="Pencarian tersedia setelah backend tersambung">
+          <span className="topbar__title">{current ? (lang === "id" ? current.id : current.en) : "CLAU"}</span>
+          <div className="topbar__search" title={tr("Search will be available once the backend is connected", "Pencarian tersedia setelah backend tersambung")}>
             <Icon name="search" size={16} />
-            <input type="search" placeholder="Cari klien, konten, agent…" aria-label="Cari" disabled />
+            <input type="search" placeholder={tr("Search clients, content, agents…", "Cari klien, konten, agent…")} aria-label={tr("Search", "Cari")} disabled />
           </div>
-          <span className="workspace" title="Mode pratinjau dengan data simulasi">
-            <span className="workspace__dot" />
-            Pratinjau · Simulasi
+          <span className="pill" title={tr("Preview with sample data", "Pratinjau dengan data contoh")}>
+            <span className="pill__dot" />
+            <L en="Simulation mode" id="Mode simulasi" />
           </span>
-          <button type="button" className="icon-btn icon-btn--ghost" aria-label="Notifikasi (belum ada)" disabled>
+          <div className="seg" role="group" aria-label={tr("Language", "Bahasa")}>
+            <button type="button" aria-pressed={lang === "en"} onClick={() => setLang("en")} title="English">
+              EN
+            </button>
+            <button type="button" aria-pressed={lang === "id"} onClick={() => setLang("id")} title="Bahasa Indonesia">
+              ID
+            </button>
+          </div>
+          <button
+            type="button"
+            className="icon-btn icon-btn--ghost"
+            onClick={() => setPref(dark ? "light" : "dark")}
+            aria-label={dark ? tr("Switch to light mode", "Ganti ke mode terang") : tr("Switch to dark mode", "Ganti ke mode gelap")}
+            title={dark ? tr("Light mode", "Mode terang") : tr("Dark mode", "Mode gelap")}
+          >
+            <Icon name={dark ? "sun" : "moon"} size={18} />
+          </button>
+          <button type="button" className="icon-btn icon-btn--ghost topbar__notify" aria-label={tr("Notifications (not available yet)", "Notifikasi (belum tersedia)")} disabled>
             <Icon name="bell" size={18} />
           </button>
-          <span className="avatar" title="Owner (pratinjau)">
+          <span className="avatar-user" title={tr("Owner (preview)", "Owner (pratinjau)")}>
             <Icon name="user" size={16} />
           </span>
         </header>

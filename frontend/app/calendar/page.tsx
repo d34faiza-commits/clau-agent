@@ -1,14 +1,15 @@
 import { PageHeader, SimNotice } from "../../components/ui";
 import { CONTENT, SIM_DATE, STATUS, STATUS_ORDER, clientName } from "../../lib/demo";
+import { L } from "../../lib/i18n";
 
-export const metadata = { title: "Kalender · CLAU" };
+export const metadata = { title: "Calendar · CLAU" };
 
-const DOW = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
+const DOW = [["Mon", "Sen"], ["Tue", "Sel"], ["Wed", "Rab"], ["Thu", "Kam"], ["Fri", "Jum"], ["Sat", "Sab"], ["Sun", "Min"]];
 
 export default function CalendarPage() {
   const [y, m] = SIM_DATE.split("-").map(Number);
   const first = new Date(Date.UTC(y, m - 1, 1));
-  const offset = (first.getUTCDay() + 6) % 7; // Senin = 0
+  const offset = (first.getUTCDay() + 6) % 7;
   const start = new Date(Date.UTC(y, m - 1, 1 - offset));
   const days = Array.from({ length: 42 }, (_, i) => {
     const d = new Date(start);
@@ -18,21 +19,17 @@ export default function CalendarPage() {
 
   return (
     <>
-      <PageHeader title="Kalender konten" subtitle="Oktober 2026 · tanggal tayang per konten" />
+      <PageHeader title={<L en="Content calendar" id="Kalender konten" />} subtitle={<L en="October 2026 · publish dates for every client" id="Oktober 2026 · tanggal tayang semua klien" />} />
       <SimNotice />
-      <div className="legend" style={{ marginBottom: 12 }}>
+      <div className="legend">
         {STATUS_ORDER.map((s) => (
-          <span key={s} className={`badge badge--${STATUS[s].tone}`}>
-            {STATUS[s].label}
-          </span>
+          <span key={s} className={`badge badge--${STATUS[s].tone}`}><L en={STATUS[s].en} id={STATUS[s].id} /></span>
         ))}
       </div>
       <section className="panel panel--flush">
         <div className="cal">
-          {DOW.map((d) => (
-            <div key={d} className="cal__dow">
-              {d}
-            </div>
+          {DOW.map(([en, id]) => (
+            <div key={en} className="cal__dow"><L en={en} id={id} /></div>
           ))}
           {days.map((iso) => {
             const items = CONTENT.filter((c) => c.date === iso);
@@ -41,11 +38,7 @@ export default function CalendarPage() {
               <div key={iso} className={`cal__day${out ? " cal__day--out" : ""}${iso === SIM_DATE ? " cal__day--today" : ""}`}>
                 <span className="cal__num">{Number(iso.slice(8))}</span>
                 {items.map((c) => (
-                  <span
-                    key={c.id}
-                    className={`cal__item cal__item--${STATUS[c.status].tone}`}
-                    title={`${c.title} · ${clientName(c.client)} · ${STATUS[c.status].label}`}
-                  >
+                  <span key={c.id} className={`cal__item cal__item--${STATUS[c.status].tone}`} title={`${c.title} · ${clientName(c.client)} · ${STATUS[c.status].en}`}>
                     {c.title}
                   </span>
                 ))}

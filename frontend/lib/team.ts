@@ -8,107 +8,148 @@ export type Agent = {
   approval_min: string;
 };
 
+export type Text = { en: string; id: string };
+
 export type Member = Agent & {
-  /** Nama panggilan agent (disetujui Dea Karisna, 2026-10-07). */
+  /** Nama agent (disetujui Dea Karisna, 2026-10-07). */
   name: string;
-  role: string;
-  tagline: string;
-  focus: string[];
+  role: Text;
+  /** Satu kalimat "Your ... specialist." */
+  headline: Text;
+  tagline: Text;
+  capabilities: Text[];
+  /** Aksen avatar. Satu nada per agent, tetap dalam keluarga navy/teal/biru. */
+  hue: string;
 };
 
-export const PILLARS: Record<number, string> = {
-  1: "Marketing & Content",
-  2: "Sales & Reservations",
-  3: "Guest Experience & Reputation",
-  4: "Operations",
-  5: "Analytics & Insights",
+/** Agent konsep dari brief v3. BELUM ada di registry, belum punya persona/eval, tidak bisa dijalankan. */
+export type ConceptAgent = { name: string; role: Text; tagline: Text };
+
+export const PILLARS: Record<number, Text> = {
+  1: { en: "Marketing & Content", id: "Marketing & Konten" },
+  2: { en: "Sales & Reservations", id: "Sales & Reservasi" },
+  3: { en: "Guest Experience", id: "Pengalaman Tamu" },
+  4: { en: "Operations", id: "Operasional" },
+  5: { en: "Analytics & Insights", id: "Analitik & Insight" },
 };
 
-export const APPROVAL: Record<string, string> = {
-  L1: "Dicek satu orang di tim",
-  L2: "Dicek orang kedua (bukan pembuat brief)",
-  L3: "Wajib persetujuan owner",
+export const APPROVAL: Record<string, Text> = {
+  L1: { en: "Checked by one team member", id: "Dicek satu orang di tim" },
+  L2: { en: "Checked by a second person (not the brief author)", id: "Dicek orang kedua (bukan pembuat brief)" },
+  L3: { en: "Owner approval required", id: "Wajib persetujuan owner" },
 };
+
+const t = (en: string, id: string): Text => ({ en, id });
 
 const PROFILES: Record<string, Omit<Member, keyof Agent>> = {
   "caption-writer": {
     name: "Tara",
-    role: "AI Copywriter",
-    tagline: "Caption Instagram, TikTok, dan Facebook dengan hook kuat dan satu ajakan yang jelas.",
-    focus: ["Caption", "Hook", "CTA", "Bilingual"],
+    role: t("AI Copywriter", "AI Copywriter"),
+    headline: t("Your social content specialist.", "Spesialis konten sosial kamu."),
+    tagline: t("Writes Instagram, TikTok and Facebook captions with a strong hook and one clear call to action.", "Menulis caption Instagram, TikTok, dan Facebook dengan hook kuat dan satu ajakan yang jelas."),
+    capabilities: [t("Captions", "Caption"), t("Hooks", "Hook"), t("CTA", "CTA"), t("Bilingual copy", "Copy dua bahasa")],
+    hue: "#0F766E",
   },
   "reel-scripter": {
     name: "Raka",
-    role: "AI Reels Strategist",
-    tagline: "Naskah video pendek: hook 3 detik pertama, shot list, dan teks di layar.",
-    focus: ["Hook visual", "Shot list", "Naskah pendek"],
+    role: t("AI Reels Strategist", "AI Reels Strategist"),
+    headline: t("Your short-video specialist.", "Spesialis video pendek kamu."),
+    tagline: t("Plans Reels with a 3-second hook, a shot list and on-screen text.", "Menyusun Reels dengan hook 3 detik, shot list, dan teks di layar."),
+    capabilities: [t("Hooks", "Hook"), t("Shot lists", "Shot list"), t("Video scripts", "Naskah video"), t("Reels concepts", "Konsep Reels")],
+    hue: "#0E7490",
   },
   "story-writer": {
     name: "Sekar",
-    role: "AI Stories Writer",
-    tagline: "Rangkaian Stories 3–5 frame yang singkat dan interaktif.",
-    focus: ["Stories", "Sticker", "Interaksi"],
+    role: t("AI Stories Specialist", "AI Stories Specialist"),
+    headline: t("Your daily engagement specialist.", "Spesialis interaksi harian kamu."),
+    tagline: t("Builds short, interactive 3–5 frame Stories sequences.", "Membuat rangkaian Stories 3–5 frame yang singkat dan interaktif."),
+    capabilities: [t("Stories", "Stories"), t("Polls & stickers", "Polling & stiker"), t("Engagement", "Interaksi")],
+    hue: "#0369A1",
   },
   "listing-writer": {
     name: "Bayu",
-    role: "AI OTA Listing Writer",
-    tagline: "Deskripsi properti dan kamar yang lengkap, faktual, dan konsisten di semua OTA.",
-    focus: ["Deskripsi kamar", "Fasilitas", "Konsistensi OTA"],
+    role: t("AI Listing Specialist", "AI Listing Specialist"),
+    headline: t("Your OTA listing specialist.", "Spesialis listing OTA kamu."),
+    tagline: t("Writes complete, factual property and room descriptions that stay consistent across OTAs.", "Menulis deskripsi properti dan kamar yang lengkap, faktual, dan konsisten di semua OTA."),
+    capabilities: [t("Room descriptions", "Deskripsi kamar"), t("Facilities", "Fasilitas"), t("OTA consistency", "Konsistensi OTA")],
+    hue: "#1E3A5F",
   },
   "review-responder": {
     name: "Laras",
-    role: "AI Review Responder",
-    tagline: "Balasan review tamu yang tenang dan tulus, dengan eskalasi kasus berat ke owner.",
-    focus: ["Review Google/OTA", "Permintaan maaf", "Eskalasi"],
+    role: t("AI Review Specialist", "AI Review Specialist"),
+    headline: t("Your guest reputation specialist.", "Spesialis reputasi tamu kamu."),
+    tagline: t("Drafts calm, sincere replies to guest reviews and escalates serious cases to the owner.", "Menyiapkan balasan review yang tenang dan tulus, dan meneruskan kasus berat ke owner."),
+    capabilities: [t("Google & OTA reviews", "Review Google & OTA"), t("Apologies", "Permintaan maaf"), t("Escalation", "Eskalasi")],
+    hue: "#4338CA",
   },
   "calendar-planner": {
     name: "Dimas",
-    role: "AI Content Planner",
-    tagline: "Kalender konten bulanan sesuai musim ramai, hari libur, dan ritme bisnis.",
-    focus: ["Kalender bulanan", "Pilar konten", "Hari libur"],
+    role: t("AI Content Planner", "AI Content Planner"),
+    headline: t("Your content calendar specialist.", "Spesialis kalender konten kamu."),
+    tagline: t("Plans the monthly calendar around high season, public holidays and your business rhythm.", "Menyusun kalender bulanan sesuai musim ramai, hari libur, dan ritme bisnis."),
+    capabilities: [t("Monthly calendar", "Kalender bulanan"), t("Content pillars", "Pilar konten"), t("Holidays", "Hari libur")],
+    hue: "#047857",
   },
   "campaign-planner": {
     name: "Ayu",
-    role: "AI Campaign Strategist",
-    tagline: "Campaign musiman lengkap dengan tujuan, timeline, penawaran, dan risiko.",
-    focus: ["Campaign musiman", "KPI", "Timeline"],
+    role: t("AI Campaign Strategist", "AI Campaign Strategist"),
+    headline: t("Your seasonal campaign specialist.", "Spesialis campaign musiman kamu."),
+    tagline: t("Plans seasonal campaigns with goals, timeline, offer terms and risks.", "Merencanakan campaign musiman lengkap dengan tujuan, timeline, syarat penawaran, dan risiko."),
+    capabilities: [t("Campaign plans", "Rencana campaign"), t("KPIs", "KPI"), t("Timelines", "Timeline")],
+    hue: "#6D28D9",
   },
   localizer: {
     name: "Nara",
-    role: "AI Localizer ID ↔ EN",
-    tagline: "Menyelaraskan konten Indonesia dan Inggris tanpa mengubah makna atau klaim.",
-    focus: ["Lokalisasi", "Istilah lokal", "Konsistensi klaim"],
+    role: t("AI Localization Specialist", "AI Localization Specialist"),
+    headline: t("Your bilingual content specialist.", "Spesialis konten dua bahasa kamu."),
+    tagline: t("Aligns Indonesian and English content without changing meaning, tone or claims.", "Menyelaraskan konten Indonesia dan Inggris tanpa mengubah makna, nada, atau klaim."),
+    capabilities: [t("ID ↔ EN", "ID ↔ EN"), t("Local terms", "Istilah lokal"), t("Claim consistency", "Konsistensi klaim")],
+    hue: "#0D9488",
   },
   "report-builder": {
     name: "Galih",
-    role: "AI Report Analyst",
-    tagline: "Laporan bulanan singkat yang jujur pada angka dan mudah dipahami owner.",
-    focus: ["Ringkasan", "Metrik", "Rekomendasi"],
+    role: t("AI Insights Analyst", "AI Insights Analyst"),
+    headline: t("Your reporting specialist.", "Spesialis laporan kamu."),
+    tagline: t("Turns monthly performance into a short, honest report the owner can read in 30 seconds.", "Merangkum performa bulanan jadi laporan singkat dan jujur yang bisa dibaca owner dalam 30 detik."),
+    capabilities: [t("Monthly report", "Laporan bulanan"), t("Metrics", "Metrik"), t("Recommendations", "Rekomendasi")],
+    hue: "#155E75",
   },
   "sales-assistant": {
     name: "Intan",
-    role: "AI Reservation Assistant",
-    tagline: "Draft balasan inquiry: ketersediaan, harga, syarat, dan langkah booking.",
-    focus: ["Inquiry DM/WA", "Harga & syarat", "Langkah booking"],
+    role: t("AI Reservations Assistant", "AI Reservations Assistant"),
+    headline: t("Your inquiry specialist.", "Spesialis inquiry kamu."),
+    tagline: t("Drafts replies to inquiries: availability, rates, terms and booking steps.", "Menyiapkan balasan inquiry: ketersediaan, harga, syarat, dan langkah booking."),
+    capabilities: [t("DM & WhatsApp inquiries", "Inquiry DM & WhatsApp"), t("Rates & terms", "Harga & syarat"), t("Booking steps", "Langkah booking")],
+    hue: "#64748B",
   },
   "guest-messenger": {
     name: "Sari",
-    role: "AI Guest Messenger",
-    tagline: "Pesan pre-arrival dan in-stay yang hangat, dengan info yang tamu butuhkan.",
-    focus: ["Pre-arrival", "Info check-in", "Follow-up"],
+    role: t("AI Guest Messaging Specialist", "AI Guest Messaging Specialist"),
+    headline: t("Your guest communication specialist.", "Spesialis komunikasi tamu kamu."),
+    tagline: t("Drafts warm pre-arrival and in-stay messages with the information guests need.", "Menyiapkan pesan pre-arrival dan in-stay yang hangat dengan info yang tamu butuhkan."),
+    capabilities: [t("Pre-arrival", "Pre-arrival"), t("Check-in info", "Info check-in"), t("Follow-up", "Follow-up")],
+    hue: "#64748B",
   },
   "sop-writer": {
     name: "Teguh",
-    role: "AI SOP Writer",
-    tagline: "SOP langkah demi langkah dan checklist yang mudah diikuti semua staf.",
-    focus: ["SOP", "Checklist", "Standar keselamatan"],
+    role: t("AI SOP Specialist", "AI SOP Specialist"),
+    headline: t("Your operations documentation specialist.", "Spesialis dokumentasi operasional kamu."),
+    tagline: t("Writes step-by-step SOPs and checklists every staff member can follow.", "Menulis SOP langkah demi langkah dan checklist yang mudah diikuti semua staf."),
+    capabilities: [t("SOPs", "SOP"), t("Checklists", "Checklist"), t("Safety standards", "Standar keselamatan")],
+    hue: "#64748B",
   },
 };
+
+export const CONCEPT_AGENTS: ConceptAgent[] = [
+  { name: "Nova", role: t("AI Brand Strategist", "AI Brand Strategist"), tagline: t("Brand positioning and monthly content strategy.", "Positioning brand dan strategi konten bulanan.") },
+  { name: "Aruna", role: t("AI Visual Director", "AI Visual Director"), tagline: t("Visual concepts and shot direction for photos and video.", "Konsep visual dan arahan foto serta video.") },
+  { name: "Dara", role: t("AI Quality Controller", "AI Quality Controller"), tagline: t("Pre-checks every draft against brand and claim rules before human review.", "Cek awal setiap draft terhadap aturan brand dan klaim sebelum review manusia.") },
+];
 
 export function getTeam(): Member[] {
   return (registry.agents as Agent[]).map((a) => {
     const profile = PROFILES[a.id];
-    if (!profile) throw new Error(`frontend/lib/team.ts: profil untuk agent '${a.id}' belum ada`);
+    if (!profile) throw new Error(`frontend/lib/team.ts: profile for agent '${a.id}' is missing`);
     return { ...a, ...profile };
   });
 }

@@ -1,23 +1,19 @@
 import { Card, Empty, Kpi, PageHeader, SimNotice } from "../../components/ui";
 import { CLIENTS, CONTENT, STATUS, STATUS_ORDER } from "../../lib/demo";
+import { L } from "../../lib/i18n";
+import { getMember } from "../../lib/team";
 
-export const metadata = { title: "Laporan · CLAU" };
+export const metadata = { title: "Reports · CLAU" };
 
-function Bars({ rows }: { rows: { label: string; value: number }[] }) {
+function Bars({ rows }: { rows: { key: string; label: React.ReactNode; title: string; value: number }[] }) {
   const max = Math.max(1, ...rows.map((r) => r.value));
   return (
-    <div className="bars" role="table" aria-label="Diagram batang">
+    <div className="bars">
       {rows.map((r) => (
-        <div key={r.label} className="bar-row" role="row" title={`${r.label}: ${r.value}`}>
-          <span className="bar-row__label" role="cell">
-            {r.label}
-          </span>
-          <span className="bar-row__track" aria-hidden="true">
-            <span className="bar-row__fill" style={{ display: "block", width: `${(r.value / max) * 100}%` }} />
-          </span>
-          <span className="bar-row__val" role="cell">
-            {r.value}
-          </span>
+        <div key={r.key} className="bar-row" title={`${r.title}: ${r.value}`}>
+          <span className="bar-row__label">{r.label}</span>
+          <span className="bar-row__track" aria-hidden="true"><span className="bar-row__fill" style={{ width: `${(r.value / max) * 100}%` }} /></span>
+          <span className="bar-row__val">{r.value}</span>
         </div>
       ))}
     </div>
@@ -27,31 +23,31 @@ function Bars({ rows }: { rows: { label: string; value: number }[] }) {
 export default function Reports() {
   const approved = CONTENT.filter((c) => ["approved", "scheduled", "published"].includes(c.status)).length;
   const published = CONTENT.filter((c) => c.status === "published").length;
+  const byAgent = [...new Set(CONTENT.map((c) => c.agent))].map((a) => ({ key: a, label: getMember(a)!.name, title: getMember(a)!.name, value: CONTENT.filter((c) => c.agent === a).length })).sort((a, b) => b.value - a.value);
   return (
     <>
-      <PageHeader title="Laporan" subtitle="Produksi konten Oktober 2026" />
+      <PageHeader title={<L en="Reports" id="Laporan" />} subtitle={<L en="Content production · October 2026" id="Produksi konten · Oktober 2026" />} />
       <SimNotice />
       <div className="kpis">
-        <Kpi label="Konten diproduksi" value={CONTENT.length} />
-        <Kpi label="Konten disetujui" value={approved} hint="Termasuk terjadwal & tayang" />
-        <Kpi label="Konten tayang" value={published} />
-        <Kpi label="Rasio persetujuan" value={`${Math.round((approved / CONTENT.length) * 100)}%`} />
+        <Kpi label={<L en="Content produced" id="Konten diproduksi" />} value={CONTENT.length} />
+        <Kpi label={<L en="Approved" id="Disetujui" />} value={approved} hint={<L en="Incl. scheduled & published" id="Termasuk terjadwal & tayang" />} />
+        <Kpi label={<L en="Published" id="Tayang" />} value={published} />
+        <Kpi label={<L en="Approval rate" id="Rasio persetujuan" />} value={`${Math.round((approved / CONTENT.length) * 100)}%`} />
       </div>
       <div className="grid-2-even">
-        <Card title="Konten per status">
-          <Bars rows={STATUS_ORDER.map((s) => ({ label: STATUS[s].label, value: CONTENT.filter((c) => c.status === s).length }))} />
+        <Card title={<L en="Content by status" id="Konten per status" />}>
+          <Bars rows={STATUS_ORDER.map((s) => ({ key: s, label: <L en={STATUS[s].en} id={STATUS[s].id} />, title: STATUS[s].en, value: CONTENT.filter((c) => c.status === s).length }))} />
         </Card>
-        <Card title="Konten per klien">
-          <Bars rows={CLIENTS.map((c) => ({ label: c.name, value: CONTENT.filter((x) => x.client === c.id).length }))} />
+        <Card title={<L en="Content by AI agent" id="Konten per agent AI" />}>
+          <Bars rows={byAgent} />
         </Card>
       </div>
-      <div style={{ marginTop: 16 }}>
-        <Card title="Engagement, reach, klik, dan leads">
-          <Empty
-            icon="link"
-            title="Belum terhubung ke platform"
-            body="Angka engagement tidak ditampilkan sampai data asli dari Instagram, Google Business, atau OTA tersedia. CLAU tidak mengarang hasil bisnis."
-          />
+      <div className="grid-2-even mt">
+        <Card title={<L en="Content by client" id="Konten per klien" />}>
+          <Bars rows={CLIENTS.map((c) => ({ key: c.id, label: c.name, title: c.name, value: CONTENT.filter((x) => x.client === c.id).length }))} />
+        </Card>
+        <Card title={<L en="Reach, engagement, clicks & leads" id="Reach, engagement, klik & leads" />}>
+          <Empty icon="link" title={<L en="Not connected yet" id="Belum terhubung" />} body={<L en="Performance numbers appear only when real data from Instagram, Google Business or OTAs is connected. CLAU never invents results." id="Angka performa hanya muncul jika data asli dari Instagram, Google Business, atau OTA tersambung. CLAU tidak pernah mengarang hasil." />} />
         </Card>
       </div>
     </>

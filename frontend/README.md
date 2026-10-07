@@ -7,7 +7,8 @@ Platform **CLAU AI Content Studio** (tampilan v2) mengikuti [`docs/design/2026-1
 | Versi | Branch | Ringkasan |
 |---|---|---|
 | v1 "Pasir" | `ui-v1-pasir` | Palet brand CLAU: Pasir ±60% latar, Arang ±20% teks, Teal Laut ±10% aksen, Terracotta 3–5% highlight. Karakter ilustrasi per agent. **Disimpan** atas permintaan Dea Karisna (2026-10-07) |
-| v2 "Enterprise" | `ui-v2-enterprise` (snapshot tersimpan) · `main` (live di VPS 1 sejak 2026-10-07) | Navy + Deep Teal + putih + slate, sidebar, dashboard SaaS, agent pakai monogram (tanpa kartun) |
+| v2 "Enterprise" | `ui-v2-enterprise` (snapshot tersimpan) · `main` (live di VPS 1 sejak 2026-10-07) |
+| v3 "AI Workforce" | `ui-v3-workforce` (pratinjau) | My AI Team, avatar persona, EN/ID, dark mode. Lihat [`docs/design/2026-10-07-ai-workforce-brief-v2.md`](../docs/design/2026-10-07-ai-workforce-brief-v2.md) | Navy + Deep Teal + putih + slate, sidebar, dashboard SaaS, agent pakai monogram (tanpa kartun) |
 
 ### Snapshot palet v2 (disimpan atas permintaan Dea Karisna, 2026-10-07)
 

@@ -47,3 +47,13 @@ export function getPersona(id: string): PersonaFacts {
     escalation,
   };
 }
+
+/** Jumlah kasus uji nyata untuk agent (agents/evals/cases/<id>.json). */
+export function evalCaseCount(id: string): number {
+  try {
+    const raw = readFileSync(path.join(process.cwd(), "..", "agents", "evals", "cases", `${id}.json`), "utf-8");
+    return JSON.parse(raw).cases.length;
+  } catch {
+    return 0;
+  }
+}
