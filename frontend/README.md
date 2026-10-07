@@ -11,7 +11,9 @@ Platform "Tim AI": setiap agent di `../agents/registry.json` tampil sebagai kara
 
 - Karakter **orisinal** CLAU, digambar sebagai SVG (`components/Character.tsx`), latar lanskap Nusantara (`components/Scene.tsx`). Tidak menyalin karakter/aset platform lain.
 - Setiap karakter memakai badge **"AI"** di dada dan label "Agent AI": karakter adalah ilustrasi agent, **bukan** staf manusia (`../agents/personas/README.md` prinsip 1).
-- Nama, warna, dan aksesori ada di `lib/team.ts`. Agent baru di registry wajib punya profil di file itu (build gagal bila tidak ada).
+- Warna mengikuti `brand-guideline.md` §3: latar Pasir, teks Arang, aksen Teal Laut, highlight Terracotta. Seragam Teal Laut = agent aktif, seragam Batu (abu) = segera hadir (`UNIFORM` di `lib/team.ts`).
+- Logo = konsep 2 "Terasering" (`components/Logo.tsx`), sementara sampai logo vektor final.
+- Nama dan aksesori ada di `lib/team.ts`. Agent baru di registry wajib punya profil di file itu (build gagal bila tidak ada).
 - `ASSUMPTION`: nama karakter (Tara, Raka, Sekar, …) dan gaya ilustrasi semi-3D adalah draft UI atas permintaan Dea Karisna (2026-10-07). `brand-guideline.md` §6 saat ini menyebut ilustrasi *flat*; `NEXT ACTION`: approval Pak Indra/Dea untuk menambahkan gaya karakter ini ke brand guideline.
 
 ## Jalankan

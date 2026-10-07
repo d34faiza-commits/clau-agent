@@ -1,25 +1,33 @@
 import Link from "next/link";
 import Character from "./Character";
 import Scene from "./Scene";
-import type { Member } from "../lib/team";
+import { PILLARS, UNIFORM, type Member } from "../lib/team";
 
 export default function AgentCard({ member }: { member: Member }) {
   const planned = member.status === "planned";
   return (
-    <Link href={`/agents/${member.id}`} className="agent-card" aria-label={`${member.name}, ${member.role}`}>
-      <div className="agent-card__stage">
-        <Scene scene={member.scene} uid={`card-${member.id}`} />
-        <div className="agent-card__character">
-          <Character look={member.look} uid={`card-${member.id}`} />
+    <Link href={`/agents/${member.id}`} className="card" aria-label={`${member.name}, ${member.role}`}>
+      <div className="card__stage">
+        <Scene scene={member.scene} uid={`card-${member.id}`} muted={planned} />
+        <div className="card__character">
+          <Character look={member.look} uniform={UNIFORM[member.status]} uid={`card-${member.id}`} />
         </div>
-        <span className={`chip ${planned ? "chip--planned" : "chip--active"}`}>{planned ? "Segera hadir" : "Aktif"}</span>
       </div>
-      <div className="agent-card__body">
-        <h3>
-          {member.name} <span className="ai-tag">Agent AI</span>
-        </h3>
-        <p className="agent-card__role">{member.role}</p>
-        <p className="agent-card__tagline">{member.tagline}</p>
+      <div className="card__body">
+        <div className="card__meta">
+          <span className={`status ${planned ? "status--planned" : "status--active"}`}>
+            {planned ? "Segera hadir" : "Aktif"}
+          </span>
+          <span className="card__level">
+            Agent AI · {member.approval_min}
+          </span>
+        </div>
+        <h3 className="card__name">{member.name}</h3>
+        <p className="card__role">{member.role}</p>
+        <p className="card__tagline">{member.tagline}</p>
+        <p className="card__pillar">
+          Pilar {member.pillar} · {PILLARS[member.pillar]}
+        </p>
       </div>
     </Link>
   );

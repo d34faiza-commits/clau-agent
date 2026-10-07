@@ -1,4 +1,4 @@
-import type { Look, Prop } from "../lib/team";
+import type { Look, Prop, Uniform } from "../lib/team";
 
 // Karakter chibi orisinal CLAU: seragam hospitality + badge "AI" di dada (penanda jujur bahwa ini agent AI).
 // Efek "3D" dibuat dengan gradien radial dan kilap, tanpa file gambar.
@@ -16,8 +16,8 @@ function PropShape({ prop }: { prop: Prop }) {
     case "pen":
       return (
         <g transform="rotate(24 198 194)">
-          <rect x="192" y="160" width="12" height="52" rx="4" fill="#FB923C" />
-          <rect x="192" y="160" width="12" height="10" rx="4" fill="#FFEDD5" />
+          <rect x="192" y="160" width="12" height="52" rx="4" fill="#C2410C" />
+          <rect x="192" y="160" width="12" height="10" rx="4" fill="#FED7AA" />
           <path d="M192 210 L198 224 L204 210 Z" fill="#292524" />
           <rect x="195" y="166" width="3" height="40" rx="1.5" fill="#fff" opacity=".45" />
         </g>
@@ -40,10 +40,10 @@ function PropShape({ prop }: { prop: Prop }) {
       return (
         <g transform="rotate(8 198 196)">
           <rect x="184" y="168" width="30" height="52" rx="7" fill="#1C1917" />
-          <rect x="187.5" y="174" width="23" height="38" rx="3" fill="#C7D2FE" />
-          <circle cx="199" cy="186" r="6" fill="#6366F1" />
-          <rect x="191" y="196" width="16" height="3" rx="1.5" fill="#6366F1" />
-          <rect x="191" y="202" width="11" height="3" rx="1.5" fill="#818CF8" />
+          <rect x="187.5" y="174" width="23" height="38" rx="3" fill="#CCFBF1" />
+          <circle cx="199" cy="186" r="6" fill="#0F766E" />
+          <rect x="191" y="196" width="16" height="3" rx="1.5" fill="#0F766E" />
+          <rect x="191" y="202" width="11" height="3" rx="1.5" fill="#5EEAD4" />
         </g>
       );
     case "tablet":
@@ -59,7 +59,7 @@ function PropShape({ prop }: { prop: Prop }) {
       return (
         <g transform="rotate(-6 198 196)">
           <rect x="174" y="174" width="48" height="42" rx="6" fill="#fff" stroke="#E7E5E4" strokeWidth="2" />
-          <rect x="174" y="174" width="48" height="12" rx="6" fill="#EAB308" />
+          <rect x="174" y="174" width="48" height="12" rx="6" fill="#C2410C" />
           <rect x="182" y="170" width="4" height="9" rx="2" fill="#57534E" />
           <rect x="210" y="170" width="4" height="9" rx="2" fill="#57534E" />
           {[0, 1, 2, 3].flatMap((c) =>
@@ -81,17 +81,17 @@ function PropShape({ prop }: { prop: Prop }) {
       return (
         <g transform="rotate(-18 198 196)">
           <path d="M180 190 L216 172 V218 L180 202 Z" fill="#fff" stroke="#E7E5E4" strokeWidth="2" />
-          <rect x="172" y="188" width="10" height="16" rx="3" fill="#F97316" />
+          <rect x="172" y="188" width="10" height="16" rx="3" fill="#C2410C" />
           <ellipse cx="216" cy="195" rx="5" ry="23" fill="#FED7AA" />
-          <path d="M186 202 L190 214 H196 L194 204" fill="#F97316" />
+          <path d="M186 202 L190 214 H196 L194 204" fill="#C2410C" />
         </g>
       );
     case "globe":
       return (
         <g>
-          <circle cx="198" cy="192" r="22" fill="#60A5FA" />
-          <path d="M184 182 q8 -6 14 0 q4 6 -4 10 q-6 4 -2 10 q-8 2 -10 -8 Z" fill="#4ADE80" />
-          <path d="M204 196 q8 -4 12 2 q-2 10 -10 10 q-4 -6 -2 -12 Z" fill="#4ADE80" />
+          <circle cx="198" cy="192" r="22" fill="#14B8A6" />
+          <path d="M184 182 q8 -6 14 0 q4 6 -4 10 q-6 4 -2 10 q-8 2 -10 -8 Z" fill="#CCFBF1" />
+          <path d="M204 196 q8 -4 12 2 q-2 10 -10 10 q-4 -6 -2 -12 Z" fill="#CCFBF1" />
           <ellipse cx="198" cy="192" rx="9" ry="22" fill="none" stroke="#fff" strokeWidth="1.5" opacity=".7" />
           <path d="M176 192 H220" stroke="#fff" strokeWidth="1.5" opacity=".7" />
           <ellipse cx="190" cy="180" rx="7" ry="4" fill="#fff" opacity=".45" />
@@ -101,8 +101,8 @@ function PropShape({ prop }: { prop: Prop }) {
       return (
         <g transform="rotate(-6 198 196)">
           <rect x="172" y="172" width="52" height="42" rx="6" fill="#fff" stroke="#E7E5E4" strokeWidth="2" />
-          <rect x="180" y="196" width="8" height="12" rx="2" fill="#FB923C" />
-          <rect x="192" y="188" width="8" height="20" rx="2" fill="#6366F1" />
+          <rect x="180" y="196" width="8" height="12" rx="2" fill="#C2410C" />
+          <rect x="192" y="188" width="8" height="20" rx="2" fill="#0F766E" />
           <rect x="204" y="180" width="8" height="28" rx="2" fill="#14B8A6" />
           <path d="M180 190 L196 182 L208 174" stroke="#292524" strokeWidth="2" fill="none" strokeLinecap="round" />
         </g>
@@ -110,8 +110,8 @@ function PropShape({ prop }: { prop: Prop }) {
     case "keycard":
       return (
         <g transform="rotate(-14 198 196)">
-          <rect x="178" y="178" width="40" height="28" rx="5" fill="#FBBF24" />
-          <rect x="178" y="184" width="40" height="6" fill="#B45309" />
+          <rect x="178" y="178" width="40" height="28" rx="5" fill="#C2410C" />
+          <rect x="178" y="184" width="40" height="6" fill="#7C2D12" />
           <rect x="184" y="196" width="14" height="4" rx="2" fill="#fff" opacity=".8" />
           <circle cx="210" cy="198" r="4" fill="#fff" opacity=".8" />
         </g>
@@ -119,23 +119,23 @@ function PropShape({ prop }: { prop: Prop }) {
     case "bell":
       return (
         <g>
-          <rect x="174" y="208" width="48" height="7" rx="3" fill="#A16207" />
-          <path d="M178 208 Q198 168 218 208 Z" fill="#EAB308" />
-          <circle cx="198" cy="183" r="4" fill="#A16207" />
+          <rect x="174" y="208" width="48" height="7" rx="3" fill="#78716C" />
+          <path d="M178 208 Q198 168 218 208 Z" fill="#C2410C" />
+          <circle cx="198" cy="183" r="4" fill="#78716C" />
           <ellipse cx="190" cy="196" rx="5" ry="8" fill="#fff" opacity=".45" />
         </g>
       );
     case "clipboard":
       return (
         <g transform="rotate(-6 198 196)">
-          <rect x="174" y="168" width="46" height="54" rx="6" fill="#A16207" />
+          <rect x="174" y="168" width="46" height="54" rx="6" fill="#78716C" />
           <rect x="179" y="176" width="36" height="42" rx="3" fill="#fff" />
           <rect x="188" y="164" width="18" height="10" rx="3" fill="#57534E" />
           {[0, 1, 2].map((i) => (
             <g key={i}>
               <path
                 d={`M183 ${186 + i * 10} l3 3 l5 -6`}
-                stroke="#16A34A"
+                stroke="#0F766E"
                 strokeWidth="2"
                 fill="none"
                 strokeLinecap="round"
@@ -158,7 +158,17 @@ function PropShape({ prop }: { prop: Prop }) {
   }
 }
 
-export default function Character({ look, uid, size = 240 }: { look: Look; uid: string; size?: number }) {
+export default function Character({
+  look,
+  uniform,
+  uid,
+  size = 240,
+}: {
+  look: Look;
+  uniform: Uniform;
+  uid: string;
+  size?: number;
+}) {
   const id = (s: string) => `${uid}-${s}`;
   const url = (s: string) => `url(#${id(s)})`;
   const hijab = look.hairStyle === "hijab";
@@ -194,9 +204,9 @@ export default function Character({ look, uid, size = 240 }: { look: Look; uid: 
           <stop offset="1" stopColor={shade(look.hair, -0.35)} />
         </radialGradient>
         <linearGradient id={id("outfit")} x1="0" y1="0" x2=".3" y2="1">
-          <stop offset="0" stopColor={shade(look.outfit, 0.25)} />
-          <stop offset=".55" stopColor={look.outfit} />
-          <stop offset="1" stopColor={look.trim} />
+          <stop offset="0" stopColor={shade(uniform.outfit, 0.25)} />
+          <stop offset=".55" stopColor={uniform.outfit} />
+          <stop offset="1" stopColor={uniform.trim} />
         </linearGradient>
         <linearGradient id={id("pants")} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#57534E" />
@@ -223,13 +233,13 @@ export default function Character({ look, uid, size = 240 }: { look: Look; uid: 
         fill={url("outfit")}
       />
       <path d="M106 164 L120 186 L134 164 Z" fill="#fff" />
-      <path d="M98 164 L120 190 L110 200 L90 172 Z" fill={look.trim} opacity=".9" />
-      <path d="M142 164 L120 190 L130 200 L150 172 Z" fill={look.trim} opacity=".9" />
-      <circle cx="120" cy="214" r="3" fill={look.trim} />
-      <circle cx="120" cy="230" r="3" fill={look.trim} />
+      <path d="M98 164 L120 190 L110 200 L90 172 Z" fill={uniform.trim} opacity=".9" />
+      <path d="M142 164 L120 190 L130 200 L150 172 Z" fill={uniform.trim} opacity=".9" />
+      <circle cx="120" cy="214" r="3" fill={uniform.trim} />
+      <circle cx="120" cy="230" r="3" fill={uniform.trim} />
       <ellipse cx="94" cy="190" rx="8" ry="16" fill="#fff" opacity=".18" />
-      <circle cx="144" cy="214" r="12" fill="#fff" stroke={look.trim} strokeWidth="2.5" />
-      <text x="144" y="218.5" textAnchor="middle" fontSize="11" fontWeight="800" fill={look.trim} fontFamily="system-ui, sans-serif">
+      <circle cx="144" cy="214" r="12" fill="#fff" stroke={uniform.trim} strokeWidth="2.5" />
+      <text x="144" y="218.5" textAnchor="middle" fontSize="11" fontWeight="800" fill={uniform.trim} fontFamily="system-ui, sans-serif">
         AI
       </text>
 
@@ -301,17 +311,17 @@ export default function Character({ look, uid, size = 240 }: { look: Look; uid: 
       )}
       {look.headwear === "beret" && (
         <g transform="rotate(-10 110 52)">
-          <ellipse cx="112" cy="54" rx="58" ry="20" fill={look.trim} />
+          <ellipse cx="112" cy="54" rx="58" ry="20" fill={uniform.trim} />
           <ellipse cx="100" cy="47" rx="22" ry="6" fill="#fff" opacity=".2" />
-          <circle cx="112" cy="34" r="5" fill={look.trim} />
+          <circle cx="112" cy="34" r="5" fill={uniform.trim} />
         </g>
       )}
       {look.headwear === "cap" && (
         <g>
           <path d="M56 86 C58 34 182 34 184 86 Z" fill={url("outfit")} />
-          <path d="M150 82 Q204 78 210 94 Q172 98 150 90 Z" fill={look.trim} />
-          <rect x="56" y="80" width="128" height="8" rx="4" fill={look.trim} />
-          <circle cx="120" cy="40" r="4" fill={look.trim} />
+          <path d="M150 82 Q204 78 210 94 Q172 98 150 90 Z" fill={uniform.trim} />
+          <rect x="56" y="80" width="128" height="8" rx="4" fill={uniform.trim} />
+          <circle cx="120" cy="40" r="4" fill={uniform.trim} />
           <ellipse cx="96" cy="56" rx="16" ry="6" fill="#fff" opacity=".22" transform="rotate(-18 96 56)" />
         </g>
       )}

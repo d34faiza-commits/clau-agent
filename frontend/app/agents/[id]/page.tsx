@@ -3,13 +3,7 @@ import { notFound } from "next/navigation";
 import Character from "../../../components/Character";
 import Scene from "../../../components/Scene";
 import { getPersona } from "../../../lib/persona";
-import { PILLARS, getMember, getTeam } from "../../../lib/team";
-
-const APPROVAL: Record<string, string> = {
-  L1: "L1 · dicek satu orang di tim kamu",
-  L2: "L2 · dicek oleh orang kedua yang bukan pembuat brief",
-  L3: "L3 · wajib persetujuan owner",
-};
+import { APPROVAL, PILLARS, UNIFORM, getMember, getTeam } from "../../../lib/team";
 
 export function generateStaticParams() {
   return getTeam().map((m) => ({ id: m.id }));
@@ -35,9 +29,9 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
         </Link>
         <div className="detail__grid">
           <div className="detail__stage">
-            <Scene scene={member.scene} uid={`detail-${member.id}`} />
+            <Scene scene={member.scene} uid={`detail-${member.id}`} muted={planned} />
             <div className="detail__character">
-              <Character look={member.look} uid={`detail-${member.id}`} size={300} />
+              <Character look={member.look} uniform={UNIFORM[member.status]} uid={`detail-${member.id}`} size={300} />
             </div>
           </div>
 
@@ -46,7 +40,7 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
               Pilar {member.pillar} · {pillar}
             </p>
             <h1>
-              {member.name} <span className="ai-tag ai-tag--lg">Agent AI</span>
+              {member.name} <span className="ai-tag">Agent AI</span>
             </h1>
             <p className="detail__role">{member.role}</p>
             <p className="lead lead--dark">{member.tagline}</p>
@@ -72,7 +66,9 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
                 </>
               )}
               <dt>Persetujuan minimum</dt>
-              <dd>{APPROVAL[member.approval_min] ?? member.approval_min}</dd>
+              <dd>
+                <b>{member.approval_min}</b> · {APPROVAL[member.approval_min] ?? ""}
+              </dd>
             </dl>
 
             {persona.skills.length > 0 && (
