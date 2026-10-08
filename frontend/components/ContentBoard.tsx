@@ -8,8 +8,9 @@ import Icon from "./Icon";
 import { Empty, Level, StatusBadge } from "./ui";
 import { CLIENTS, CONTENT, FORMATS, PREVIEW, STATUS, STATUS_ORDER, clientName, formatOf, projectName, type ContentItem, type ContentStatus, type Format } from "../lib/demo";
 import { D, L, useL } from "../lib/i18n";
+import type { Look, Uniform } from "../lib/team";
 
-type AgentInfo = Record<string, { name: string; hue: string }>;
+type AgentInfo = Record<string, { name: string; hue: string; look: Look; uniform: Uniform }>;
 
 const TYPES = ["Instagram Post", "Instagram Reel", "Story", "Google Business", "WhatsApp Promotion", "Blog", "Campaign"];
 
@@ -93,7 +94,7 @@ export default function ContentBoard({ agents, steps }: { agents: AgentInfo; ste
                   <tr key={c.id} className="is-click" onClick={() => setPreview(c)} onKeyDown={(e) => e.key === "Enter" && setPreview(c)} tabIndex={0}>
                     <td><span className="cell-strong">{c.title}</span><span className="cell-sub">{c.type}</span></td>
                     <td>{clientName(c.client)}<span className="cell-sub">{projectName(c.project)}</span></td>
-                    <td><span className="cell-agent"><Avatar name={agents[c.agent].name} hue={agents[c.agent].hue} size="sm" />{agents[c.agent].name}</span></td>
+                    <td><span className="cell-agent"><Avatar {...agents[c.agent]} size="sm" />{agents[c.agent].name}</span></td>
                     <td className="nowrap muted"><D iso={c.date} /></td>
                     <td><Level level={c.level} /></td>
                     <td><StatusBadge status={c.status} /></td>

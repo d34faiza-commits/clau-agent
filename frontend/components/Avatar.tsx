@@ -1,30 +1,42 @@
-// Avatar "digital persona": siluet geometris tanpa wajah di atas gradien warna aksen agent.
-// Bukan karakter kartun: tidak ada mata/ekspresi, satu bentuk yang sama untuk semua agent.
-// Tanpa id SVG (gradien & sudut lewat CSS), jadi aman dipakai berkali-kali di satu halaman.
+import Character from "./Character";
+import type { Look, Uniform } from "../lib/team";
+
+// Avatar agent: karakter (gaya v1, kepala & bahu) di atas latar lembut warna aksen agent.
+// Tanpa look (mis. langkah sistem/manusia) jatuh ke siluet netral.
 export default function Avatar({
   name,
   hue,
+  look,
+  uniform,
   size = "md",
   status,
 }: {
   name: string;
   hue: string;
-  size?: "sm" | "md" | "lg";
+  look?: Look;
+  uniform?: Uniform;
+  size?: "sm" | "md" | "lg" | "xl";
   status?: "active" | "planned";
 }) {
   const av = (
     <span
-      className={`av av--${size}`}
+      className={`av av--${size}${look ? " av--char" : ""}`}
       role="img"
       aria-label={name}
-      style={{ background: `linear-gradient(135deg, color-mix(in srgb, ${hue} 74%, #ffffff), ${hue})` }}
+      style={{
+        background: look
+          ? `linear-gradient(160deg, color-mix(in srgb, ${hue} 12%, var(--color-surface)), color-mix(in srgb, ${hue} 30%, var(--color-surface)))`
+          : `linear-gradient(135deg, color-mix(in srgb, ${hue} 74%, #ffffff), ${hue})`,
+      }}
     >
-      <svg viewBox="0 0 64 64" width="100%" height="100%" aria-hidden="true">
-        <circle cx="52" cy="10" r="26" fill="#fff" opacity="0.08" />
-        <path d="M-4 44 Q20 34 68 46" stroke="#fff" strokeOpacity="0.12" strokeWidth="1.5" fill="none" />
-        <circle cx="32" cy="25" r="10.5" fill="#fff" opacity="0.94" />
-        <path d="M12 66 C12 47 21 39.5 32 39.5 C43 39.5 52 47 52 66 Z" fill="#fff" opacity="0.94" />
-      </svg>
+      {look && uniform ? (
+        <Character look={look} uniform={uniform} crop="bust" />
+      ) : (
+        <svg viewBox="0 0 64 64" width="100%" height="100%" aria-hidden="true">
+          <circle cx="32" cy="25" r="10.5" fill="#fff" opacity="0.94" />
+          <path d="M12 66 C12 47 21 39.5 32 39.5 C43 39.5 52 47 52 66 Z" fill="#fff" opacity="0.94" />
+        </svg>
+      )}
     </span>
   );
   if (!status) return av;

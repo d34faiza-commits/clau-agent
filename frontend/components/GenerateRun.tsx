@@ -5,8 +5,9 @@ import { createPortal } from "react-dom";
 import Avatar from "./Avatar";
 import Icon from "./Icon";
 import { L, useL } from "../lib/i18n";
+import type { Look, Uniform } from "../lib/team";
 
-export type RunStep = { key: string; agent?: { name: string; hue: string }; en: string; id: string; subEn: string; subId: string; human?: boolean };
+export type RunStep = { key: string; agent?: { name: string; hue: string; look: Look; uniform: Uniform }; en: string; id: string; subEn: string; subId: string; human?: boolean };
 
 /** Pratinjau alur kerja tim AI. SIMULASI: tidak memanggil model AI apa pun. */
 export function RunSteps({ steps, running }: { steps: RunStep[]; running: boolean }) {
@@ -31,7 +32,7 @@ export function RunSteps({ steps, running }: { steps: RunStep[]; running: boolea
         return (
           <li key={s.key} className={`is-${state === "waiting" ? "waiting" : state}`}>
             <span className="run__icon">{state === "done" && <Icon name="check" size={13} />}</span>
-            {s.agent ? <Avatar name={s.agent.name} hue={s.agent.hue} size="sm" /> : <span className="av av--sm" style={{ display: "grid", placeItems: "center", background: "var(--color-surface-muted)", color: "var(--color-text-muted)" }}><Icon name={s.human ? "user" : "shield"} size={16} /></span>}
+            {s.agent ? <Avatar {...s.agent} size="sm" /> : <span className="av av--sm" style={{ display: "grid", placeItems: "center", background: "var(--color-surface-muted)", color: "var(--color-text-muted)" }}><Icon name={s.human ? "user" : "shield"} size={16} /></span>}
             <div className="run__main">
               <div className="run__title">
                 <L en={s.en} id={s.id} />

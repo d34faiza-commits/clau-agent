@@ -9,7 +9,7 @@ export default function MemberCard({ m, compact }: { m: Member; compact?: boolea
   return (
     <Link href={`/agents/${m.id}`} className="member" style={{ ["--hue" as string]: m.hue }}>
       <div className="member__head">
-        <Avatar name={m.name} hue={m.hue} status={m.status} />
+        <Avatar name={m.name} hue={m.hue} look={m.look} uniform={m.uniform} status={m.status} size="lg" />
         <div>
           <div className="member__name">{m.name}</div>
           <div className="member__role">

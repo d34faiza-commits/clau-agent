@@ -48,7 +48,7 @@ export default function Clients() {
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                 <span className="client__meta"><L en={`AI team: ${agents.length} agents`} id={`Tim AI: ${agents.length} agent`} /></span>
-                <span className="stack-avatars">{agents.slice(0, 5).map((m) => <Avatar key={m.id} name={m.name} hue={m.hue} size="sm" />)}</span>
+                <span className="stack-avatars">{agents.slice(0, 5).map((m) => <Avatar key={m.id} name={m.name} hue={m.hue} look={m.look} uniform={m.uniform} size="sm" />)}</span>
               </div>
               <div className="client__meta"><L en="Last activity" id="Aktivitas terakhir" />: <D iso={c.lastActivity} /></div>
             </Link>
