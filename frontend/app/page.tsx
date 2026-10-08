@@ -5,7 +5,7 @@ import Icon from "../components/Icon";
 import MemberCard from "../components/MemberCard";
 import { Card, Kpi, Level, Progress, SimNotice, StatusBadge } from "../components/ui";
 import { ACTIVITY, CLIENTS, CONTENT, PROJECTS, SIM_DATE, clientName } from "../lib/demo";
-import { D, L } from "../lib/i18n";
+import { D, Greeting, L } from "../lib/i18n";
 import { monthlyRun } from "../lib/run";
 import { getMember, getTeam } from "../lib/team";
 
@@ -28,7 +28,7 @@ export default function Dashboard() {
             <L en={`${active.length} agents ready · simulation`} id={`${active.length} agent siap · simulasi`} />
           </span>
           <h1>
-            <L en="Good morning" id="Selamat pagi" />
+            <Greeting />
           </h1>
           <p>
             <L en="Your AI workforce is ready. Here is what the team is working on." id="Tim AI kamu siap. Ini yang sedang dikerjakan tim." />
@@ -52,7 +52,7 @@ export default function Dashboard() {
 
       <div className="kpis">
         <Kpi label={<L en="Active clients" id="Klien aktif" />} value={CLIENTS.filter((c) => c.status === "active").length} hint={<L en={`${CLIENTS.length} clients in total`} id={`${CLIENTS.length} klien total`} />} />
-        <Kpi label={<L en="Content created" id="Konten dibuat" />} value={CONTENT.length} hint={<L en="This month, all statuses" id="Bulan ini, semua status" />} />
+        <Kpi label={<L en="Content this month" id="Konten bulan ini" />} value={CONTENT.length} hint={<L en="Publish date in October, all statuses" id="Tayang di bulan Oktober, semua status" />} />
         <Kpi label={<L en="Needs review" id="Perlu review" />} value={pending.length} hint={<L en="AI review + human review" id="Cek AI + review manusia" />} />
         <Kpi label={<L en="Published" id="Tayang" />} value={published.length} hint={<L en="Published by your team" id="Dipublish oleh tim kamu" />} />
       </div>

@@ -56,7 +56,7 @@ def run_checks(text: str, checks: dict) -> list[str]:
         problems.append(f"{text.count('!')} '!' > {checks['max_exclamations']}")
     if "max_emoji" in checks and len(EMOJI_RE.findall(text)) > checks["max_emoji"]:
         problems.append(f"{len(EMOJI_RE.findall(text))} emoji > {checks['max_emoji']}")
-    if checks.get("escalate") and ESCALATION_MARKER not in lower:
+    if checks.get("escalate") and not lower.lstrip().startswith(ESCALATION_MARKER):
         problems.append("expected escalation (output must start with 'ESKALASI')")
     return problems
 

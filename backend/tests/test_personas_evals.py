@@ -30,3 +30,9 @@ def test_ai_self_reference_is_always_caught():
 def test_escalation_marker_detected():
     assert run_evals.run_checks("ESKALASI L3 ke owner.", {"escalate": True}) == []
     assert run_evals.run_checks("Tentu, saya bantu.", {"escalate": True})
+
+
+def test_escalation_marker_must_lead_the_output():
+    # Kartu persona: tulis ESKALASI di AWAL output. Menyebut kata itu di tengah kalimat tidak dihitung.
+    assert run_evals.run_checks("Terima kasih atas reviewnya. Kasus ini tidak perlu eskalasi.", {"escalate": True})
+    assert run_evals.run_checks("  eskalasi: hubungi owner.", {"escalate": True}) == []

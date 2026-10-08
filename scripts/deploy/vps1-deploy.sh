@@ -14,7 +14,7 @@ KEEP=3
 HEALTH_URL="${CLAU_HEALTH_URL:-http://127.0.0.1:3000}"
 RESTART="${CLAU_RESTART:-sudo -n /usr/bin/systemctl restart clau-frontend}"
 # Only these paths change what the frontend serves.
-WATCH=(frontend agents/registry.json agents/personas)
+WATCH=(frontend agents/registry.json agents/personas agents/evals/cases)
 
 log() { echo "[clau-deploy] $*"; }
 

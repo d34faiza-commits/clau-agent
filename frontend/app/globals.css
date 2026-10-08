@@ -200,7 +200,8 @@ button { font: inherit; color: inherit; }
 @keyframes pulse { 0% { transform: scale(0.6); opacity: 0.8; } 100% { transform: scale(1.6); opacity: 0; } }
 
 /* ---------- avatar ---------- */
-.av { display: block; flex: none; border-radius: 14px; }
+.av { display: block; flex: none; border-radius: 14px; overflow: hidden; }
+.av svg { display: block; }
 .av--sm { width: 32px; height: 32px; border-radius: 10px; }
 .av--md { width: 44px; height: 44px; }
 .av--lg { width: 72px; height: 72px; border-radius: 20px; }

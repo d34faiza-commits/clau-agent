@@ -60,3 +60,13 @@ export function D({ iso, short, month }: { iso: string; short?: boolean; month?:
   if (short) return <>{lang === "en" ? `${mon} ${d}` : `${d} ${mon}`}</>;
   return <>{lang === "en" ? `${mon} ${d}, ${y}` : `${d} ${mon} ${y}`}</>;
 }
+
+/** Sapaan sesuai jam di perangkat pengguna. Render awal netral agar tidak beda dengan HTML statis. */
+export function Greeting() {
+  const { lang } = useLang();
+  const [hour, setHour] = useState<number | null>(null);
+  useEffect(() => setHour(new Date().getHours()), []);
+  if (hour === null) return <>{lang === "id" ? "Selamat datang" : "Welcome back"}</>;
+  if (lang === "id") return <>{hour < 11 ? "Selamat pagi" : hour < 15 ? "Selamat siang" : hour < 18 ? "Selamat sore" : "Selamat malam"}</>;
+  return <>{hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"}</>;
+}
