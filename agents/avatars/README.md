@@ -20,7 +20,7 @@ Agent konsep (belum ada di registry) tetap memakai karakter SVG (`frontend/compo
 
 | Agent | Status | Catatan |
 |---|---|---|
-| caption-writer, reel-scripter, story-writer, listing-writer, review-responder, calendar-planner, campaign-planner, localizer | `DATA FINAL` (diterima owner) | |
+| caption-writer, reel-scripter, story-writer, listing-writer, review-responder, calendar-planner, campaign-planner, localizer | `ASSUMPTION` | Diterima di sesi 2026-10-08; menunggu konfirmasi Pak Indra / Dea Karisna saat review PR |
 | report-builder | `NEXT ACTION` | Figur perempuan, nama agent "Galih"; badan agak menyamping |
 | sales-assistant | `NEXT ACTION` | Figur laki-laki, nama agent "Intan" |
 | guest-messenger | `NEXT ACTION` | Layar HP memuat teks "How can help?" (salah grammar); generate ulang tanpa teks |
