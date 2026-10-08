@@ -2,10 +2,14 @@ import registry from "../../agents/registry.json";
 
 export type Agent = {
   id: string;
+  /** Nama agent; sumber: `agents/registry.json` (disetujui Dea Karisna, 2026-10-07). */
+  display_name: string;
   pillar: number;
   status: "active" | "planned";
   intents: string[];
   approval_min: string;
+  /** Avatar 3D; `crop` dipakai UI, `figure` mendeskripsikan figur (dicek test_avatars). */
+  avatar: { crop: string; master: string; figure: "female" | "male" };
 };
 
 export type Text = { en: string; id: string };
@@ -25,7 +29,7 @@ const SKIN = { light: "#F6D2B4", tan: "#E2A97E", brown: "#B97A52", deep: "#8A553
 const HAIR = { black: "#2B211C", brown: "#5A3A26", dark: "#3A2A22" };
 
 export type Member = Agent & {
-  /** Nama agent (disetujui Dea Karisna, 2026-10-07). */
+  /** = `display_name` di registry. */
   name: string;
   role: Text;
   /** Satu kalimat "Your ... specialist." */
@@ -59,9 +63,8 @@ export const APPROVAL: Record<string, Text> = {
 
 const t = (en: string, id: string): Text => ({ en, id });
 
-const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform" | "image">> = {
+const PROFILES: Record<string, Omit<Member, keyof Agent | "name" | "uniform" | "image">> = {
   "caption-writer": {
-    name: "Tara",
     role: t("AI Copywriter", "AI Copywriter"),
     headline: t("Your social content specialist.", "Spesialis konten sosial kamu."),
     tagline: t("Writes Instagram, TikTok and Facebook captions with a strong hook and one clear call to action.", "Menulis caption Instagram, TikTok, dan Facebook dengan hook kuat dan satu ajakan yang jelas."),
@@ -70,7 +73,6 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform" | "image">> 
     look: { skin: SKIN.tan, hair: HAIR.black, hairStyle: "bob", headwear: "none", prop: "pen" },
   },
   "reel-scripter": {
-    name: "Raka",
     role: t("AI Reels Strategist", "AI Reels Strategist"),
     headline: t("Your short-video specialist.", "Spesialis video pendek kamu."),
     tagline: t("Plans Reels with a 3-second hook, a shot list and on-screen text.", "Menyusun Reels dengan hook 3 detik, shot list, dan teks di layar."),
@@ -79,7 +81,6 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform" | "image">> 
     look: { skin: SKIN.brown, hair: HAIR.black, hairStyle: "short", headwear: "cap", prop: "clapper" },
   },
   "story-writer": {
-    name: "Sekar",
     role: t("AI Stories Specialist", "AI Stories Specialist"),
     headline: t("Your daily engagement specialist.", "Spesialis interaksi harian kamu."),
     tagline: t("Builds short, interactive 3–5 frame Stories sequences.", "Membuat rangkaian Stories 3–5 frame yang singkat dan interaktif."),
@@ -88,7 +89,6 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform" | "image">> 
     look: { skin: SKIN.light, hair: HAIR.brown, hairStyle: "bun", headwear: "none", prop: "phone" },
   },
   "listing-writer": {
-    name: "Bayu",
     role: t("AI Listing Specialist", "AI Listing Specialist"),
     headline: t("Your OTA listing specialist.", "Spesialis listing OTA kamu."),
     tagline: t("Writes complete, factual property and room descriptions that stay consistent across OTAs.", "Menulis deskripsi properti dan kamar yang lengkap, faktual, dan konsisten di semua OTA."),
@@ -97,7 +97,6 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform" | "image">> 
     look: { skin: SKIN.tan, hair: HAIR.dark, hairStyle: "swoop", headwear: "glasses", prop: "tablet" },
   },
   "review-responder": {
-    name: "Laras",
     role: t("AI Review Specialist", "AI Review Specialist"),
     headline: t("Your guest reputation specialist.", "Spesialis reputasi tamu kamu."),
     tagline: t("Drafts calm, sincere replies to guest reviews and escalates serious cases to the owner.", "Menyiapkan balasan review yang tenang dan tulus, dan meneruskan kasus berat ke owner."),
@@ -106,7 +105,6 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform" | "image">> 
     look: { skin: SKIN.brown, hair: "#115E59", hairStyle: "hijab", headwear: "headset", prop: "speech" },
   },
   "calendar-planner": {
-    name: "Dimas",
     role: t("AI Content Planner", "AI Content Planner"),
     headline: t("Your content calendar specialist.", "Spesialis kalender konten kamu."),
     tagline: t("Plans the monthly calendar around high season, public holidays and your business rhythm.", "Menyusun kalender bulanan sesuai musim ramai, hari libur, dan ritme bisnis."),
@@ -115,7 +113,6 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform" | "image">> 
     look: { skin: SKIN.light, hair: HAIR.black, hairStyle: "curly", headwear: "none", prop: "calendar" },
   },
   "campaign-planner": {
-    name: "Ayu",
     role: t("AI Campaign Strategist", "AI Campaign Strategist"),
     headline: t("Your seasonal campaign specialist.", "Spesialis campaign musiman kamu."),
     tagline: t("Plans seasonal campaigns with goals, timeline, offer terms and risks.", "Merencanakan campaign musiman lengkap dengan tujuan, timeline, syarat penawaran, dan risiko."),
@@ -124,7 +121,6 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform" | "image">> 
     look: { skin: SKIN.tan, hair: HAIR.brown, hairStyle: "long", headwear: "beret", prop: "megaphone" },
   },
   localizer: {
-    name: "Nara",
     role: t("AI Localization Specialist", "AI Localization Specialist"),
     headline: t("Your bilingual content specialist.", "Spesialis konten dua bahasa kamu."),
     tagline: t("Aligns Indonesian and English content without changing meaning, tone or claims.", "Menyelaraskan konten Indonesia dan Inggris tanpa mengubah makna, nada, atau klaim."),
@@ -133,7 +129,6 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform" | "image">> 
     look: { skin: SKIN.deep, hair: HAIR.black, hairStyle: "curly", headwear: "glasses", prop: "globe" },
   },
   "report-builder": {
-    name: "Intan",
     role: t("AI Insights Analyst", "AI Insights Analyst"),
     headline: t("Your reporting specialist.", "Spesialis laporan kamu."),
     tagline: t("Turns monthly performance into a short, honest report the owner can read in 30 seconds.", "Merangkum performa bulanan jadi laporan singkat dan jujur yang bisa dibaca owner dalam 30 detik."),
@@ -142,7 +137,6 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform" | "image">> 
     look: { skin: SKIN.tan, hair: HAIR.dark, hairStyle: "short", headwear: "glasses", prop: "chart" },
   },
   "sales-assistant": {
-    name: "Galih",
     role: t("AI Reservations Assistant", "AI Reservations Assistant"),
     headline: t("Your inquiry specialist.", "Spesialis inquiry kamu."),
     tagline: t("Drafts replies to inquiries: availability, rates, terms and booking steps.", "Menyiapkan balasan inquiry: ketersediaan, harga, syarat, dan langkah booking."),
@@ -151,7 +145,6 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform" | "image">> 
     look: { skin: SKIN.light, hair: HAIR.black, hairStyle: "long", headwear: "headset", prop: "keycard" },
   },
   "guest-messenger": {
-    name: "Sari",
     role: t("AI Guest Messaging Specialist", "AI Guest Messaging Specialist"),
     headline: t("Your guest communication specialist.", "Spesialis komunikasi tamu kamu."),
     tagline: t("Drafts warm pre-arrival and in-stay messages with the information guests need.", "Menyiapkan pesan pre-arrival dan in-stay yang hangat dengan info yang tamu butuhkan."),
@@ -160,7 +153,6 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform" | "image">> 
     look: { skin: SKIN.brown, hair: "#9A3412", hairStyle: "hijab", headwear: "none", prop: "bell" },
   },
   "sop-writer": {
-    name: "Teguh",
     role: t("AI SOP Specialist", "AI SOP Specialist"),
     headline: t("Your operations documentation specialist.", "Spesialis dokumentasi operasional kamu."),
     tagline: t("Writes step-by-step SOPs and checklists every staff member can follow.", "Menulis SOP langkah demi langkah dan checklist yang mudah diikuti semua staf."),
@@ -180,7 +172,7 @@ export function getTeam(): Member[] {
   return (registry.agents as Agent[]).map((a) => {
     const profile = PROFILES[a.id];
     if (!profile) throw new Error(`frontend/lib/team.ts: profile for agent '${a.id}' is missing`);
-    return { ...a, ...profile, uniform: UNIFORM[a.status], image: `/agents/${a.id}.webp` };
+    return { ...a, ...profile, name: a.display_name, uniform: UNIFORM[a.status], image: `/${a.avatar.crop.replace(/^frontend\/public\//, "")}` };
   });
 }
 

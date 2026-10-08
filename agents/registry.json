@@ -1,5 +1,5 @@
 {
-  "registry_version": "0.2.0",
+  "registry_version": "0.3.0",
   "router_source": "core/orchestrator/router.md",
   "default_forbidden_actions": [
     "publish",
@@ -11,6 +11,7 @@
   "agents": [
     {
       "id": "caption-writer",
+      "display_name": "Tara",
       "pillar": 1,
       "status": "active",
       "intents": [
@@ -22,10 +23,16 @@
       "skill_repo": "clau-ai-marketing",
       "approval_min": "L1",
       "persona": "agents/personas/caption-writer.md",
-      "evals": "agents/evals/cases/caption-writer.json"
+      "evals": "agents/evals/cases/caption-writer.json",
+      "avatar": {
+        "crop": "frontend/public/agents/caption-writer.webp",
+        "master": "agents/avatars/caption-writer.webp",
+        "figure": "female"
+      }
     },
     {
       "id": "reel-scripter",
+      "display_name": "Raka",
       "pillar": 1,
       "status": "active",
       "intents": [
@@ -37,10 +44,16 @@
       "skill_repo": "clau-ai-marketing",
       "approval_min": "L2",
       "persona": "agents/personas/reel-scripter.md",
-      "evals": "agents/evals/cases/reel-scripter.json"
+      "evals": "agents/evals/cases/reel-scripter.json",
+      "avatar": {
+        "crop": "frontend/public/agents/reel-scripter.webp",
+        "master": "agents/avatars/reel-scripter.webp",
+        "figure": "male"
+      }
     },
     {
       "id": "story-writer",
+      "display_name": "Sekar",
       "pillar": 1,
       "status": "active",
       "intents": [
@@ -52,10 +65,16 @@
       "skill_repo": "clau-ai-marketing",
       "approval_min": "L1",
       "persona": "agents/personas/story-writer.md",
-      "evals": "agents/evals/cases/story-writer.json"
+      "evals": "agents/evals/cases/story-writer.json",
+      "avatar": {
+        "crop": "frontend/public/agents/story-writer.webp",
+        "master": "agents/avatars/story-writer.webp",
+        "figure": "female"
+      }
     },
     {
       "id": "listing-writer",
+      "display_name": "Bayu",
       "pillar": 1,
       "status": "active",
       "intents": [
@@ -67,10 +86,16 @@
       "skill_repo": "clau-ai-marketing",
       "approval_min": "L2",
       "persona": "agents/personas/listing-writer.md",
-      "evals": "agents/evals/cases/listing-writer.json"
+      "evals": "agents/evals/cases/listing-writer.json",
+      "avatar": {
+        "crop": "frontend/public/agents/listing-writer.webp",
+        "master": "agents/avatars/listing-writer.webp",
+        "figure": "male"
+      }
     },
     {
       "id": "review-responder",
+      "display_name": "Laras",
       "pillar": 1,
       "status": "active",
       "intents": [
@@ -82,10 +107,16 @@
       "skill_repo": "clau-ai-marketing",
       "approval_min": "L1",
       "persona": "agents/personas/review-responder.md",
-      "evals": "agents/evals/cases/review-responder.json"
+      "evals": "agents/evals/cases/review-responder.json",
+      "avatar": {
+        "crop": "frontend/public/agents/review-responder.webp",
+        "master": "agents/avatars/review-responder.webp",
+        "figure": "female"
+      }
     },
     {
       "id": "calendar-planner",
+      "display_name": "Dimas",
       "pillar": 1,
       "status": "active",
       "intents": [
@@ -97,10 +128,16 @@
       "skill_repo": "clau-ai-marketing",
       "approval_min": "L1",
       "persona": "agents/personas/calendar-planner.md",
-      "evals": "agents/evals/cases/calendar-planner.json"
+      "evals": "agents/evals/cases/calendar-planner.json",
+      "avatar": {
+        "crop": "frontend/public/agents/calendar-planner.webp",
+        "master": "agents/avatars/calendar-planner.webp",
+        "figure": "male"
+      }
     },
     {
       "id": "campaign-planner",
+      "display_name": "Ayu",
       "pillar": 1,
       "status": "active",
       "intents": [
@@ -112,10 +149,16 @@
       "skill_repo": "clau-ai-marketing",
       "approval_min": "L2",
       "persona": "agents/personas/campaign-planner.md",
-      "evals": "agents/evals/cases/campaign-planner.json"
+      "evals": "agents/evals/cases/campaign-planner.json",
+      "avatar": {
+        "crop": "frontend/public/agents/campaign-planner.webp",
+        "master": "agents/avatars/campaign-planner.webp",
+        "figure": "female"
+      }
     },
     {
       "id": "localizer",
+      "display_name": "Nara",
       "pillar": 1,
       "status": "active",
       "intents": [
@@ -127,10 +170,16 @@
       "skill_repo": "clau-ai-marketing",
       "approval_min": "L1",
       "persona": "agents/personas/localizer.md",
-      "evals": "agents/evals/cases/localizer.json"
+      "evals": "agents/evals/cases/localizer.json",
+      "avatar": {
+        "crop": "frontend/public/agents/localizer.webp",
+        "master": "agents/avatars/localizer.webp",
+        "figure": "male"
+      }
     },
     {
       "id": "report-builder",
+      "display_name": "Intan",
       "pillar": 5,
       "status": "active",
       "intents": [
@@ -142,10 +191,16 @@
       "skill_repo": "clau-ai-marketing",
       "approval_min": "L1",
       "persona": "agents/personas/report-builder.md",
-      "evals": "agents/evals/cases/report-builder.json"
+      "evals": "agents/evals/cases/report-builder.json",
+      "avatar": {
+        "crop": "frontend/public/agents/report-builder.webp",
+        "master": "agents/avatars/report-builder.webp",
+        "figure": "female"
+      }
     },
     {
       "id": "sales-assistant",
+      "display_name": "Galih",
       "pillar": 2,
       "status": "planned",
       "intents": [
@@ -157,10 +212,16 @@
       "skill_repo": null,
       "approval_min": "L2",
       "persona": "agents/personas/sales-assistant.md",
-      "evals": "agents/evals/cases/sales-assistant.json"
+      "evals": "agents/evals/cases/sales-assistant.json",
+      "avatar": {
+        "crop": "frontend/public/agents/sales-assistant.webp",
+        "master": "agents/avatars/sales-assistant.webp",
+        "figure": "male"
+      }
     },
     {
       "id": "guest-messenger",
+      "display_name": "Sari",
       "pillar": 3,
       "status": "planned",
       "intents": [
@@ -172,10 +233,16 @@
       "skill_repo": null,
       "approval_min": "L2",
       "persona": "agents/personas/guest-messenger.md",
-      "evals": "agents/evals/cases/guest-messenger.json"
+      "evals": "agents/evals/cases/guest-messenger.json",
+      "avatar": {
+        "crop": "frontend/public/agents/guest-messenger.webp",
+        "master": "agents/avatars/guest-messenger.webp",
+        "figure": "female"
+      }
     },
     {
       "id": "sop-writer",
+      "display_name": "Teguh",
       "pillar": 4,
       "status": "planned",
       "intents": [
@@ -187,7 +254,12 @@
       "skill_repo": null,
       "approval_min": "L1",
       "persona": "agents/personas/sop-writer.md",
-      "evals": "agents/evals/cases/sop-writer.json"
+      "evals": "agents/evals/cases/sop-writer.json",
+      "avatar": {
+        "crop": "frontend/public/agents/sop-writer.webp",
+        "master": "agents/avatars/sop-writer.webp",
+        "figure": "male"
+      }
     }
   ],
   "personas_readme": "agents/personas/README.md"

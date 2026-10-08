@@ -25,8 +25,16 @@ def _check(name: str) -> None:
 
 def test_every_registry_agent_has_avatar():
     registry = json.loads((ROOT / "agents" / "registry.json").read_text(encoding="utf-8"))
+    names = []
     for agent in registry["agents"]:
-        _check(agent["id"])
+        aid, avatar = agent["id"], agent["avatar"]
+        assert avatar["crop"] == f"frontend/public/agents/{aid}.webp", aid
+        assert avatar["master"] == f"agents/avatars/{aid}.webp", aid
+        assert avatar["figure"] in {"female", "male"}, aid
+        assert agent["display_name"].strip(), aid
+        names.append(agent["display_name"])
+        _check(aid)
+    assert len(names) == len(set(names)), "display_name must be unique"
 
 
 def test_concept_images_exist():
