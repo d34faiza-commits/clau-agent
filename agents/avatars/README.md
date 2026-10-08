@@ -23,8 +23,7 @@ Agent konsep (belum ada di registry) memakai `concept-<nama>.webp` (Nova, Aruna,
 | caption-writer, reel-scripter, story-writer, listing-writer, review-responder, calendar-planner, campaign-planner, localizer, sales-assistant | `ASSUMPTION` | Diterima di sesi 2026-10-08; menunggu konfirmasi Pak Indra / Dea Karisna saat review PR |
 | report-builder | `ASSUMPTION` | Nama ditukar Galih → Intan (2026-10-08) agar sesuai figur; opsional: generate ulang menghadap depan |
 | concept-nova, concept-aruna, concept-dara | `ASSUMPTION` | Agent konsep; belum ada persona/eval |
-| guest-messenger | `NEXT ACTION` | Layar HP memuat teks "How can help?" (salah grammar); generate ulang tanpa teks |
-| sop-writer | `NEXT ACTION` | Proporsi kepala lebih kecil dari 11 figur lain |
+| guest-messenger, sop-writer | `ASSUMPTION` | Diganti 2026-10-08: layar HP tanpa teks (Sari), proporsi chibi diseragamkan (Teguh) |
 
 Prompt dasar yang dipakai:
 
