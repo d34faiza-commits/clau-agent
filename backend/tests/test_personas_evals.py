@@ -36,3 +36,8 @@ def test_escalation_marker_must_lead_the_output():
     # Kartu persona: tulis ESKALASI di AWAL output. Menyebut kata itu di tengah kalimat tidak dihitung.
     assert run_evals.run_checks("Terima kasih atas reviewnya. Kasus ini tidak perlu eskalasi.", {"escalate": True})
     assert run_evals.run_checks("  eskalasi: hubungi owner.", {"escalate": True}) == []
+
+
+def test_emoji_with_modifiers_counts_once():
+    assert run_evals.run_checks("Terima kasih 👍🏽", {"max_emoji": 1}) == []
+    assert run_evals.run_checks("🌅 🌴", {"max_emoji": 1})

@@ -31,7 +31,9 @@ CASES_DIR = HERE / "cases"
 PERSONAS_DIR = AGENTS_DIR / "personas"
 REGISTRY = AGENTS_DIR / "registry.json"
 
-EMOJI_RE = re.compile("[\U0001F300-\U0001FAFF☀-➿]")
+# One match per visible emoji: a base symbol plus any skin-tone modifier, variation selector,
+# or ZWJ-joined parts ("👍🏽" and "👨‍👩‍👧" each count as one).
+EMOJI_RE = re.compile("[\U0001F300-\U0001FAFF\u2600-\u27BF](?:[\U0001F3FB-\U0001F3FF]|\uFE0F|\u200D[\U0001F300-\U0001FAFF\u2600-\u27BF])*")
 ESCALATION_MARKER = "eskalasi"
 KNOWN_CHECKS = {"max_chars", "must_include_any", "must_not_include", "max_exclamations", "max_emoji", "escalate"}
 MIN_CASES = {"active": 2, "planned": 2}
