@@ -7,7 +7,7 @@ Figur 3D (gaya figurine chibi, latar mint `#DDF4EE`) untuk 12 agent di `registry
 | `agents/avatars/<id>.webp` | Master 1248×832 (seluruh badan) |
 | `frontend/public/agents/<id>.webp` | Crop kepala & bahu 256×256, dipakai komponen `Avatar` |
 
-Agent konsep (belum ada di registry) tetap memakai karakter SVG (`frontend/components/Character.tsx`).
+Agent konsep (belum ada di registry) memakai `concept-<nama>.webp` (Nova, Aruna, Dara; ditambahkan 2026-10-08). Konsep tanpa gambar jatuh ke karakter SVG (`frontend/components/Character.tsx`).
 
 ## Aturan
 
@@ -22,6 +22,7 @@ Agent konsep (belum ada di registry) tetap memakai karakter SVG (`frontend/compo
 |---|---|---|
 | caption-writer, reel-scripter, story-writer, listing-writer, review-responder, calendar-planner, campaign-planner, localizer, sales-assistant | `ASSUMPTION` | Diterima di sesi 2026-10-08; menunggu konfirmasi Pak Indra / Dea Karisna saat review PR |
 | report-builder | `ASSUMPTION` | Nama ditukar Galih → Intan (2026-10-08) agar sesuai figur; opsional: generate ulang menghadap depan |
+| concept-nova, concept-aruna, concept-dara | `ASSUMPTION` | Agent konsep; belum ada persona/eval |
 | guest-messenger | `NEXT ACTION` | Layar HP memuat teks "How can help?" (salah grammar); generate ulang tanpa teks |
 | sop-writer | `NEXT ACTION` | Proporsi kepala lebih kecil dari 11 figur lain |
 
