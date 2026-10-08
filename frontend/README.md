@@ -34,7 +34,7 @@ Platform **CLAU AI Content Studio** (tampilan v2) mengikuti [`docs/design/2026-1
 | Tema | Light / Dark / System (`lib/theme.tsx`, `localStorage` `clau-theme`, tanpa kedipan saat load) |
 | Light | Navy `#0F172A` sidebar & teks · Teal `#0F766E` aksi · Mint `#CCFBF1` · latar `#F8FAFC` · muted `#64748B` |
 | Dark | Latar `#0B1120` · permukaan `#111827` · teks `#F1F5F9` / `#CBD5E1` / `#94A3B8` · aksen teks teal `#5EEAD4` · tombol tetap `#0F766E` |
-| Aksen agent | Satu nada per agent: Tara `#0F766E`, Raka `#0E7490`, Sekar `#0369A1`, Bayu `#1E3A5F`, Laras `#4338CA`, Dimas `#047857`, Ayu `#6D28D9`, Nara `#0D9488`, Galih `#155E75`; belum aktif `#64748B` |
+| Aksen agent | Satu nada per agent: Tara `#0F766E`, Raka `#0E7490`, Sekar `#0369A1`, Bayu `#1E3A5F`, Laras `#4338CA`, Dimas `#047857`, Ayu `#6D28D9`, Nara `#0D9488`, Intan `#155E75`; belum aktif `#64748B` |
 | Status | Success `#16A34A` · Warning `#D97706` · Error `#DC2626` · Info `#2563EB` (selalu dengan label) |
 | Brief | [`docs/design/2026-10-07-ai-workforce-brief-v2.md`](../docs/design/2026-10-07-ai-workforce-brief-v2.md) |
 
@@ -75,7 +75,7 @@ npm run build
 
 - Nama produk: **CLAU AI Content Studio** (wordmark CLAU + deskriptor "AI Content Studio").
 - Palet UI produk v2: navy + deep teal + putih + slate (token di `app/globals.css`). Dicatat di `CLAU-AI-CONTENT/design/brand/brand-guideline.md` §3b.
-- Nama agent (Tara, Raka, Sekar, Bayu, Laras, Dimas, Ayu, Nara, Galih, Intan, Sari, Teguh) disetujui.
+- Nama agent (Tara, Raka, Sekar, Bayu, Laras, Dimas, Ayu, Nara, Intan, Galih, Sari, Teguh) disetujui. 2026-10-08: nama report-builder dan sales-assistant ditukar (Intan ↔ Galih) agar sesuai figur 3D.
 
 ## Batas
 
