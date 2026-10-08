@@ -33,7 +33,7 @@ export default function Agents() {
                 <tr key={m.id}>
                   <td>
                     <Link href={`/agents/${m.id}`} className="cell-agent">
-                      <Avatar name={m.name} hue={m.hue} look={m.look} uniform={m.uniform} size="sm" />
+                      <Avatar name={m.name} hue={m.hue} look={m.look} uniform={m.uniform} image={m.image} size="sm" />
                       <span>
                         <span className="cell-strong">{m.name}</span>
                         <span className="cell-sub"><L en={m.role.en} id={m.role.id} /></span>
