@@ -2,16 +2,17 @@
 
 > Panduan dan catatan status setup VPS 1 (`clau-vps1`), server untuk frontend Next.js. Keputusan dasar ada di [`../post-vps-checklist.md`](../post-vps-checklist.md). IP server **tidak** ditulis di repo; gunakan `<IP_VPS_1>`.
 
-## 1. Status (2026-10-07)
+## 1. Status (diperbarui 2026-10-09)
 
 | Bagian | Status |
 |---|---|
 | 1–5. OS, hostname, user admin `dea` + SSH key | DATA FINAL — Ubuntu 24.04 LTS, kernel 6.8.0-146, 2 vCPU / 3.8 GB RAM / 79 GB |
 | 6. Hardening (UFW, sshd, fail2ban, unattended-upgrades) | DATA FINAL — diverifikasi: UFW active (22/80/443), root & password login ditolak, fail2ban jail `sshd` active |
 | 7a–7b. Node 22 + Nginx + swap 2 GB | DATA FINAL — 2026-10-07 |
-| 7c. Tailscale | DATA FINAL — 2026-10-07: `clau-vps1` join tailnet milik Dea Karisna. NEXT ACTION: disable key expiry, undang Pak Indra sebagai Admin, ACL setelah VPS 2 join |
+| 7c. Tailscale | DATA FINAL — 2026-10-09: dipasang ulang (cek 2026-10-08 menemukan `tailscale` tidak terpasang dan `tailscaled` inactive), join ulang sebagai `clau-vps1`, `tailscaled` active. Entri lama offline diganti nama `clau-vps1-aja`. NEXT ACTION: hapus entri `clau-vps1-aja`, disable key expiry `clau-vps1`, undang Pak Indra sebagai Admin, ACL setelah VPS 2 join |
 | 8. Deploy frontend (akses via IP, HTTP) | DATA FINAL — 2026-10-07: service `clau-frontend` active, Nginx proxy ke 127.0.0.1:3000, halaman registry tampil di `http://<IP_VPS_1>` |
 | 9. Auto-deploy dari repo (pull-based) | DATA FINAL — 2026-10-07: `clau-deploy.timer` aktif (5 menit), service frontend memakai `/srv/clau/current` |
+| Cek kesehatan 2026-10-08 | DATA FINAL — `clau-frontend`, nginx, fail2ban, `clau-deploy.timer` active; `/team` HTTP 200; rilis live = `main` (`8948618`), commit tanpa perubahan frontend dilewati build; UFW 22/80/443; disk 11%, RAM tersedia 3,3 GB; 0 update keamanan tertunda |
 | 10. Domain + Cloudflare + SSL | Ditunda — domain belum ditentukan |
 | 11. Backup config (tanpa `.env`) | Ditunda — setelah domain & Tailscale |
 
