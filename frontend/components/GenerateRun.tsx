@@ -7,7 +7,7 @@ import Icon from "./Icon";
 import { L, useL } from "../lib/i18n";
 import type { Look, Uniform } from "../lib/team";
 
-export type RunStep = { key: string; agent?: { name: string; hue: string; look: Look; uniform: Uniform }; en: string; id: string; subEn: string; subId: string; human?: boolean };
+export type RunStep = { key: string; agent?: { name: string; hue: string; look: Look; uniform: Uniform; image?: string }; en: string; id: string; subEn: string; subId: string; human?: boolean };
 
 /** Pratinjau alur kerja tim AI. SIMULASI: tidak memanggil model AI apa pun. */
 export function RunSteps({ steps, running }: { steps: RunStep[]; running: boolean }) {

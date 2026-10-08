@@ -15,7 +15,7 @@
 
 | Path | Fungsi |
 |---|---|
-| `agents/registry.json` | 12 agent → intent → skill/prompt/template di repo pilar; `default_forbidden_actions`; link `persona` & `evals` |
+| `agents/registry.json` | 12 agent → nama (`display_name`), avatar, intent → skill/prompt/template di repo pilar; `default_forbidden_actions`; link `persona` & `evals` |
 | `agents/personas/` | Kartu persona per agent (gaya bahasa, etika, batas & eskalasi, contoh) |
 | `agents/evals/` | Kasus uji per agent + `run_evals.py` + rubrik "seperti manusia ahli" |
 | `backend/app/main.py` | `GET /health`, `GET /agents`, `POST /route` (read-only, tanpa endpoint publish) |
