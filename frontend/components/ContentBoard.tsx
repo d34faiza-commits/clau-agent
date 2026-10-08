@@ -10,7 +10,7 @@ import { CLIENTS, CONTENT, FORMATS, PREVIEW, STATUS, STATUS_ORDER, clientName, f
 import { D, L, useL } from "../lib/i18n";
 import type { Look, Uniform } from "../lib/team";
 
-type AgentInfo = Record<string, { name: string; hue: string; look: Look; uniform: Uniform }>;
+type AgentInfo = Record<string, { name: string; hue: string; look: Look; uniform: Uniform; image?: string }>;
 
 const TYPES = ["Instagram Post", "Instagram Reel", "Story", "Google Business", "WhatsApp Promotion", "Blog", "Campaign"];
 
