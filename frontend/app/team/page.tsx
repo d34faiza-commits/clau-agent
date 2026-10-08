@@ -1,4 +1,4 @@
-import Avatar from "../../components/Avatar";
+import Character from "../../components/Character";
 import GenerateRun from "../../components/GenerateRun";
 import MemberCard from "../../components/MemberCard";
 import { PageHeader } from "../../components/ui";
@@ -56,8 +56,12 @@ export default function TeamPage() {
       <div className="team-grid">
         {CONCEPT_AGENTS.map((c) => (
           <div key={c.name} className="member member--concept">
+            <div className="member__portrait" style={{ background: "var(--color-surface-muted)" }}>
+              <div className="member__figure">
+                <Character look={c.look} uniform={c.uniform} />
+              </div>
+            </div>
             <div className="member__head">
-              <Avatar name={c.name} hue="#94A3B8" look={c.look} uniform={c.uniform} size="lg" />
               <div>
                 <div className="member__name">{c.name}</div>
                 <div className="member__role">

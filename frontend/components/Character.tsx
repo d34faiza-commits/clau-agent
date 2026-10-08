@@ -176,6 +176,9 @@ export default function Character({
   const id = (s: string) => `c${uid}-${s}`;
   const url = (s: string) => `url(#${id(s)})`;
   const hijab = look.hairStyle === "hijab";
+  const a = look.attire;
+  const skirt = a.kind !== "batik";
+  const topFill = a.kind === "kebaya" || a.kind === "kutubaru" ? url("lace") : a.kind === "batik" ? url("cloth") : url("outfit");
   const skinDark = shade(look.skin, -0.18);
 
   const backHair: Record<string, string | null> = {
@@ -195,7 +198,14 @@ export default function Character({
   };
 
   return (
-    <svg viewBox={crop === "bust" ? "26 18 188 188" : "0 0 240 300"} width="100%" height="100%" aria-hidden="true" preserveAspectRatio="xMidYMid meet">
+    <svg
+      viewBox={crop === "bust" ? "26 18 188 188" : "0 0 240 300"}
+      width="100%"
+      height="100%"
+      aria-hidden="true"
+      preserveAspectRatio="xMidYMid meet"
+      style={uniform.muted ? { filter: `saturate(${1 - uniform.muted})` } : undefined}
+    >
       <defs>
         <radialGradient id={id("skin")} cx="38%" cy="32%" r="78%">
           <stop offset="0" stopColor={shade(look.skin, 0.22)} />
@@ -208,9 +218,28 @@ export default function Character({
           <stop offset="1" stopColor={shade(look.hair, -0.35)} />
         </radialGradient>
         <linearGradient id={id("outfit")} x1="0" y1="0" x2=".3" y2="1">
-          <stop offset="0" stopColor={shade(uniform.outfit, 0.25)} />
-          <stop offset=".55" stopColor={uniform.outfit} />
-          <stop offset="1" stopColor={uniform.trim} />
+          <stop offset="0" stopColor={shade(a.main, 0.25)} />
+          <stop offset=".6" stopColor={a.main} />
+          <stop offset="1" stopColor={shade(a.main, -0.18)} />
+        </linearGradient>
+        {/* kebaya: brokat halus */}
+        <pattern id={id("lace")} width="10" height="10" patternUnits="userSpaceOnUse">
+          <rect width="10" height="10" fill={a.main} />
+          <circle cx="5" cy="5" r="1.6" fill="none" stroke={shade(a.main, -0.22)} strokeWidth=".8" />
+          <circle cx="0" cy="0" r="1" fill={shade(a.main, -0.15)} />
+          <circle cx="10" cy="10" r="1" fill={shade(a.main, -0.15)} />
+        </pattern>
+        {/* kain batik: motif geometris umum (ceplok sederhana) */}
+        <pattern id={id("cloth")} width="14" height="14" patternUnits="userSpaceOnUse">
+          <rect width="14" height="14" fill={a.cloth} />
+          <path d="M7 2 L12 7 L7 12 L2 7 Z" fill="none" stroke={a.motif} strokeWidth="1" opacity=".75" />
+          <circle cx="7" cy="7" r="1.4" fill={a.motif} opacity=".8" />
+          <circle cx="0" cy="0" r="1.2" fill={a.motif} opacity=".6" />
+          <circle cx="14" cy="14" r="1.2" fill={a.motif} opacity=".6" />
+        </pattern>
+        <linearGradient id={id("shade")} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#000" stopOpacity="0" />
+          <stop offset="1" stopColor="#000" stopOpacity=".18" />
         </linearGradient>
         <linearGradient id={id("pants")} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#57534E" />
@@ -223,32 +252,85 @@ export default function Character({
       {look.hairStyle === "bun" && <circle cx="120" cy="38" r="21" fill={url("hair")} />}
       {backHair[look.hairStyle] && <path d={backHair[look.hairStyle] as string} fill={url("hair")} />}
 
-      {/* kaki */}
-      <rect x="96" y="244" width="20" height="30" rx="8" fill={url("pants")} />
-      <rect x="124" y="244" width="20" height="30" rx="8" fill={url("pants")} />
-      <ellipse cx="104" cy="276" rx="16" ry="8" fill="#1C1917" />
-      <ellipse cx="136" cy="276" rx="16" ry="8" fill="#1C1917" />
-      <ellipse cx="100" cy="273" rx="6" ry="2.5" fill="#fff" opacity=".25" />
-      <ellipse cx="132" cy="273" rx="6" ry="2.5" fill="#fff" opacity=".25" />
+      {/* bawahan: kain batik (kamen/jarik) atau celana */}
+      {skirt ? (
+        <>
+          <ellipse cx="104" cy="277" rx="15" ry="7" fill="#1C1917" />
+          <ellipse cx="136" cy="277" rx="15" ry="7" fill="#1C1917" />
+          <path d="M82 230 L158 230 L163 270 Q120 279 77 270 Z" fill={url("cloth")} />
+          <path d="M82 230 L158 230 L163 270 Q120 279 77 270 Z" fill={url("shade")} />
+          <path d="M136 232 L146 272" stroke={shade(a.cloth, -0.3)} strokeWidth="2" opacity=".7" />
+        </>
+      ) : (
+        <>
+          <rect x="96" y="244" width="20" height="30" rx="8" fill={url("pants")} />
+          <rect x="124" y="244" width="20" height="30" rx="8" fill={url("pants")} />
+          <ellipse cx="104" cy="276" rx="16" ry="8" fill="#1C1917" />
+          <ellipse cx="136" cy="276" rx="16" ry="8" fill="#1C1917" />
+          <ellipse cx="100" cy="273" rx="6" ry="2.5" fill="#fff" opacity=".25" />
+          <ellipse cx="132" cy="273" rx="6" ry="2.5" fill="#fff" opacity=".25" />
+        </>
+      )}
 
-      {/* badan + seragam */}
-      <path
-        d="M80 182 Q80 166 98 164 L142 164 Q160 166 160 182 L165 238 Q165 254 150 254 L90 254 Q75 254 75 238 Z"
-        fill={url("outfit")}
-      />
-      <path d="M106 164 L120 186 L134 164 Z" fill="#fff" />
-      <path d="M98 164 L120 190 L110 200 L90 172 Z" fill={uniform.trim} opacity=".9" />
-      <path d="M142 164 L120 190 L130 200 L150 172 Z" fill={uniform.trim} opacity=".9" />
-      <circle cx="120" cy="214" r="3" fill={uniform.trim} />
-      <circle cx="120" cy="230" r="3" fill={uniform.trim} />
-      <ellipse cx="94" cy="190" rx="8" ry="16" fill="#fff" opacity=".18" />
-      <circle cx="144" cy="214" r="12" fill="#fff" stroke={uniform.trim} strokeWidth="2.5" />
-      <text x="144" y="218.5" textAnchor="middle" fontSize="11" fontWeight="800" fill={uniform.trim} fontFamily="system-ui, sans-serif">
+      {/* atasan: busana adat hospitality */}
+      <path d="M80 182 Q80 166 98 164 L142 164 Q160 166 160 182 L165 238 Q165 252 150 252 L90 252 Q75 252 75 238 Z" fill={topFill} />
+      <path d="M80 182 Q80 166 98 164 L142 164 Q160 166 160 182 L165 238 Q165 252 150 252 L90 252 Q75 252 75 238 Z" fill={url("shade")} />
+      {a.kind === "kebaya" && (
+        <>
+          <path d="M104 164 L120 198 L136 164 Z" fill={shade(a.accent, -0.1)} />
+          <path d="M104 164 L120 198 L136 164" fill="none" stroke={shade(a.main, -0.25)} strokeWidth="2" />
+          <path d="M84 170 L100 164 L163 234 L152 246 Z" fill={a.accent} />
+          <path d="M100 164 L163 234" stroke="#fff" strokeOpacity=".3" strokeWidth="2" />
+        </>
+      )}
+      {a.kind === "kutubaru" && (
+        <>
+          <path d="M106 164 L120 180 L134 164 Z" fill={shade(a.accent, -0.1)} />
+          <rect x="111" y="176" width="18" height="62" rx="2" fill={a.accent} />
+          {[188, 204, 220].map((y) => (
+            <circle key={y} cx="120" cy={y} r="3" fill="#E0B341" stroke="#9A7B1F" strokeWidth="1" />
+          ))}
+          <path d="M80 236 L160 236" stroke={shade(a.main, -0.3)} strokeWidth="3" />
+        </>
+      )}
+      {a.kind === "batik" && (
+        <>
+          <path d="M102 164 L120 178 L112 186 L96 170 Z" fill={a.main} />
+          <path d="M138 164 L120 178 L128 186 L144 170 Z" fill={a.main} />
+          <path d="M120 180 L120 250" stroke={shade(a.cloth, -0.35)} strokeWidth="2" />
+          {[196, 214, 232].map((y) => (
+            <circle key={y} cx="120" cy={y} r="2.2" fill={a.motif} />
+          ))}
+        </>
+      )}
+      {a.kind === "udeng" && (
+        <>
+          <path d="M102 164 L120 178 L112 186 L96 170 Z" fill="#fff" stroke="#CBD5E1" strokeWidth="1" />
+          <path d="M138 164 L120 178 L128 186 L144 170 Z" fill="#fff" stroke="#CBD5E1" strokeWidth="1" />
+          <path d="M120 180 L120 226" stroke="#CBD5E1" strokeWidth="1.5" />
+          {[196, 212].map((y) => (
+            <circle key={y} cx="120" cy={y} r="2" fill="#94A3B8" />
+          ))}
+          <path d="M77 222 L163 222 L165 244 L75 244 Z" fill={a.accent} />
+          <path d="M77 222 L163 222" stroke="#fff" strokeOpacity=".35" strokeWidth="2" />
+        </>
+      )}
+      {a.kind === "beskap" && (
+        <>
+          <path d="M104 162 L136 162 L134 172 L106 172 Z" fill={shade(a.main, -0.25)} />
+          <path d="M106 172 L140 250" stroke={shade(a.main, -0.35)} strokeWidth="2.5" />
+          {[184, 202, 220, 238].map((y, i) => (
+            <circle key={y} cx={111 + i * 7.6} cy={y} r="2.6" fill={a.accent} />
+          ))}
+        </>
+      )}
+      <circle cx="96" cy="206" r="10.5" fill="#fff" stroke={uniform.trim} strokeWidth="2.5" />
+      <text x="96" y="210" textAnchor="middle" fontSize="10" fontWeight="800" fill={uniform.trim} fontFamily="system-ui, sans-serif">
         AI
       </text>
 
       {/* lengan kiri */}
-      <rect x="64" y="174" width="20" height="56" rx="10" fill={url("outfit")} transform="rotate(14 74 178)" />
+      <rect x="64" y="174" width="20" height="56" rx="10" fill={a.kind === "udeng" ? "#F1F5F9" : topFill} transform="rotate(14 74 178)" />
       <circle cx="64" cy="234" r="9.5" fill={url("skin")} />
 
       {/* leher */}
@@ -330,8 +412,24 @@ export default function Character({
         </g>
       )}
 
+      {look.headwear === "udeng" && (
+        <g>
+          <path d="M54 96 Q120 58 186 96 L184 80 Q120 40 56 80 Z" fill={url("cloth")} />
+          <path d="M54 96 Q120 58 186 96" stroke={shade(a.cloth, -0.35)} strokeWidth="2" fill="none" />
+          <path d="M108 66 L120 34 L132 66 Z" fill={url("cloth")} stroke={shade(a.cloth, -0.35)} strokeWidth="1.5" />
+          <ellipse cx="182" cy="86" rx="8" ry="10" fill={url("cloth")} />
+        </g>
+      )}
+      {look.headwear === "blangkon" && (
+        <g>
+          <path d="M54 98 C52 36 188 36 186 98 Q120 80 54 98 Z" fill={url("cloth")} />
+          <path d="M54 98 Q120 80 186 98" stroke={shade(a.cloth, -0.4)} strokeWidth="3" fill="none" />
+          <path d="M70 70 Q120 50 170 70" stroke={a.motif} strokeOpacity=".5" strokeWidth="1.5" fill="none" />
+        </g>
+      )}
+
       {/* lengan kanan memegang alat kerja */}
-      <rect x="156" y="174" width="20" height="50" rx="10" fill={url("outfit")} transform="rotate(-35 166 178)" />
+      <rect x="156" y="174" width="20" height="50" rx="10" fill={a.kind === "udeng" ? "#F1F5F9" : topFill} transform="rotate(-35 166 178)" />
       <PropShape prop={look.prop} />
       <circle cx="192" cy="216" r="9.5" fill={url("skin")} />
     </svg>

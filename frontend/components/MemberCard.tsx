@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Avatar from "./Avatar";
+import Character from "./Character";
 import Icon from "./Icon";
 import { AgentStatus, Level } from "./ui";
 import { L } from "../lib/i18n";
@@ -8,8 +8,16 @@ import type { Member } from "../lib/team";
 export default function MemberCard({ m, compact }: { m: Member; compact?: boolean }) {
   return (
     <Link href={`/agents/${m.id}`} className="member" style={{ ["--hue" as string]: m.hue }}>
+      <div
+        className="member__portrait"
+        style={{ background: `linear-gradient(170deg, color-mix(in srgb, ${m.hue} 8%, var(--color-surface)), color-mix(in srgb, ${m.hue} 22%, var(--color-surface)))` }}
+      >
+        <div className="member__figure">
+          <Character look={m.look} uniform={m.uniform} />
+        </div>
+        <span className={`member__status member__status--${m.status}`} aria-hidden="true" />
+      </div>
       <div className="member__head">
-        <Avatar name={m.name} hue={m.hue} look={m.look} uniform={m.uniform} status={m.status} size="lg" />
         <div>
           <div className="member__name">{m.name}</div>
           <div className="member__role">

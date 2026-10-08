@@ -12,15 +12,26 @@ export type Text = { en: string; id: string };
 
 // Karakter agent (gaya v1): ciri fisik + alat kerja. Seragam mengikuti status.
 export type HairStyle = "short" | "swoop" | "bob" | "bun" | "long" | "curly" | "hijab";
-export type Headwear = "none" | "glasses" | "headset" | "beret" | "cap";
+export type Headwear = "none" | "glasses" | "headset" | "beret" | "cap" | "udeng" | "blangkon";
+/** Busana adat sehari-hari yang dipakai staf hospitality (bukan busana upacara). */
+export type AttireKind = "kebaya" | "kutubaru" | "batik" | "udeng" | "beskap";
+export type Attire = { kind: AttireKind; main: string; accent: string; cloth: string; motif: string };
 export type Prop = "pen" | "clapper" | "phone" | "tablet" | "calendar" | "megaphone" | "globe" | "chart" | "keycard" | "bell" | "clipboard" | "speech";
-export type Look = { skin: string; hair: string; hairStyle: HairStyle; headwear: Headwear; prop: Prop };
-export type Uniform = { outfit: string; trim: string };
+export type Look = { skin: string; hair: string; hairStyle: HairStyle; headwear: Headwear; prop: Prop; attire: Attire };
+/** Status agent: warna badge "AI" dan seberapa pudar karakternya. */
+export type Uniform = { outfit: string; trim: string; muted: number };
 export const UNIFORM: Record<"active" | "planned" | "concept", Uniform> = {
-  active: { outfit: "#0F766E", trim: "#134E4A" },
-  planned: { outfit: "#64748B", trim: "#334155" },
-  concept: { outfit: "#94A3B8", trim: "#64748B" },
+  active: { outfit: "#0F766E", trim: "#134E4A", muted: 0 },
+  planned: { outfit: "#64748B", trim: "#334155", muted: 0.55 },
+  concept: { outfit: "#94A3B8", trim: "#64748B", muted: 0.8 },
 };
+// Kain batik bermotif geometris umum (bukan motif keraton/sakral).
+const CLOTH = {
+  sogan: { cloth: "#7C4A1E", motif: "#F5E6C8" },
+  indigo: { cloth: "#1E3A5F", motif: "#E2E8F0" },
+  teal: { cloth: "#115E59", motif: "#CCFBF1" },
+};
+const at = (kind: AttireKind, main: string, accent: string, c: keyof typeof CLOTH): Attire => ({ kind, main, accent, ...CLOTH[c] });
 const SKIN = { light: "#F6D2B4", tan: "#E2A97E", brown: "#B97A52", deep: "#8A5534" };
 const HAIR = { black: "#2B211C", brown: "#5A3A26", dark: "#3A2A22" };
 
@@ -65,7 +76,7 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform">> = {
     tagline: t("Writes Instagram, TikTok and Facebook captions with a strong hook and one clear call to action.", "Menulis caption Instagram, TikTok, dan Facebook dengan hook kuat dan satu ajakan yang jelas."),
     capabilities: [t("Captions", "Caption"), t("Hooks", "Hook"), t("CTA", "CTA"), t("Bilingual copy", "Copy dua bahasa")],
     hue: "#0F766E",
-    look: { skin: SKIN.tan, hair: HAIR.black, hairStyle: "bob", headwear: "none", prop: "pen" },
+    look: { skin: SKIN.tan, hair: HAIR.black, hairStyle: "bob", headwear: "none", prop: "pen", attire: at("kutubaru", "#E6F4F1", "#0F766E", "sogan") },
   },
   "reel-scripter": {
     name: "Raka",
@@ -74,7 +85,7 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform">> = {
     tagline: t("Plans Reels with a 3-second hook, a shot list and on-screen text.", "Menyusun Reels dengan hook 3 detik, shot list, dan teks di layar."),
     capabilities: [t("Hooks", "Hook"), t("Shot lists", "Shot list"), t("Video scripts", "Naskah video"), t("Reels concepts", "Konsep Reels")],
     hue: "#0E7490",
-    look: { skin: SKIN.brown, hair: HAIR.black, hairStyle: "short", headwear: "cap", prop: "clapper" },
+    look: { skin: SKIN.brown, hair: HAIR.black, hairStyle: "short", headwear: "udeng", prop: "clapper", attire: at("udeng", "#F8FAFC", "#0F766E", "indigo") },
   },
   "story-writer": {
     name: "Sekar",
@@ -83,7 +94,7 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform">> = {
     tagline: t("Builds short, interactive 3–5 frame Stories sequences.", "Membuat rangkaian Stories 3–5 frame yang singkat dan interaktif."),
     capabilities: [t("Stories", "Stories"), t("Polls & stickers", "Polling & stiker"), t("Engagement", "Interaksi")],
     hue: "#0369A1",
-    look: { skin: SKIN.light, hair: HAIR.brown, hairStyle: "bun", headwear: "none", prop: "phone" },
+    look: { skin: SKIN.light, hair: HAIR.brown, hairStyle: "bun", headwear: "none", prop: "phone", attire: at("kebaya", "#FAF5EB", "#0E7490", "teal") },
   },
   "listing-writer": {
     name: "Bayu",
@@ -92,7 +103,7 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform">> = {
     tagline: t("Writes complete, factual property and room descriptions that stay consistent across OTAs.", "Menulis deskripsi properti dan kamar yang lengkap, faktual, dan konsisten di semua OTA."),
     capabilities: [t("Room descriptions", "Deskripsi kamar"), t("Facilities", "Fasilitas"), t("OTA consistency", "Konsistensi OTA")],
     hue: "#1E3A5F",
-    look: { skin: SKIN.tan, hair: HAIR.dark, hairStyle: "swoop", headwear: "glasses", prop: "tablet" },
+    look: { skin: SKIN.tan, hair: HAIR.dark, hairStyle: "swoop", headwear: "glasses", prop: "tablet", attire: at("batik", "#1E3A5F", "#0F766E", "indigo") },
   },
   "review-responder": {
     name: "Laras",
@@ -101,7 +112,7 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform">> = {
     tagline: t("Drafts calm, sincere replies to guest reviews and escalates serious cases to the owner.", "Menyiapkan balasan review yang tenang dan tulus, dan meneruskan kasus berat ke owner."),
     capabilities: [t("Google & OTA reviews", "Review Google & OTA"), t("Apologies", "Permintaan maaf"), t("Escalation", "Eskalasi")],
     hue: "#4338CA",
-    look: { skin: SKIN.brown, hair: "#115E59", hairStyle: "hijab", headwear: "headset", prop: "speech" },
+    look: { skin: SKIN.brown, hair: "#115E59", hairStyle: "hijab", headwear: "headset", prop: "speech", attire: at("kebaya", "#F0FDFA", "#115E59", "sogan") },
   },
   "calendar-planner": {
     name: "Dimas",
@@ -110,7 +121,7 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform">> = {
     tagline: t("Plans the monthly calendar around high season, public holidays and your business rhythm.", "Menyusun kalender bulanan sesuai musim ramai, hari libur, dan ritme bisnis."),
     capabilities: [t("Monthly calendar", "Kalender bulanan"), t("Content pillars", "Pilar konten"), t("Holidays", "Hari libur")],
     hue: "#047857",
-    look: { skin: SKIN.light, hair: HAIR.black, hairStyle: "curly", headwear: "none", prop: "calendar" },
+    look: { skin: SKIN.light, hair: HAIR.black, hairStyle: "curly", headwear: "blangkon", prop: "calendar", attire: at("batik", "#7C4A1E", "#0F766E", "sogan") },
   },
   "campaign-planner": {
     name: "Ayu",
@@ -119,7 +130,7 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform">> = {
     tagline: t("Plans seasonal campaigns with goals, timeline, offer terms and risks.", "Merencanakan campaign musiman lengkap dengan tujuan, timeline, syarat penawaran, dan risiko."),
     capabilities: [t("Campaign plans", "Rencana campaign"), t("KPIs", "KPI"), t("Timelines", "Timeline")],
     hue: "#6D28D9",
-    look: { skin: SKIN.tan, hair: HAIR.brown, hairStyle: "long", headwear: "beret", prop: "megaphone" },
+    look: { skin: SKIN.tan, hair: HAIR.brown, hairStyle: "long", headwear: "none", prop: "megaphone", attire: at("kutubaru", "#F3EEFF", "#6D28D9", "indigo") },
   },
   localizer: {
     name: "Nara",
@@ -128,7 +139,7 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform">> = {
     tagline: t("Aligns Indonesian and English content without changing meaning, tone or claims.", "Menyelaraskan konten Indonesia dan Inggris tanpa mengubah makna, nada, atau klaim."),
     capabilities: [t("ID ↔ EN", "ID ↔ EN"), t("Local terms", "Istilah lokal"), t("Claim consistency", "Konsistensi klaim")],
     hue: "#0D9488",
-    look: { skin: SKIN.deep, hair: HAIR.black, hairStyle: "curly", headwear: "glasses", prop: "globe" },
+    look: { skin: SKIN.deep, hair: HAIR.black, hairStyle: "curly", headwear: "glasses", prop: "globe", attire: at("beskap", "#1E3A5F", "#C9A227", "sogan") },
   },
   "report-builder": {
     name: "Galih",
@@ -137,7 +148,7 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform">> = {
     tagline: t("Turns monthly performance into a short, honest report the owner can read in 30 seconds.", "Merangkum performa bulanan jadi laporan singkat dan jujur yang bisa dibaca owner dalam 30 detik."),
     capabilities: [t("Monthly report", "Laporan bulanan"), t("Metrics", "Metrik"), t("Recommendations", "Rekomendasi")],
     hue: "#155E75",
-    look: { skin: SKIN.tan, hair: HAIR.dark, hairStyle: "short", headwear: "glasses", prop: "chart" },
+    look: { skin: SKIN.tan, hair: HAIR.dark, hairStyle: "short", headwear: "glasses", prop: "chart", attire: at("batik", "#155E75", "#0F766E", "teal") },
   },
   "sales-assistant": {
     name: "Intan",
@@ -146,7 +157,7 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform">> = {
     tagline: t("Drafts replies to inquiries: availability, rates, terms and booking steps.", "Menyiapkan balasan inquiry: ketersediaan, harga, syarat, dan langkah booking."),
     capabilities: [t("DM & WhatsApp inquiries", "Inquiry DM & WhatsApp"), t("Rates & terms", "Harga & syarat"), t("Booking steps", "Langkah booking")],
     hue: "#64748B",
-    look: { skin: SKIN.light, hair: HAIR.black, hairStyle: "long", headwear: "headset", prop: "keycard" },
+    look: { skin: SKIN.light, hair: HAIR.black, hairStyle: "long", headwear: "headset", prop: "keycard", attire: at("kebaya", "#EEF2F7", "#1E3A5F", "indigo") },
   },
   "guest-messenger": {
     name: "Sari",
@@ -155,7 +166,7 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform">> = {
     tagline: t("Drafts warm pre-arrival and in-stay messages with the information guests need.", "Menyiapkan pesan pre-arrival dan in-stay yang hangat dengan info yang tamu butuhkan."),
     capabilities: [t("Pre-arrival", "Pre-arrival"), t("Check-in info", "Info check-in"), t("Follow-up", "Follow-up")],
     hue: "#64748B",
-    look: { skin: SKIN.brown, hair: "#9A3412", hairStyle: "hijab", headwear: "none", prop: "bell" },
+    look: { skin: SKIN.brown, hair: "#9A3412", hairStyle: "hijab", headwear: "none", prop: "bell", attire: at("kebaya", "#FFF7ED", "#9A3412", "sogan") },
   },
   "sop-writer": {
     name: "Teguh",
@@ -164,14 +175,14 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform">> = {
     tagline: t("Writes step-by-step SOPs and checklists every staff member can follow.", "Menulis SOP langkah demi langkah dan checklist yang mudah diikuti semua staf."),
     capabilities: [t("SOPs", "SOP"), t("Checklists", "Checklist"), t("Safety standards", "Standar keselamatan")],
     hue: "#64748B",
-    look: { skin: SKIN.deep, hair: HAIR.black, hairStyle: "swoop", headwear: "none", prop: "clipboard" },
+    look: { skin: SKIN.deep, hair: HAIR.black, hairStyle: "swoop", headwear: "udeng", prop: "clipboard", attire: at("udeng", "#F8FAFC", "#115E59", "sogan") },
   },
 };
 
 export const CONCEPT_AGENTS: ConceptAgent[] = [
-  { name: "Nova", role: t("AI Brand Strategist", "AI Brand Strategist"), tagline: t("Brand positioning and monthly content strategy.", "Positioning brand dan strategi konten bulanan."), look: { skin: SKIN.light, hair: HAIR.brown, hairStyle: "bob", headwear: "glasses", prop: "chart" }, uniform: UNIFORM.concept },
-  { name: "Aruna", role: t("AI Visual Director", "AI Visual Director"), tagline: t("Visual concepts and shot direction for photos and video.", "Konsep visual dan arahan foto serta video."), look: { skin: SKIN.tan, hair: HAIR.black, hairStyle: "long", headwear: "beret", prop: "phone" }, uniform: UNIFORM.concept },
-  { name: "Dara", role: t("AI Quality Controller", "AI Quality Controller"), tagline: t("Pre-checks every draft against brand and claim rules before human review.", "Cek awal setiap draft terhadap aturan brand dan klaim sebelum review manusia."), look: { skin: SKIN.brown, hair: HAIR.dark, hairStyle: "bun", headwear: "none", prop: "clipboard" }, uniform: UNIFORM.concept },
+  { name: "Nova", role: t("AI Brand Strategist", "AI Brand Strategist"), tagline: t("Brand positioning and monthly content strategy.", "Positioning brand dan strategi konten bulanan."), look: { skin: SKIN.light, hair: HAIR.brown, hairStyle: "bob", headwear: "glasses", prop: "chart", attire: at("kutubaru", "#EEF2F7", "#1E3A5F", "teal") }, uniform: UNIFORM.concept },
+  { name: "Aruna", role: t("AI Visual Director", "AI Visual Director"), tagline: t("Visual concepts and shot direction for photos and video.", "Konsep visual dan arahan foto serta video."), look: { skin: SKIN.tan, hair: HAIR.black, hairStyle: "long", headwear: "none", prop: "phone", attire: at("kebaya", "#FAF5EB", "#0E7490", "sogan") }, uniform: UNIFORM.concept },
+  { name: "Dara", role: t("AI Quality Controller", "AI Quality Controller"), tagline: t("Pre-checks every draft against brand and claim rules before human review.", "Cek awal setiap draft terhadap aturan brand dan klaim sebelum review manusia."), look: { skin: SKIN.brown, hair: HAIR.dark, hairStyle: "bun", headwear: "none", prop: "clipboard", attire: at("kutubaru", "#F0FDFA", "#115E59", "indigo") }, uniform: UNIFORM.concept },
 ];
 
 export function getTeam(): Member[] {

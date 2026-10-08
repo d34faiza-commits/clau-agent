@@ -220,6 +220,12 @@ button { font: inherit; color: inherit; }
 .member:hover { border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border)); box-shadow: var(--shadow-md); transform: translateY(-2px); }
 .member:hover::before { opacity: 1; }
 .member__head { display: flex; align-items: center; gap: 12px; }
+.member__portrait { position: relative; height: 176px; margin: -18px -18px 0; border-radius: var(--radius) var(--radius) 0 0; border-bottom: 1px solid var(--color-border); overflow: hidden; }
+.member__figure { position: absolute; left: 50%; bottom: -4px; width: 150px; height: 188px; transform: translateX(-50%); transition: transform 0.2s; }
+.member:hover .member__figure { transform: translateX(-50%) translateY(-3px); }
+.member__status { position: absolute; top: 12px; right: 12px; width: 10px; height: 10px; border-radius: 999px; box-shadow: 0 0 0 3px var(--color-surface); }
+.member__status--active { background: var(--color-success); }
+.member__status--planned { background: var(--color-text-muted); }
 .member__name { font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; font-size: 14px; }
 .member__role { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-primary-text); }
 .member__headline { margin: 0; font-weight: 600; font-size: 13px; }
