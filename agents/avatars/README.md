@@ -15,6 +15,7 @@ Agent konsep (belum ada di registry) memakai `concept-<nama>.webp` (Nova, Aruna,
 - UI tetap menandai bahwa ini agent AI (role "AI …", persona README prinsip 1).
 - Batik hanya sebagai pakaian; tanpa simbol sakral (brand-guideline §6–7).
 - Ganti gambar = ganti master + crop dengan nama file yang sama (`<id>.webp`).
+- Agent baru di `registry.json` wajib punya master + crop; `backend/tests/test_avatars.py` (CI) gagal bila file hilang, bukan WebP, > 150 KB, atau tidak terpakai.
 
 ## Status per gambar
 
