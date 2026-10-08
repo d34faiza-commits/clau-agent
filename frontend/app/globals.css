@@ -1,6 +1,6 @@
 /* CLAU AI Content Studio — design tokens v3 "AI Workforce".
    Core: Deep Navy + Deep Teal + White + Soft Mint. Semantic colors only for status.
-   Light values follow tokens.json v1.1.0 semantic.app-v2 (WCAG AA). Dark theme: [data-theme="dark"].
+   Light values follow tokens.json v1.1.0 semantic.app-v2 (WCAG AA). Dark theme: [data-theme="dark"], values follow tokens.json v1.2.0 semantic.app-v3-dark.
    Muted text uses #64748B in light mode: the brief's #94A3B8 is 2.56:1 on white (fails AA). */
 :root {
   --color-primary: #0f766e;
@@ -24,6 +24,7 @@
 
   --color-border: #e2e8f0;
   --color-border-strong: #cbd5e1;
+  --color-border-input: #64748b;
 
   --color-success: #16a34a;
   --color-success-text: #15803d;
@@ -62,7 +63,7 @@
 
 :root[data-theme="dark"] {
   --color-primary: #0f766e;
-  --color-primary-hover: #0d9488;
+  --color-primary-hover: #115e59;
   --color-primary-light: #134e4a;
   --color-primary-soft: #0b2a2a;
   --color-primary-text: #5eead4;
@@ -75,6 +76,7 @@
   --color-text-muted: #94a3b8;
   --color-border: #1f2a3c;
   --color-border-strong: #334155;
+  --color-border-input: #64748b;
   --color-success-text: #4ade80;
   --color-success-bg: #0d2818;
   --color-success-border: #14532d;
@@ -128,7 +130,7 @@ button { font: inherit; color: inherit; }
 .topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 10px; height: var(--topbar-h); padding: 0 24px; background: color-mix(in srgb, var(--color-surface) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--color-border); }
 .topbar__title { font-weight: 600; font-size: 15px; }
 .topbar .topbar__menu { display: none; }
-.topbar__search { margin-left: auto; display: flex; align-items: center; gap: 8px; height: 36px; width: 260px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-background); color: var(--color-text-muted); }
+.topbar__search { margin-left: auto; display: flex; align-items: center; gap: 8px; height: 36px; width: 260px; padding: 0 12px; border: 1px solid var(--color-border-input); border-radius: var(--radius-sm); background: var(--color-background); color: var(--color-text-muted); }
 .topbar__search input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; color: var(--color-text); outline: none; }
 .topbar__search input:disabled { cursor: not-allowed; }
 .pill { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 999px; font-size: 12px; font-weight: 500; color: var(--color-text-secondary); white-space: nowrap; }
@@ -340,7 +342,7 @@ button { font: inherit; color: inherit; }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .field { display: grid; gap: 6px; }
 .field label { font-size: 12px; font-weight: 600; color: var(--color-text-secondary); }
-.field select, .field input { height: 38px; padding: 0 10px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); font: inherit; color: var(--color-text); }
+.field select, .field input { height: 38px; padding: 0 10px; border: 1px solid var(--color-border-input); border-radius: var(--radius-sm); background: var(--color-surface); font: inherit; color: var(--color-text); }
 .field select:focus, .field input:focus { outline: 2px solid var(--color-primary-light); border-color: var(--color-primary); }
 .callout { display: flex; gap: 10px; padding: 12px 14px; border-radius: 10px; background: var(--color-info-bg); border: 1px solid var(--color-info-border); color: var(--color-info-text); font-size: 13px; }
 .callout svg { flex: none; margin-top: 1px; }
