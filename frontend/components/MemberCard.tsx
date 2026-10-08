@@ -12,9 +12,14 @@ export default function MemberCard({ m, compact }: { m: Member; compact?: boolea
         className="member__portrait"
         style={{ background: `linear-gradient(170deg, color-mix(in srgb, ${m.hue} 8%, var(--color-surface)), color-mix(in srgb, ${m.hue} 22%, var(--color-surface)))` }}
       >
-        <div className="member__figure">
-          <Character look={m.look} uniform={m.uniform} />
-        </div>
+        {m.image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={m.image} alt="" className="member__img" loading="lazy" style={m.uniform.muted ? { filter: `saturate(${1 - m.uniform.muted})` } : undefined} />
+        ) : (
+          <div className="member__figure">
+            <Character look={m.look} uniform={m.uniform} />
+          </div>
+        )}
         <span className={`member__status member__status--${m.status}`} aria-hidden="true" />
       </div>
       <div className="member__head">

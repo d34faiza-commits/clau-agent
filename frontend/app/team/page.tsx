@@ -58,7 +58,12 @@ export default function TeamPage() {
           <div key={c.name} className="member member--concept">
             <div className="member__portrait" style={{ background: "var(--color-surface-muted)" }}>
               <div className="member__figure">
-                <Character look={c.look} uniform={c.uniform} />
+                {c.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={c.image} alt="" className="member__img" loading="lazy" style={{ filter: `saturate(${1 - c.uniform.muted})` }} />
+                ) : (
+                  <Character look={c.look} uniform={c.uniform} />
+                )}
               </div>
             </div>
             <div className="member__head">

@@ -1,4 +1,15 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
 import registry from "../../agents/registry.json";
+
+/** Gambar 3D opsional: frontend/public/agents/<nama>.webp|png|jpg. Bila ada, dipakai menggantikan karakter SVG. */
+function agentImage(name: string): string | undefined {
+  const base = name.toLowerCase();
+  for (const ext of ["webp", "png", "jpg"]) {
+    if (existsSync(path.join(process.cwd(), "public", "agents", `${base}.${ext}`))) return `/agents/${base}.${ext}`;
+  }
+  return undefined;
+}
 
 export type Agent = {
   id: string;
@@ -47,10 +58,11 @@ export type Member = Agent & {
   hue: string;
   look: Look;
   uniform: Uniform;
+  image?: string;
 };
 
 /** Agent konsep dari brief v3. BELUM ada di registry, belum punya persona/eval, tidak bisa dijalankan. */
-export type ConceptAgent = { name: string; role: Text; tagline: Text; look: Look; uniform: Uniform };
+export type ConceptAgent = { name: string; role: Text; tagline: Text; look: Look; uniform: Uniform; image?: string };
 
 export const PILLARS: Record<number, Text> = {
   1: { en: "Marketing & Content", id: "Marketing & Konten" },
@@ -68,7 +80,7 @@ export const APPROVAL: Record<string, Text> = {
 
 const t = (en: string, id: string): Text => ({ en, id });
 
-const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform">> = {
+const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform" | "image">> = {
   "caption-writer": {
     name: "Tara",
     role: t("AI Copywriter", "AI Copywriter"),
@@ -179,17 +191,19 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform">> = {
   },
 };
 
-export const CONCEPT_AGENTS: ConceptAgent[] = [
+const CONCEPTS: ConceptAgent[] = [
   { name: "Nova", role: t("AI Brand Strategist", "AI Brand Strategist"), tagline: t("Brand positioning and monthly content strategy.", "Positioning brand dan strategi konten bulanan."), look: { skin: SKIN.light, hair: HAIR.brown, hairStyle: "bob", headwear: "glasses", prop: "chart", attire: at("kutubaru", "#EEF2F7", "#1E3A5F", "teal") }, uniform: UNIFORM.concept },
   { name: "Aruna", role: t("AI Visual Director", "AI Visual Director"), tagline: t("Visual concepts and shot direction for photos and video.", "Konsep visual dan arahan foto serta video."), look: { skin: SKIN.tan, hair: HAIR.black, hairStyle: "long", headwear: "none", prop: "phone", attire: at("kebaya", "#FAF5EB", "#0E7490", "sogan") }, uniform: UNIFORM.concept },
   { name: "Dara", role: t("AI Quality Controller", "AI Quality Controller"), tagline: t("Pre-checks every draft against brand and claim rules before human review.", "Cek awal setiap draft terhadap aturan brand dan klaim sebelum review manusia."), look: { skin: SKIN.brown, hair: HAIR.dark, hairStyle: "bun", headwear: "none", prop: "clipboard", attire: at("kutubaru", "#F0FDFA", "#115E59", "indigo") }, uniform: UNIFORM.concept },
 ];
 
+export const CONCEPT_AGENTS: ConceptAgent[] = CONCEPTS.map((c) => ({ ...c, image: agentImage(c.name) }));
+
 export function getTeam(): Member[] {
   return (registry.agents as Agent[]).map((a) => {
     const profile = PROFILES[a.id];
     if (!profile) throw new Error(`frontend/lib/team.ts: profile for agent '${a.id}' is missing`);
-    return { ...a, ...profile, uniform: UNIFORM[a.status] };
+    return { ...a, ...profile, uniform: UNIFORM[a.status], image: agentImage(profile.name) };
   });
 }
 

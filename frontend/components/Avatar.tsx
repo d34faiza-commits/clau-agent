@@ -8,6 +8,7 @@ export default function Avatar({
   hue,
   look,
   uniform,
+  image,
   size = "md",
   status,
 }: {
@@ -15,21 +16,25 @@ export default function Avatar({
   hue: string;
   look?: Look;
   uniform?: Uniform;
+  image?: string;
   size?: "sm" | "md" | "lg" | "xl";
   status?: "active" | "planned";
 }) {
   const av = (
     <span
-      className={`av av--${size}${look ? " av--char" : ""}`}
+      className={`av av--${size}${look || image ? " av--char" : ""}`}
       role="img"
       aria-label={name}
       style={{
-        background: look
+        background: look || image
           ? `linear-gradient(160deg, color-mix(in srgb, ${hue} 12%, var(--color-surface)), color-mix(in srgb, ${hue} 30%, var(--color-surface)))`
           : `linear-gradient(135deg, color-mix(in srgb, ${hue} 74%, #ffffff), ${hue})`,
       }}
     >
-      {look && uniform ? (
+      {image ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={image} alt="" className="av__img" loading="lazy" style={uniform?.muted ? { filter: `saturate(${1 - uniform.muted})` } : undefined} />
+      ) : look && uniform ? (
         <Character look={look} uniform={uniform} crop="bust" />
       ) : (
         <svg viewBox="0 0 64 64" width="100%" height="100%" aria-hidden="true">

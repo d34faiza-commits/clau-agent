@@ -46,7 +46,7 @@ export default function Workflows() {
                 <span className="stack-avatars">
                   {f.agents.slice(0, 2).map((a) => {
                     const m = getMember(a)!;
-                    return <Avatar key={a} name={m.name} hue={m.hue} look={m.look} uniform={m.uniform} size="sm" />;
+                    return <Avatar key={a} name={m.name} hue={m.hue} look={m.look} uniform={m.uniform} image={m.image} size="sm" />;
                   })}
                 </span>
               ) : (

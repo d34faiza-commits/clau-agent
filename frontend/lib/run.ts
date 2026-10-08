@@ -3,7 +3,7 @@ import { getMember } from "./team";
 
 function agent(id: string) {
   const m = getMember(id);
-  return m ? { name: m.name, hue: m.hue, look: m.look, uniform: m.uniform } : undefined;
+  return m ? { name: m.name, hue: m.hue, look: m.look, uniform: m.uniform, image: m.image } : undefined;
 }
 
 /** Alur "konten bulanan" memakai agent yang benar-benar ada di registry. */

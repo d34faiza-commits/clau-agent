@@ -35,7 +35,7 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
         <Icon name="chevronLeft" size={16} /> <L en="My AI Team" id="Tim AI Saya" />
       </Link>
       <div className="profile-head" style={{ ["--hue" as string]: m.hue }}>
-        <Avatar name={m.name} hue={m.hue} look={m.look} uniform={m.uniform} size="xl" status={m.status} />
+        <Avatar name={m.name} hue={m.hue} look={m.look} uniform={m.uniform} image={m.image} size="xl" status={m.status} />
         <div>
           <h1>{m.name}</h1>
           <div className="profile-head__role"><L en={m.role.en} id={m.role.id} /></div>
