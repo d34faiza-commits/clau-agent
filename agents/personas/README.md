@@ -51,8 +51,8 @@ Setiap file `<agent-id>.md` berisi:
 | calendar-planner | Dimas | Perencana kalender konten | active | [calendar-planner.md](./calendar-planner.md) |
 | campaign-planner | Ayu | Perencana campaign musiman | active | [campaign-planner.md](./campaign-planner.md) |
 | localizer | Nara | Penyelaras bahasa ID ↔ EN | active | [localizer.md](./localizer.md) |
-| report-builder | Intan | Penyusun laporan bulanan | active | [report-builder.md](./report-builder.md) |
-| sales-assistant | Galih | Asisten inquiry & reservasi | planned | [sales-assistant.md](./sales-assistant.md) |
+| report-builder | Galih | Penyusun laporan bulanan | active | [report-builder.md](./report-builder.md) |
+| sales-assistant | Intan | Asisten inquiry & reservasi | planned | [sales-assistant.md](./sales-assistant.md) |
 | guest-messenger | Sari | Komunikasi tamu (pre-arrival, in-stay) | planned | [guest-messenger.md](./guest-messenger.md) |
 | sop-writer | Teguh | Penulis SOP operasional | planned | [sop-writer.md](./sop-writer.md) |
 

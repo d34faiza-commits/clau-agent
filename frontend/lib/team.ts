@@ -133,7 +133,7 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform" | "image">> 
     look: { skin: SKIN.deep, hair: HAIR.black, hairStyle: "curly", headwear: "glasses", prop: "globe" },
   },
   "report-builder": {
-    name: "Intan",
+    name: "Galih",
     role: t("AI Insights Analyst", "AI Insights Analyst"),
     headline: t("Your reporting specialist.", "Spesialis laporan kamu."),
     tagline: t("Turns monthly performance into a short, honest report the owner can read in 30 seconds.", "Merangkum performa bulanan jadi laporan singkat dan jujur yang bisa dibaca owner dalam 30 detik."),
@@ -142,7 +142,7 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform" | "image">> 
     look: { skin: SKIN.tan, hair: HAIR.dark, hairStyle: "short", headwear: "glasses", prop: "chart" },
   },
   "sales-assistant": {
-    name: "Galih",
+    name: "Intan",
     role: t("AI Reservations Assistant", "AI Reservations Assistant"),
     headline: t("Your inquiry specialist.", "Spesialis inquiry kamu."),
     tagline: t("Drafts replies to inquiries: availability, rates, terms and booking steps.", "Menyiapkan balasan inquiry: ketersediaan, harga, syarat, dan langkah booking."),

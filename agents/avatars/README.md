@@ -18,10 +18,11 @@ Agent konsep (belum ada di registry) tetap memakai karakter SVG (`frontend/compo
 
 ## Status per gambar
 
+> 2026-10-08: gambar report-builder (Galih) dan sales-assistant (Intan) ditukar (permintaan di sesi Claude 2026-10-08) agar sesuai nama. Akibatnya alat yang dipegang tidak sesuai peran: Galih (laporan) memegang buku reservasi & key card, Intan (reservasi) memegang tablet grafik.
+
 | Agent | Status | Catatan |
 |---|---|---|
-| caption-writer, reel-scripter, story-writer, listing-writer, review-responder, calendar-planner, campaign-planner, localizer, sales-assistant | `ASSUMPTION` | Diterima di sesi 2026-10-08; menunggu konfirmasi Pak Indra / Dea Karisna saat review PR |
-| report-builder | `ASSUMPTION` | Nama ditukar Galih → Intan (2026-10-08) agar sesuai figur; opsional: generate ulang menghadap depan |
+| caption-writer, reel-scripter, story-writer, listing-writer, review-responder, calendar-planner, campaign-planner, localizer, report-builder, sales-assistant | `ASSUMPTION` | Diterima di sesi 2026-10-08; menunggu konfirmasi Pak Indra / Dea Karisna saat review PR |
 | guest-messenger | `NEXT ACTION` | Layar HP memuat teks "How can help?" (salah grammar); generate ulang tanpa teks |
 | sop-writer | `NEXT ACTION` | Proporsi kepala lebih kecil dari 11 figur lain |
 
