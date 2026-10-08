@@ -57,7 +57,7 @@ export default function TeamPage() {
         {CONCEPT_AGENTS.map((c) => (
           <div key={c.name} className="member member--concept">
             <div className="member__head">
-              <Avatar name={c.name} hue="#94A3B8" look={c.look} uniform={c.uniform} size="lg" />
+              <Avatar name={c.name} hue="#94A3B8" look={c.look} uniform={c.uniform} image={c.image} size="lg" />
               <div>
                 <div className="member__name">{c.name}</div>
                 <div className="member__role">

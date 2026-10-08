@@ -29,7 +29,7 @@ Platform **CLAU AI Content Studio** (tampilan v2) mengikuti [`docs/design/2026-1
 | Item | Nilai |
 |---|---|
 | Nama | CLAU AI Content Studio |
-| Konsep | "Meet your AI team": agent tampil sebagai karyawan digital. Sejak 2026-10-08 avatar = figur 3D per agent (`public/agents/<id>.webp`, master di [`agents/avatars/`](../agents/avatars/README.md)); agent konsep tetap karakter SVG |
+| Konsep | "Meet your AI team": agent tampil sebagai karyawan digital. Sejak 2026-10-08 avatar = figur 3D per agent (`public/agents/<id>.webp`, master di [`agents/avatars/`](../agents/avatars/README.md)); agent konsep (Nova, Aruna, Dara) memakai `public/agents/concept-<nama>.webp` |
 | Bahasa | English default, toggle **EN / ID** tanpa bendera (`lib/i18n.tsx`, disimpan di `localStorage` `clau-lang`) |
 | Tema | Light / Dark / System (`lib/theme.tsx`, `localStorage` `clau-theme`, tanpa kedipan saat load) |
 | Light | Navy `#0F172A` sidebar & teks · Teal `#0F766E` aksi · Mint `#CCFBF1` · latar `#F8FAFC` · muted `#64748B` |

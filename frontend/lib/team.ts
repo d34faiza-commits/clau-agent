@@ -41,7 +41,7 @@ export type Member = Agent & {
 };
 
 /** Agent konsep dari brief v3. BELUM ada di registry, belum punya persona/eval, tidak bisa dijalankan. */
-export type ConceptAgent = { name: string; role: Text; tagline: Text; look: Look; uniform: Uniform };
+export type ConceptAgent = { name: string; role: Text; tagline: Text; look: Look; uniform: Uniform; image?: string };
 
 export const PILLARS: Record<number, Text> = {
   1: { en: "Marketing & Content", id: "Marketing & Konten" },
@@ -171,9 +171,9 @@ const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform" | "image">> 
 };
 
 export const CONCEPT_AGENTS: ConceptAgent[] = [
-  { name: "Nova", role: t("AI Brand Strategist", "AI Brand Strategist"), tagline: t("Brand positioning and monthly content strategy.", "Positioning brand dan strategi konten bulanan."), look: { skin: SKIN.light, hair: HAIR.brown, hairStyle: "bob", headwear: "glasses", prop: "chart" }, uniform: UNIFORM.concept },
-  { name: "Aruna", role: t("AI Visual Director", "AI Visual Director"), tagline: t("Visual concepts and shot direction for photos and video.", "Konsep visual dan arahan foto serta video."), look: { skin: SKIN.tan, hair: HAIR.black, hairStyle: "long", headwear: "beret", prop: "phone" }, uniform: UNIFORM.concept },
-  { name: "Dara", role: t("AI Quality Controller", "AI Quality Controller"), tagline: t("Pre-checks every draft against brand and claim rules before human review.", "Cek awal setiap draft terhadap aturan brand dan klaim sebelum review manusia."), look: { skin: SKIN.brown, hair: HAIR.dark, hairStyle: "bun", headwear: "none", prop: "clipboard" }, uniform: UNIFORM.concept },
+  { name: "Nova", role: t("AI Brand Strategist", "AI Brand Strategist"), tagline: t("Brand positioning and monthly content strategy.", "Positioning brand dan strategi konten bulanan."), look: { skin: SKIN.light, hair: HAIR.brown, hairStyle: "bob", headwear: "glasses", prop: "chart" }, uniform: UNIFORM.concept, image: "/agents/concept-nova.webp" },
+  { name: "Aruna", role: t("AI Visual Director", "AI Visual Director"), tagline: t("Visual concepts and shot direction for photos and video.", "Konsep visual dan arahan foto serta video."), look: { skin: SKIN.tan, hair: HAIR.black, hairStyle: "long", headwear: "beret", prop: "phone" }, uniform: UNIFORM.concept, image: "/agents/concept-aruna.webp" },
+  { name: "Dara", role: t("AI Quality Controller", "AI Quality Controller"), tagline: t("Pre-checks every draft against brand and claim rules before human review.", "Cek awal setiap draft terhadap aturan brand dan klaim sebelum review manusia."), look: { skin: SKIN.brown, hair: HAIR.dark, hairStyle: "bun", headwear: "none", prop: "clipboard" }, uniform: UNIFORM.concept, image: "/agents/concept-dara.webp" },
 ];
 
 export function getTeam(): Member[] {
