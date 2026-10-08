@@ -8,13 +8,15 @@
 #   3. jalankan validator repo (scripts/validate.py dan/atau backend pytest)
 #   4. commit tersendiri per submodule: "chore(<nama>): bump <nama> to <hash>"
 #      (sesuai core/AI-BOUNDARY.md, Multi-Repo & Submodule)
-#   5. push (kecuali --no-push)
+#   5. push (kecuali --no-push); dengan --pr-branch, commit dibuat di branch itu dan
+#      di-push ke sana (bukan ke branch saat ini) agar bisa dibuka sebagai PR
 #
 # Pemakaian:
 #   scripts/sync-submodules.sh              # sync + validasi + commit + push
 #   scripts/sync-submodules.sh --no-push    # commit lokal saja
 #   scripts/sync-submodules.sh --dry-run    # tampilkan apa yang akan berubah, tanpa commit
 #   scripts/sync-submodules.sh --skip-validate
+#   scripts/sync-submodules.sh --pr-branch bot/sync-submodules   # dipakai workflow (main terproteksi)
 #
 # Exit code: 0 = sukses / tidak ada perubahan, 1 = gagal (validasi, push, atau tree kotor).
 
@@ -23,12 +25,15 @@ set -euo pipefail
 PUSH=1
 DRY_RUN=0
 VALIDATE=1
-for arg in "$@"; do
+PR_BRANCH=""
+while [[ $# -gt 0 ]]; do
+  arg="$1"; shift
   case "$arg" in
+    --pr-branch) PR_BRANCH="${1:?--pr-branch butuh nama branch}"; shift ;;
     --no-push) PUSH=0 ;;
     --dry-run) DRY_RUN=1; PUSH=0 ;;
     --skip-validate) VALIDATE=0 ;;
-    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,21p' "$0"; exit 0 ;;
     *) echo "argumen tidak dikenal: $arg" >&2; exit 1 ;;
   esac
 done
@@ -93,6 +98,10 @@ if [[ $VALIDATE -eq 1 ]]; then
   fi
 fi
 
+if [[ -n "$PR_BRANCH" ]]; then
+  git checkout --quiet -B "$PR_BRANCH"
+fi
+
 for item in "${CHANGED[@]}"; do
   path="${item%%:*}"
   hash="${item##*:}"
@@ -102,6 +111,12 @@ for item in "${CHANGED[@]}"; do
 done
 
 if [[ $PUSH -eq 1 ]]; then
-  git push --quiet origin "$BRANCH"
-  echo "push: origin/$BRANCH"
+  if [[ -n "$PR_BRANCH" ]]; then
+    # Branch milik bot, dibuat ulang tiap sync dari branch dasar terbaru.
+    git push --quiet --force origin "$PR_BRANCH"
+    echo "push: origin/$PR_BRANCH (buka PR ke $BRANCH)"
+  else
+    git push --quiet origin "$BRANCH"
+    echo "push: origin/$BRANCH"
+  fi
 fi
