@@ -8,7 +8,7 @@ Platform **CLAU AI Content Studio** (tampilan v2) mengikuti [`docs/design/2026-1
 |---|---|---|
 | v1 "Pasir" | `ui-v1-pasir` | Palet brand CLAU: Pasir ±60% latar, Arang ±20% teks, Teal Laut ±10% aksen, Terracotta 3–5% highlight. Karakter ilustrasi per agent. **Disimpan** atas permintaan Dea Karisna (2026-10-07) |
 | v2 "Enterprise" | `ui-v2-enterprise` (snapshot tersimpan) · `main` (live di VPS 1 sejak 2026-10-07) |
-| v3 "AI Workforce" | `ui-v3-workforce` (snapshot tersimpan) · `main` (live di VPS 1 sejak 2026-10-08) | My AI Team, avatar persona, EN/ID, dark mode. Lihat [`docs/design/2026-10-07-ai-workforce-brief-v2.md`](../docs/design/2026-10-07-ai-workforce-brief-v2.md) | Navy + Deep Teal + putih + slate, sidebar, dashboard SaaS, agent pakai monogram (tanpa kartun) |
+| v3 "AI Workforce" | `ui-v3-workforce` (snapshot tersimpan) · `main` (live di VPS 1 sejak 2026-10-08) | My AI Team, avatar persona, EN/ID, dark mode. Lihat [`docs/design/2026-10-07-ai-workforce-brief-v2.md`](../docs/design/2026-10-07-ai-workforce-brief-v2.md) | Navy + Deep Teal + putih + slate, sidebar, dashboard SaaS; agent pakai avatar figur 3D (sejak 2026-10-08, brand-guideline §3d) |
 
 ### Snapshot palet v2 (disimpan atas permintaan Dea Karisna, 2026-10-07)
 
@@ -47,7 +47,7 @@ Platform **CLAU AI Content Studio** (tampilan v2) mengikuti [`docs/design/2026-1
 | `/projects` | Proyek per klien dengan progres |
 | `/content` | Tab status (Draft → Tayang), tabel konten, modal **Buat konten** (tombol generate nonaktif sampai backend AI ada) |
 | `/calendar` | Kalender bulan dengan status semantik |
-| `/agents`, `/agents/<id>` | Kartu agent (monogram, status, level) & profil dari `../agents/personas/<id>.md` |
+| `/agents`, `/agents/<id>` | Kartu agent (avatar 3D, status, level) & profil dari `../agents/personas/<id>.md` |
 | `/workflows` | Alur brief → agent → cek otomatis → review manusia → publish oleh manusia |
 | `/reports` | Produksi konten; engagement **tidak** ditampilkan sampai data platform asli tersedia |
 | `/settings` | Workspace & integrasi (read-only) |
