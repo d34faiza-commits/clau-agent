@@ -43,7 +43,7 @@ export default function Dashboard() {
         </div>
         <div className="hello__team" aria-hidden="true">
           {active.slice(0, 6).map((m) => (
-            <Avatar key={m.id} name={m.name} hue={m.hue} look={m.look} uniform={m.uniform} size="lg" />
+            <Avatar key={m.id} name={m.name} hue={m.hue} look={m.look} uniform={m.uniform} image={m.image} size="lg" />
           ))}
         </div>
       </section>
@@ -112,7 +112,7 @@ export default function Dashboard() {
                 const m = getMember(c.agent)!;
                 return (
                   <li key={c.id}>
-                    <Avatar name={m.name} hue={m.hue} look={m.look} uniform={m.uniform} size="sm" />
+                    <Avatar name={m.name} hue={m.hue} look={m.look} uniform={m.uniform} image={m.image} size="sm" />
                     <div className="list__main">
                       <span className="list__title">{c.title}</span>
                       <span className="list__sub">{c.type} · {clientName(c.client)}</span>
@@ -132,7 +132,7 @@ export default function Dashboard() {
                 const m = getMember(a.agent)!;
                 return (
                   <li key={a.en}>
-                    <Avatar name={m.name} hue={m.hue} look={m.look} uniform={m.uniform} size="sm" />
+                    <Avatar name={m.name} hue={m.hue} look={m.look} uniform={m.uniform} image={m.image} size="sm" />
                     <div className="list__main">
                       <span className="list__title" style={{ whiteSpace: "normal" }}>
                         {m.name} · <L en={a.en} id={a.id} />

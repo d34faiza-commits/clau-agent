@@ -36,6 +36,8 @@ export type Member = Agent & {
   hue: string;
   look: Look;
   uniform: Uniform;
+  /** Figur 3D agent (`public/agents/<id>.webp`, crop kepala & bahu dari `agents/avatars/<id>.webp`). */
+  image: string;
 };
 
 /** Agent konsep dari brief v3. BELUM ada di registry, belum punya persona/eval, tidak bisa dijalankan. */
@@ -57,7 +59,7 @@ export const APPROVAL: Record<string, Text> = {
 
 const t = (en: string, id: string): Text => ({ en, id });
 
-const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform">> = {
+const PROFILES: Record<string, Omit<Member, keyof Agent | "uniform" | "image">> = {
   "caption-writer": {
     name: "Tara",
     role: t("AI Copywriter", "AI Copywriter"),
@@ -178,7 +180,7 @@ export function getTeam(): Member[] {
   return (registry.agents as Agent[]).map((a) => {
     const profile = PROFILES[a.id];
     if (!profile) throw new Error(`frontend/lib/team.ts: profile for agent '${a.id}' is missing`);
-    return { ...a, ...profile, uniform: UNIFORM[a.status] };
+    return { ...a, ...profile, uniform: UNIFORM[a.status], image: `/agents/${a.id}.webp` };
   });
 }
 

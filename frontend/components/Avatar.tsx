@@ -1,13 +1,14 @@
 import Character from "./Character";
 import type { Look, Uniform } from "../lib/team";
 
-// Avatar agent: karakter (gaya v1, kepala & bahu) di atas latar lembut warna aksen agent.
-// Tanpa look (mis. langkah sistem/manusia) jatuh ke siluet netral.
+// Avatar agent: figur 3D (kepala & bahu, `public/agents/<id>.webp`) bila ada; agent konsep memakai
+// karakter SVG (gaya v1). Tanpa look (mis. langkah sistem/manusia) jatuh ke siluet netral.
 export default function Avatar({
   name,
   hue,
   look,
   uniform,
+  image,
   size = "md",
   status,
 }: {
@@ -15,21 +16,26 @@ export default function Avatar({
   hue: string;
   look?: Look;
   uniform?: Uniform;
+  image?: string;
   size?: "sm" | "md" | "lg" | "xl";
   status?: "active" | "planned";
 }) {
   const av = (
     <span
-      className={`av av--${size}${look ? " av--char" : ""}`}
+      className={`av av--${size}${look || image ? " av--char" : ""}`}
       role="img"
       aria-label={name}
       style={{
-        background: look
+        background: image
+          ? "#DDF4EE"
+          : look
           ? `linear-gradient(160deg, color-mix(in srgb, ${hue} 12%, var(--color-surface)), color-mix(in srgb, ${hue} 30%, var(--color-surface)))`
           : `linear-gradient(135deg, color-mix(in srgb, ${hue} 74%, #ffffff), ${hue})`,
       }}
     >
-      {look && uniform ? (
+      {image ? (
+        <img src={image} alt="" width={256} height={256} loading="lazy" decoding="async" />
+      ) : look && uniform ? (
         <Character look={look} uniform={uniform} crop="bust" />
       ) : (
         <svg viewBox="0 0 64 64" width="100%" height="100%" aria-hidden="true">
