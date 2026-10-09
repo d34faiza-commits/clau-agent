@@ -100,7 +100,7 @@ export default function AppShell({ children, activeAgents }: { children: ReactNo
           <span className="topbar__title">{current ? (lang === "id" ? current.id : current.en) : "CLAU"}</span>
           <div className="topbar__search" title={tr("Search will be available once the backend is connected", "Pencarian tersedia setelah backend tersambung")}>
             <Icon name="search" size={16} />
-            <input type="search" placeholder={tr("Search clients, content, agents…", "Cari klien, konten, agent…")} aria-label={tr("Search", "Cari")} disabled />
+            <input type="search" placeholder={tr("Search…", "Cari…")} aria-label={tr("Search", "Cari")} disabled />
           </div>
           <span className="pill" title={tr("Preview with sample data", "Pratinjau dengan data contoh")}>
             <span className="pill__dot" />
