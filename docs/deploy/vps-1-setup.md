@@ -15,7 +15,7 @@
 | Cek kesehatan 2026-10-08 | DATA FINAL — `clau-frontend`, nginx, fail2ban, `clau-deploy.timer` active; `/team` HTTP 200; rilis live = `main` (`8948618`), commit tanpa perubahan frontend dilewati build; UFW 22/80/443; disk 11%, RAM tersedia 3,3 GB; 0 update keamanan tertunda |
 | 10. Domain + Cloudflare + SSL | Ditunda — domain belum ditentukan |
 | 11. Backup config (tanpa `.env`) | Ditunda — setelah domain & Tailscale |
-| 12. Pengerasan keamanan aplikasi (header, Nginx, sandbox systemd) | Header keamanan ikut auto-deploy. Nginx & unit systemd: **NEXT ACTION** — pasang manual dengan langkah [§ 7](#7-bagian-12--pengerasan-keamanan-2026-10-09) |
+| 12. Pengerasan keamanan aplikasi (header, Nginx, sandbox systemd) | DATA FINAL — 2026-10-09: rilis `8acf7a4` live (CSP & `X-Frame-Options: DENY` ada, `X-Powered-By` hilang); Nginx `scripts/deploy/nginx/clau.conf` terpasang (`nginx -t` OK; `/` 200, POST 405, `/.env` 404); `clau-frontend.service` sandbox terpasang, `active`, `systemd-analyze security` = **1.4 OK**. Backup: `/etc/nginx/sites-available/clau.bak`, `/etc/systemd/system/clau-frontend.service.bak`. NEXT ACTION (owner, GitHub): proteksi `main` + Dependabot alerts ([§ 7c](#7-bagian-12--pengerasan-keamanan-2026-10-09)) |
 
 ## 2. Aturan
 
