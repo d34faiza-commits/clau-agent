@@ -1,6 +1,6 @@
 # Frontend (Next.js) — UI v2 Enterprise
 
-Platform **CLAU AI Content Studio** (tampilan v2) mengikuti [`docs/design/2026-10-07-enterprise-ui-brief.txt`](../docs/design/2026-10-07-enterprise-ui-brief.txt). Belum ada login, database, atau koneksi ke backend AI.
+Platform **CLAU AI** (modul aktif: Content Studio; tampilan v2) mengikuti [`docs/design/2026-10-07-enterprise-ui-brief.txt`](../docs/design/2026-10-07-enterprise-ui-brief.txt). Belum ada login, database, atau koneksi ke backend AI.
 
 ## Versi UI
 
@@ -14,7 +14,7 @@ Platform **CLAU AI Content Studio** (tampilan v2) mengikuti [`docs/design/2026-1
 
 | Item | Nilai |
 |---|---|
-| Nama produk | CLAU AI Content Studio |
+| Nama produk | CLAU AI (merek payung); modul aktif: Content Studio = AI Marketing |
 | Aksi utama & aksen | Deep Teal `#0F766E` (hover `#115E59`, muda `#CCFBF1`) · ± 5–10% |
 | Sidebar & teks utama | Deep Navy `#0F172A` (sekunder `#1E3A5F`) · ± 15–20% |
 | Latar & permukaan | Slate 50 `#F8FAFC` + putih `#FFFFFF` · ± 70–80% |
@@ -28,7 +28,7 @@ Platform **CLAU AI Content Studio** (tampilan v2) mengikuti [`docs/design/2026-1
 
 | Item | Nilai |
 |---|---|
-| Nama | CLAU AI Content Studio |
+| Nama | CLAU AI · Content Studio |
 | Konsep | "Meet your AI team": agent tampil sebagai karyawan digital. Sejak 2026-10-08 avatar = figur 3D per agent (`public/agents/<id>.webp`, master di [`agents/avatars/`](../agents/avatars/README.md)); agent konsep (Nova, Aruna, Dara) memakai `public/agents/concept-<nama>.webp` |
 | Bahasa | English default, toggle **EN / ID** tanpa bendera (`lib/i18n.tsx`, disimpan di `localStorage` `clau-lang`) |
 | Tema | Light / Dark / System (`lib/theme.tsx`, `localStorage` `clau-theme`, tanpa kedipan saat load) |
@@ -73,7 +73,7 @@ npm run build
 
 ## Keputusan (Dea Karisna, 2026-10-07) — `DATA FINAL`
 
-- Nama produk: **CLAU AI Content Studio** (wordmark CLAU + deskriptor "AI Content Studio").
+- Nama produk: **CLAU AI** (wordmark "CLAU AI" + deskriptor modul "Content Studio"; opsi B, keputusan owner 2026-10-09, CLAU-AI-CONTENT#46).
 - Palet UI produk v2: navy + deep teal + putih + slate (token di `app/globals.css`). Dicatat di `CLAU-AI-CONTENT/design/brand/brand-guideline.md` §3b.
 - Nama agent (Tara, Raka, Sekar, Bayu, Laras, Dimas, Ayu, Nara, Intan, Galih, Sari, Teguh) disetujui. Sumber nama: `agents/registry.json` (`display_name`). 2026-10-08: nama report-builder dan sales-assistant ditukar (Intan ↔ Galih) agar sesuai figur 3D.
 

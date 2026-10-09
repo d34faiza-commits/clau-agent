@@ -17,7 +17,7 @@ export default function Settings() {
           </Card>
           <Card title={<L en="Workspace" id="Workspace" />} flush>
             <dl className="facts">
-              <dt><L en="Name" id="Nama" /></dt><dd>CLAU AI Content Studio</dd>
+              <dt><L en="Name" id="Nama" /></dt><dd>CLAU AI · Content Studio</dd>
               <dt><L en="Time zone" id="Zona waktu" /></dt><dd>WITA (UTC+8)</dd>
               <dt><L en="Mode" id="Mode" /></dt><dd><span className="badge badge--warning"><L en="Preview · Simulation" id="Pratinjau · Simulasi" /></span></dd>
             </dl>
