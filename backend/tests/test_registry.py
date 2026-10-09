@@ -57,3 +57,24 @@ def test_pillars_match_core_readme():
     core = {int(n): (name.strip(), repo.strip(), CORE_STATUS[status.strip()]) for n, name, repo, status in rows}
     registry = {p["id"]: (p["name"]["en"], p["repo"] or "—", p["status"]) for p in REGISTRY["pillars"]}
     assert registry == core
+
+
+AUTONOMY_LEVELS = {"A", "B", "C"}
+
+
+def test_autonomy_max_valid_and_default_b():
+    # AI-CONSTITUTION §4a: default Level B; Level A needs an explicit owner decision in core/orchestrator/router.md.
+    for agent in REGISTRY["agents"]:
+        assert agent["autonomy_max"] in AUTONOMY_LEVELS, agent["id"]
+        if agent["status"] == "planned":
+            assert agent["autonomy_max"] != "A", agent["id"]
+
+
+@pytest.mark.skipif(not ROUTER.is_file(), reason="core/ submodule not initialised")
+def test_autonomy_matches_core_router():
+    text = ROUTER.read_text(encoding="utf-8")
+    router = dict(re.findall(r"^\| `([a-z-]+)` \|.*\| ([ABC]) \|$", text, re.MULTILINE))
+    assert router, "router.md has no Otonomi column"
+    for agent in REGISTRY["agents"]:
+        for intent in agent["intents"]:
+            assert router.get(intent) == agent["autonomy_max"], intent

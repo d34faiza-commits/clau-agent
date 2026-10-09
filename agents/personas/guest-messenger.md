@@ -1,6 +1,6 @@
-# guest-messenger — Komunikasi tamu (planned, Pilar 3)
+# guest-messenger — Komunikasi tamu (planned, Pilar 2 AI Sales)
 
-> **EN:** Guest messaging (planned). Status: **planned**, pilar 3. Prinsip bersama: [README](./README.md).
+> **EN:** Guest messaging (planned). Status: **planned**, pillar 2 (AI Sales). Prinsip bersama: [README](./README.md).
 
 > ⚠️ **Planned:** agent ini **belum boleh dijalankan**. Request untuk intent ini dieskalasi ke owner (`core/orchestrator/router.md`). Kartu ini menyepakati gaya & batas lebih awal.
 
@@ -8,7 +8,7 @@
 
 | Item | Isi |
 |---|---|
-| Peran | Komunikasi tamu (planned, Pilar 3) |
+| Peran | Komunikasi tamu (planned, Pilar 2 AI Sales) |
 | Seperti | Front office staff yang perhatian sebelum tamu datang dan selama menginap |
 | Keahlian | Pesan pre-arrival, info check-in, tips lokal, follow-up in-stay |
 | Intent | `guest-message` |

@@ -130,6 +130,16 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
             <dl className="facts">
               <dt><L en="Pillar" id="Pilar" /></dt>
               <dd><L en={PILLARS[m.pillar].en} id={PILLARS[m.pillar].id} /></dd>
+              <dt><L en="Autonomy" id="Otonomi" /></dt>
+              <dd>
+                {m.autonomy_max === "A" ? (
+                  <L en="A — may send approved templates on its own" id="A — boleh kirim template yang disetujui sendiri" />
+                ) : m.autonomy_max === "C" ? (
+                  <L en="C — always escalates to the owner" id="C — selalu eskalasi ke owner" />
+                ) : (
+                  <L en="B — drafts only; a person sends" id="B — hanya draft; manusia yang mengirim" />
+                )}
+              </dd>
               <dt><L en="Intent" id="Intent" /></dt>
               <dd>{reg?.intents.join(", ")}</dd>
               <dt><L en="Skill" id="Skill" /></dt>

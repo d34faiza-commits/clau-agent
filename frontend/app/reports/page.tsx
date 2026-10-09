@@ -1,7 +1,7 @@
 import { AgentStatus, Card, Empty, Kpi, PageHeader, SimNotice } from "../../components/ui";
 import { CLIENTS, CONTENT, STATUS, STATUS_ORDER } from "../../lib/demo";
 import { L } from "../../lib/i18n";
-import { PILLAR_LIST, getMember } from "../../lib/team";
+import { PILLAR_LIST, getMember, getTeam } from "../../lib/team";
 
 export const metadata = { title: "Reports · CLAU" };
 
@@ -21,6 +21,8 @@ function Bars({ rows }: { rows: { key: string; label: React.ReactNode; title: st
 }
 
 export default function Reports() {
+  // The pillar whose agent writes this report (report-builder), read from the registry.
+  const reportPillar = getTeam().find((m) => m.id === "report-builder")?.pillar;
   const approved = CONTENT.filter((c) => ["approved", "scheduled", "published"].includes(c.status)).length;
   const published = CONTENT.filter((c) => c.status === "published").length;
   const byAgent = [...new Set(CONTENT.map((c) => c.agent))].map((a) => ({ key: a, label: getMember(a)!.name, title: getMember(a)!.name, value: CONTENT.filter((c) => c.agent === a).length })).sort((a, b) => b.value - a.value);
@@ -61,7 +63,7 @@ export default function Reports() {
                     <td className="muted">
                       {p.id === 1 ? (
                         <L en={`${CONTENT.length} content items`} id={`${CONTENT.length} konten`} />
-                      ) : p.id === 5 ? (
+                      ) : p.id === reportPillar ? (
                         <L en="This report (Pillar 1 template)" id="Laporan ini (template Pilar 1)" />
                       ) : (
                         <L en="No data: pillar not active" id="Belum ada data: pilar belum aktif" />
