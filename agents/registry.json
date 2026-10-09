@@ -1,5 +1,5 @@
 {
-  "registry_version": "0.4.0",
+  "registry_version": "0.5.0",
   "router_source": "core/orchestrator/router.md",
   "default_forbidden_actions": [
     "publish",
@@ -13,8 +13,8 @@
     {
       "id": 1,
       "name": {
-        "en": "Marketing & Content",
-        "id": "Marketing & Konten"
+        "en": "AI Marketing",
+        "id": "AI Marketing"
       },
       "status": "active",
       "repo": "clau-ai-marketing"
@@ -22,8 +22,8 @@
     {
       "id": 2,
       "name": {
-        "en": "Sales & Reservations",
-        "id": "Sales & Reservasi"
+        "en": "AI Sales",
+        "id": "AI Sales"
       },
       "status": "planned",
       "repo": null
@@ -31,8 +31,8 @@
     {
       "id": 3,
       "name": {
-        "en": "Guest Experience & Reputation",
-        "id": "Pengalaman Tamu & Reputasi"
+        "en": "AI Admin",
+        "id": "AI Admin"
       },
       "status": "planned",
       "repo": null
@@ -40,8 +40,8 @@
     {
       "id": 4,
       "name": {
-        "en": "Operations",
-        "id": "Operasional"
+        "en": "AI Business Intelligence",
+        "id": "AI Business Intelligence"
       },
       "status": "planned",
       "repo": null
@@ -49,8 +49,8 @@
     {
       "id": 5,
       "name": {
-        "en": "Analytics & Insights",
-        "id": "Analitik & Insight"
+        "en": "AI Automation",
+        "id": "AI Automation"
       },
       "status": "planned",
       "repo": null
@@ -70,6 +70,7 @@
       "template": null,
       "skill_repo": "clau-ai-marketing",
       "approval_min": "L1",
+      "autonomy_max": "B",
       "persona": "agents/personas/caption-writer.md",
       "evals": "agents/evals/cases/caption-writer.json",
       "avatar": {
@@ -91,6 +92,7 @@
       "template": null,
       "skill_repo": "clau-ai-marketing",
       "approval_min": "L2",
+      "autonomy_max": "B",
       "persona": "agents/personas/reel-scripter.md",
       "evals": "agents/evals/cases/reel-scripter.json",
       "avatar": {
@@ -112,6 +114,7 @@
       "template": null,
       "skill_repo": "clau-ai-marketing",
       "approval_min": "L1",
+      "autonomy_max": "B",
       "persona": "agents/personas/story-writer.md",
       "evals": "agents/evals/cases/story-writer.json",
       "avatar": {
@@ -133,6 +136,7 @@
       "template": null,
       "skill_repo": "clau-ai-marketing",
       "approval_min": "L2",
+      "autonomy_max": "B",
       "persona": "agents/personas/listing-writer.md",
       "evals": "agents/evals/cases/listing-writer.json",
       "avatar": {
@@ -154,6 +158,7 @@
       "template": null,
       "skill_repo": "clau-ai-marketing",
       "approval_min": "L1",
+      "autonomy_max": "B",
       "persona": "agents/personas/review-responder.md",
       "evals": "agents/evals/cases/review-responder.json",
       "avatar": {
@@ -175,6 +180,7 @@
       "template": null,
       "skill_repo": "clau-ai-marketing",
       "approval_min": "L1",
+      "autonomy_max": "B",
       "persona": "agents/personas/calendar-planner.md",
       "evals": "agents/evals/cases/calendar-planner.json",
       "avatar": {
@@ -196,6 +202,7 @@
       "template": null,
       "skill_repo": "clau-ai-marketing",
       "approval_min": "L2",
+      "autonomy_max": "B",
       "persona": "agents/personas/campaign-planner.md",
       "evals": "agents/evals/cases/campaign-planner.json",
       "avatar": {
@@ -217,6 +224,7 @@
       "template": null,
       "skill_repo": "clau-ai-marketing",
       "approval_min": "L1",
+      "autonomy_max": "B",
       "persona": "agents/personas/localizer.md",
       "evals": "agents/evals/cases/localizer.json",
       "avatar": {
@@ -228,7 +236,7 @@
     {
       "id": "report-builder",
       "display_name": "Intan",
-      "pillar": 5,
+      "pillar": 4,
       "status": "active",
       "intents": [
         "report"
@@ -238,6 +246,7 @@
       "template": "monthly-report",
       "skill_repo": "clau-ai-marketing",
       "approval_min": "L1",
+      "autonomy_max": "B",
       "persona": "agents/personas/report-builder.md",
       "evals": "agents/evals/cases/report-builder.json",
       "avatar": {
@@ -259,6 +268,7 @@
       "template": null,
       "skill_repo": null,
       "approval_min": "L2",
+      "autonomy_max": "B",
       "persona": "agents/personas/sales-assistant.md",
       "evals": "agents/evals/cases/sales-assistant.json",
       "avatar": {
@@ -270,7 +280,7 @@
     {
       "id": "guest-messenger",
       "display_name": "Sari",
-      "pillar": 3,
+      "pillar": 2,
       "status": "planned",
       "intents": [
         "guest-message"
@@ -280,6 +290,7 @@
       "template": null,
       "skill_repo": null,
       "approval_min": "L2",
+      "autonomy_max": "B",
       "persona": "agents/personas/guest-messenger.md",
       "evals": "agents/evals/cases/guest-messenger.json",
       "avatar": {
@@ -291,7 +302,7 @@
     {
       "id": "sop-writer",
       "display_name": "Teguh",
-      "pillar": 4,
+      "pillar": 3,
       "status": "planned",
       "intents": [
         "sop"
@@ -301,6 +312,7 @@
       "template": null,
       "skill_repo": null,
       "approval_min": "L1",
+      "autonomy_max": "B",
       "persona": "agents/personas/sop-writer.md",
       "evals": "agents/evals/cases/sop-writer.json",
       "avatar": {

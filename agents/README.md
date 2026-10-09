@@ -12,11 +12,11 @@ Daftar 5 pilar (`id`, `name.en`/`name.id`, `status`, `repo`). Nama, status, dan 
 
 | # | Pilar | Status | Repo |
 |---|---|---|---|
-| 1 | Marketing & Content | `active` | clau-ai-marketing |
-| 2 | Sales & Reservations | `planned` | — |
-| 3 | Guest Experience & Reputation | `planned` | — |
-| 4 | Operations | `planned` | — |
-| 5 | Analytics & Insights | `planned` (intent `report` sementara memakai template Pilar 1) | — |
+| 1 | AI Marketing | `active` | clau-ai-marketing |
+| 2 | AI Sales | `planned` | — |
+| 3 | AI Admin | `planned` | — |
+| 4 | AI Business Intelligence | `planned` (intent `report` sementara memakai template Pilar 1) | — |
+| 5 | AI Automation | `planned` (tanpa agent sendiri; menyambung intent pilar lain) | — |
 
 ### `agents`
 
@@ -28,6 +28,7 @@ Daftar 5 pilar (`id`, `name.en`/`name.id`, `status`, `repo`). Nama, status, dan 
 | `intents` | Intent dari `core/orchestrator/router.md` |
 | `skill` / `prompt` / `template` | Artefak di `skill_repo` yang dipakai agent |
 | `approval_min` | Level approval minimum (rules pilar bisa menaikkan) |
+| `autonomy_max` | Level otonomi maksimum A/B/C (core AI-CONSTITUTION §4a); harus sama dengan kolom **Otonomi** di `core/orchestrator/router.md` (dicek test). Default **B** |
 | `default_forbidden_actions` | Berlaku untuk **semua** agent: publish, kirim ke pihak luar, self-approve, ubah harga/ketersediaan, simpan credential |
 | `persona` | Kartu persona: keahlian, gaya bahasa, batas & eskalasi, contoh bagus vs buruk ([personas/](./personas/README.md)) |
 | `evals` | Kasus uji agent ([evals/](./evals/README.md)) |
@@ -46,7 +47,7 @@ Daftar 5 pilar (`id`, `name.en`/`name.id`, `status`, `repo`). Nama, status, dan 
 | localizer | `localize` | skill `localize-content` |
 | report-builder | `report` | template `monthly-report` (sementara di Pilar 1) |
 
-Agent `planned`: sales-assistant (Pilar 2), guest-messenger (Pilar 3), sop-writer (Pilar 4).
+Agent `planned`: sales-assistant & guest-messenger (Pilar 2 AI Sales), sop-writer (Pilar 3 AI Admin). report-builder aktif di Pilar 4 AI Business Intelligence.
 
 ## Konsistensi
 
@@ -54,4 +55,4 @@ Agent `planned`: sales-assistant (Pilar 2), guest-messenger (Pilar 3), sop-write
 
 ## Persona & Eval
 
-Agent menulis seperti **staf ahli yang hangat dan berpengalaman** di bidangnya, dengan suara brand client, tanpa pernah mengaku manusia. Detail: [personas/README.md](./personas/README.md) (12 kartu) dan [evals/README.md](./evals/README.md) (28 kasus + rubrik penilaian manusia).
+Agent menulis seperti **staf ahli yang hangat dan berpengalaman** di bidangnya, dengan suara brand client, tanpa pernah mengaku manusia. Detail: [personas/README.md](./personas/README.md) (12 kartu) dan [evals/README.md](./evals/README.md) (33 kasus + rubrik penilaian manusia).

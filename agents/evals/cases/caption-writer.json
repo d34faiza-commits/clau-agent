@@ -1,6 +1,6 @@
 {
   "agent": "caption-writer",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "cases": [
     {
       "id": "cw-01",
@@ -93,6 +93,109 @@
       "reference": {
         "good": "Kopi gula aren baru di Cafe Contoh Senopati: manisnya pas, nggak bikin eneg ☕\n\nBuka setiap hari 08.00–22.00 WIB. Simpan dulu buat ngopi akhir pekan ini.\n\n#CafeContohSenopati #kopisenopati #kopigulaaren",
         "bad": "KOPI TERBAIK SE-JAKARTA!!! 🔥🔥🔥 Nomor 1 pokoknya, wajib coba sekarang juga!!!"
+      }
+    },
+    {
+      "id": "cw-wed-01",
+      "scenario": "Wedding: caption paket intimate (vertical fokus), CTA WhatsApp",
+      "input": {
+        "brief": "Villa Contoh Uluwatu: paket Intimate Cliff Wedding, 20–40 tamu seated, sewa area 6 jam, katering 3 hidangan, cadangan hujan Ruang Joglo, Rp185.000.000++ per acara (2027). Voice: elegan-tertata, sapaan Anda, tanpa emoji. Terlarang: impian, sempurna, tekanan tanggal."
+      },
+      "checks": {
+        "max_chars": 2200,
+        "must_include_any": [
+          "++"
+        ],
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi",
+          "impian",
+          "sempurna",
+          "dream wedding",
+          "perfect",
+          "tanggal hampir habis",
+          "dijamin",
+          "halal"
+        ],
+        "max_exclamations": 0,
+        "max_emoji": 0
+      },
+      "reference": {
+        "good": "Empat puluh kursi, satu meja panjang, dan laut di belakang Anda.\n\nIntimate Cliff Wedding di Villa Contoh Uluwatu untuk 20–40 tamu seated: sewa Area Tebing 6 jam dan katering 3 hidangan. Bila hujan, acara pindah ke Ruang Joglo dengan kapasitas yang sama. Rp185.000.000++ per acara untuk tanggal 2027.\n\nHubungi kami lewat WhatsApp di bio untuk daftar lengkap yang termasuk.\n\n#UluwatuWedding #IntimateWedding #VillaContohUluwatu",
+        "bad": "Wujudkan pernikahan impian yang sempurna! Tanggal hampir habis, dijamin tanpa kendala. Katering halal tersedia."
+      }
+    },
+    {
+      "id": "cw-trv-01",
+      "scenario": "Travel: caption open trip — satwa & keselamatan tidak dijamin",
+      "input": {
+        "brief": "Trip Contoh Labuan Bajo: open trip kapal 3H2M setiap Jumat, 6–14 peserta, Rp3.250.000 net per pax, termasuk kapal, makan 7 kali, alat snorkel; belum termasuk tiket pesawat & retribusi. Manta = ASSUMPTION (jangan dijanjikan). Briefing keselamatan + life jacket. CTA: save."
+      },
+      "checks": {
+        "max_chars": 2200,
+        "must_include_any": [
+          "belum termasuk",
+          "tidak termasuk",
+          "not included"
+        ],
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi",
+          "pasti lihat",
+          "pasti melihat",
+          "dijamin",
+          "100% aman",
+          "guaranteed",
+          "termurah"
+        ],
+        "max_exclamations": 1,
+        "max_emoji": 2
+      },
+      "reference": {
+        "good": "3 hari di kapal, ini rencananya hari per hari ⛵\n\nOpen trip Trip Contoh Labuan Bajo berangkat setiap Jumat, 6–14 peserta. Rp3.250.000 net per orang: kapal, makan 7 kali, alat snorkel. Belum termasuk tiket pesawat dan retribusi kawasan. Ada briefing keselamatan dan life jacket untuk setiap peserta.\n\nSimpan dulu buat rencana trip kamu.\n\n#LabuanBajo #OpenTrip #TripContohLabuanBajo",
+        "bad": "Open trip termurah! Pasti lihat manta dan 100% aman untuk semua umur!!"
+      }
+    },
+    {
+      "id": "cw-fnb-01",
+      "scenario": "Cafe: promo sarapan dengan harga ++ dan klaim dietary tanpa kata halal",
+      "input": {
+        "brief": "Kafe Contoh Canggu: Paket Pagi Rp65.000++ per orang, 06.30–09.00, 1–30 Nov; 2 menu tanpa daging; outlet TIDAK bersertifikat halal. Voice santai-playful. CTA: save."
+      },
+      "checks": {
+        "max_chars": 2200,
+        "must_include_any": [
+          "++"
+        ],
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi",
+          "halal",
+          "no pork no lard",
+          "terbaik",
+          "best"
+        ],
+        "max_exclamations": 1,
+        "max_emoji": 2
+      },
+      "reference": {
+        "good": "Ombak pagi sudah menunggu, kopinya juga 🌊\n\nPaket Pagi Kafe Contoh Canggu Rp65.000++ per orang: kopi + pilihan sarapan, termasuk 2 menu tanpa daging. Berlaku 06.30–09.00, 1–30 November.\n\nSimpan post ini buat pagi sebelum surf.\n\n#Canggu #SarapanBali #KafeContohCanggu",
+        "bad": "Sarapan halal terbaik di Canggu! Cuma 65rb!!"
       }
     }
   ]

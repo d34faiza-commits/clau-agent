@@ -9,13 +9,13 @@
 | Repo | `d34faiza-commits/clau-ai-agents` (private) |
 | Peran | Platform: registry agent, backend FastAPI, frontend Next.js (scaffold) |
 | Submodule | `core/` → clau-ai-core |
-| Status | Backend v0.3.0 scaffold: belum ada database, auth, atau pemanggilan AI model |
+| Status | Backend v0.4.0 scaffold: belum ada database, auth, atau pemanggilan AI model |
 
 ## 2. Peta File
 
 | Path | Fungsi |
 |---|---|
-| `agents/registry.json` | `pillars` (5 pilar, sama dengan `core/README.md`) + 12 agent → nama (`display_name`), avatar, intent → skill/prompt/template di repo pilar; `default_forbidden_actions`; link `persona` & `evals` |
+| `agents/registry.json` | `pillars` (5 pilar v2, sama dengan `core/README.md`) + 12 agent (`autonomy_max` = kolom Otonomi router) → nama (`display_name`), avatar, intent → skill/prompt/template di repo pilar; `default_forbidden_actions`; link `persona` & `evals` |
 | `agents/avatars/` | Master avatar 3D per agent + README (aturan, status gambar); crop UI di `frontend/public/agents/`; dijaga `backend/tests/test_avatars.py` |
 | `agents/personas/` | Kartu persona per agent (gaya bahasa, etika, batas & eskalasi, contoh) |
 | `agents/evals/` | Kasus uji per agent + `run_evals.py` + rubrik "seperti manusia ahli" |
@@ -25,7 +25,7 @@
 | `scripts/` | `sync-submodules.sh`, `check-core-pins.sh` |
 | `SUBMODULE.md` | Panduan submodule & GitHub Actions |
 | `.github/workflows/` | `ci.yml`, `cross-repo-validate.yml`, `sync-submodules.yml`, `notify-downstream.yml` |
-| `docs/post-vps-checklist.md` | **Pengingat:** langkah wajib setelah VPS 1 & 2 siap (AI provider, eval 28 kasus, aktivasi pilar 2–4) |
+| `docs/post-vps-checklist.md` | **Pengingat:** langkah wajib setelah VPS 1 & 2 siap (AI provider, eval 33 kasus, aktivasi pilar 2–4) |
 
 > 🔔 **Pengingat untuk agent:** bila owner menyebut VPS sudah siap, buka `docs/post-vps-checklist.md` dan ingatkan langkah-langkahnya.
 

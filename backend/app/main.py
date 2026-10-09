@@ -16,7 +16,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 REGISTRY_PATH = Path(__file__).resolve().parents[2] / "agents" / "registry.json"
 
@@ -89,6 +89,8 @@ def route(request: RouteRequest) -> dict:
                 "skill": agent["skill"] or agent["prompt"] or agent["template"],
                 "repo": agent["skill_repo"],
                 "approval_min": agent["approval_min"],
+                # Highest autonomy level allowed (core AI-CONSTITUTION §4a); every intent defaults to B (draft).
+                "autonomy_max": agent["autonomy_max"],
                 "status": agent["status"],
                 # Planned pillars are not worked on: create a board task and escalate (core/orchestrator/router.md).
                 "next_step": "produce_draft" if agent["status"] == "active" else "escalate_to_owner",

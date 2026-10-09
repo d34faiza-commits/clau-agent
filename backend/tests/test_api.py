@@ -22,7 +22,8 @@ def test_agents_carry_forbidden_actions():
 def test_pillars_list_all_five_with_agents():
     pillars = client.get("/pillars").json()["pillars"]
     assert [p["id"] for p in pillars] == [1, 2, 3, 4, 5]
-    assert all(p["agents"] for p in pillars)
+    # Pillar 5 AI Automation has no agent of its own: it chains intents of the other pillars.
+    assert all(p["agents"] for p in pillars if p["id"] != 5)
     assert "caption-writer" in pillars[0]["agents"]
     assert pillars[1]["status"] == "planned"
 
@@ -32,6 +33,7 @@ def test_route_active_intent():
     assert body["pillar"] == 1
     assert body["skill"] == "draft-caption"
     assert body["status"] == "active"
+    assert body["autonomy_max"] == "B"
 
 
 def test_route_active_intent_next_step():

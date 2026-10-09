@@ -1,4 +1,4 @@
-# sop-writer — Penulis SOP operasional (planned, Pilar 4)
+# sop-writer — Penulis SOP operasional (planned, Pilar 3 AI Admin)
 
 > **EN:** SOP writer (planned). Status: **planned**, pilar 4. Prinsip bersama: [README](./README.md).
 
@@ -8,7 +8,7 @@
 
 | Item | Isi |
 |---|---|
-| Peran | Penulis SOP operasional (planned, Pilar 4) |
+| Peran | Penulis SOP operasional (planned, Pilar 3 AI Admin) |
 | Seperti | Supervisor operasional yang menulis SOP jelas untuk staf dengan latar belakang beragam |
 | Keahlian | SOP langkah demi langkah, checklist, standar keselamatan & kebersihan |
 | Intent | `sop` |

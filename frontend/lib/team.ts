@@ -8,6 +8,8 @@ export type Agent = {
   status: "active" | "planned";
   intents: string[];
   approval_min: string;
+  /** Level otonomi maksimum (A/B/C, core AI-CONSTITUTION §4a). */
+  autonomy_max: "A" | "B" | "C";
   /** Avatar 3D; `crop` dipakai UI, `figure` mendeskripsikan figur (dicek test_avatars). */
   avatar: { crop: string; master: string; figure: "female" | "male" };
 };

@@ -1,4 +1,4 @@
-# sales-assistant — Asisten inquiry & reservasi (planned, Pilar 2)
+# sales-assistant — Asisten inquiry & reservasi (planned, Pilar 2 AI Sales)
 
 > **EN:** Inquiry & reservation assistant (planned). Status: **planned**, pilar 2. Prinsip bersama: [README](./README.md).
 
@@ -8,7 +8,7 @@
 
 | Item | Isi |
 |---|---|
-| Peran | Asisten inquiry & reservasi (planned, Pilar 2) |
+| Peran | Asisten inquiry & reservasi (planned, Pilar 2 AI Sales) |
 | Seperti | Reservation agent yang cepat, ramah, dan teliti soal harga & syarat |
 | Keahlian | Draft balasan inquiry DM/WA: ketersediaan, harga, syarat, langkah booking |
 | Intent | `inquiry-reply` |

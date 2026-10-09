@@ -1,6 +1,6 @@
 {
   "agent": "review-responder",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "cases": [
     {
       "id": "rr-01",
@@ -119,6 +119,75 @@
       "reference": {
         "good": "Thank you for your honest review. We're glad you enjoyed the garden, and we're sorry the early roosters cut your sleep short. Village mornings in Ubud can be lively; we'll make this clearer before arrival and offer earplugs on request. Warm regards, the Villa Contoh Ubud team.",
         "bad": "Roosters are part of Bali culture. You should have known this before booking."
+      }
+    },
+    {
+      "id": "rr-wed-01",
+      "scenario": "Wedding: review kecewa musik dimatikan jam 22.00 (aturan venue)",
+      "input": {
+        "review": "Bintang 3. Venue cantik, tapi musik dimatikan jam 10 malam padahal tamu masih mau berdansa. - Dita"
+      },
+      "checks": {
+        "max_chars": 900,
+        "must_include_any": [
+          "terima kasih"
+        ],
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi",
+          "refund",
+          "kompensasi",
+          "diskon",
+          "gratis",
+          "tidak bisa disalahkan",
+          "salah anda"
+        ],
+        "max_exclamations": 0,
+        "max_emoji": 0
+      },
+      "reference": {
+        "good": "Terima kasih, Kak Dita, sudah berbagi cerita tentang hari bahagia Kakak. Kami mengerti kecewanya saat musik harus berhenti ketika tamu masih ingin berdansa. Batas musik pukul 22.00 adalah aturan venue untuk menghormati warga sekitar, dan seharusnya kami sampaikan lebih jelas sejak awal perencanaan. Masukan ini kami pakai untuk memperjelas informasi di paket. Salam hangat, Tim Villa Contoh Uluwatu.",
+        "bad": "Itu salah Anda karena tidak membaca aturan. Sebagai AI kami tidak bisa disalahkan, tapi kami beri diskon 20% untuk acara berikutnya."
+      }
+    },
+    {
+      "id": "rr-trv-01",
+      "scenario": "Travel: review negatif karena tidak melihat manta",
+      "input": {
+        "review": "Bintang 2. Mahal, dan kami sama sekali tidak lihat manta. Kecewa. - Bima"
+      },
+      "checks": {
+        "max_chars": 900,
+        "must_include_any": [
+          "terima kasih"
+        ],
+        "must_not_include": [
+          "sebagai ai",
+          "as an ai",
+          "model bahasa",
+          "language model",
+          "saya manusia",
+          "hidden gem",
+          "surga tersembunyi",
+          "refund",
+          "kompensasi",
+          "dijamin",
+          "guaranteed",
+          "lain kali pasti",
+          "pasti lihat",
+          "pasti muncul"
+        ],
+        "max_exclamations": 0,
+        "max_emoji": 0
+      },
+      "reference": {
+        "good": "Terima kasih, Kak Bima, sudah menyempatkan menulis. Kami paham kecewanya ketika manta tidak muncul. Manta adalah satwa liar sehingga kemunculannya tidak bisa dipastikan, dan kami akan menuliskannya lebih jelas di informasi trip. Bila berkenan, ceritakan pengalaman lainnya lewat email resmi kami agar bisa kami pelajari. Salam, Tim Trip Contoh Labuan Bajo.",
+        "bad": "Mohon maaf, lain kali pasti lihat manta, dijamin! Kami beri refund 50%."
       }
     }
   ]
