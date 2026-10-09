@@ -56,7 +56,7 @@ File di repo: `scripts/deploy/nginx/clau.conf` dan `scripts/deploy/systemd/clau-
 
 - `npm ci --ignore-scripts` di CI dan di server: script install dari paket npm tidak pernah dijalankan.
 - Job CI `audit`: `npm audit --audit-level=high`, `pip-audit --strict`, dan pemindai pola secret. Gagal = PR tidak boleh di-merge.
-- `.github/dependabot.yml`: PR update mingguan untuk npm, pip, dan GitHub Actions. Owner tetap yang merge.
+- `.github/dependabot.yml`: PR update mingguan (minor/patch) untuk npm, pip, dan GitHub Actions. Owner tetap yang merge. Versi **mayor** tidak dibuka otomatis (keputusan owner 2026-10-09, setelah PR TypeScript 5 → 7 merusak `tsc`): dikerjakan sebagai PR tersendiri setelah diuji.
 - GitHub Actions dipin ke commit SHA (tag bisa dipindah oleh pihak lain; SHA tidak).
 - **NEXT ACTION (owner, GitHub Settings)**: proteksi branch `main` (wajib PR + CI hijau, termasuk job `audit`), karena isi `main` tayang otomatis di VPS 1 dalam ±5 menit.
 
