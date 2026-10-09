@@ -1,0 +1,21 @@
+# Update keamanan dependency otomatis (docs/security.md §5). Dependabot membuka PR; CI harus hijau
+# sebelum merge, dan owner tetap yang memutuskan merge.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      frontend-minor:
+        update-types: [minor, patch]
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

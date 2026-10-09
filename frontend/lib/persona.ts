@@ -29,8 +29,16 @@ function plain(s: string): string {
   return s.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").replace(/[`*]/g, "").trim();
 }
 
+// Id agent hanya huruf kecil, angka, dan "-" (sama dengan registry), supaya tidak bisa dipakai
+// membaca file di luar folder persona/eval (path traversal) bila suatu saat id datang dari URL.
+const SAFE_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+function safeId(id: string): string {
+  if (!SAFE_ID.test(id)) throw new Error(`invalid agent id: ${JSON.stringify(id).slice(0, 40)}`);
+  return id;
+}
+
 export function getPersona(id: string): PersonaFacts {
-  const md = readFileSync(path.join(PERSONAS, `${id}.md`), "utf-8");
+  const md = readFileSync(path.join(PERSONAS, `${safeId(id)}.md`), "utf-8");
   const escalation = section(md, /^## 5\./)
     .split("\n")
     .filter((l) => /^\s*(-|\d+\.)\s+/.test(l))
@@ -50,6 +58,7 @@ export function getPersona(id: string): PersonaFacts {
 
 /** Jumlah kasus uji nyata untuk agent (agents/evals/cases/<id>.json). */
 export function evalCaseCount(id: string): number {
+  if (!SAFE_ID.test(id)) return 0;
   try {
     const raw = readFileSync(path.join(process.cwd(), "..", "agents", "evals", "cases", `${id}.json`), "utf-8");
     return JSON.parse(raw).cases.length;

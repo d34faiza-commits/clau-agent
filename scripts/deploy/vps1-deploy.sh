@@ -45,7 +45,9 @@ mkdir -p "$RELEASES"
 rm -rf "$dir"
 mkdir -p "$dir"
 git -C "$REPO" archive "$new" | tar -x -C "$dir"
-if ! (cd "$dir/frontend" && npm ci --no-audit --no-fund && npm run build); then
+# --ignore-scripts: script install dari paket npm tidak dijalankan di server (cegah supply-chain attack;
+# build tidak membutuhkannya, dicek di CI). Supply chain lain dijaga lewat package-lock + audit di CI.
+if ! (cd "$dir/frontend" && npm ci --ignore-scripts --no-audit --no-fund && npm run build); then
   log "build FAILED for ${new:0:12}; still serving ${old:0:12}"
   rm -rf "$dir"
   echo "$new" > "$ROOT/.failed-sha"
