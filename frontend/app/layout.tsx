@@ -9,7 +9,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata = {
-  title: "CLAU AI Content Studio",
+  title: "CLAU AI",
   description: "Your AI marketing team for hospitality. AI agents prepare drafts; your team approves and publishes.",
 };
 
