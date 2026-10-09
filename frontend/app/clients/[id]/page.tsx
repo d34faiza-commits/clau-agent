@@ -12,6 +12,15 @@ export function generateStaticParams() {
   return CLIENTS.map((c) => ({ id: c.id }));
 }
 
+// Hanya klien di data; id lain langsung 404 tanpa render di server.
+export const dynamicParams = false;
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const c = CLIENTS.find((x) => x.id === id);
+  return { title: c ? `${c.name} · Clients · CLAU` : "CLAU" };
+}
+
 export default async function ClientPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const c = CLIENTS.find((x) => x.id === id);

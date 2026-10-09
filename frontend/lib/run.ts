@@ -6,14 +6,21 @@ function agent(id: string) {
   return m ? { name: m.name, hue: m.hue, look: m.look, uniform: m.uniform, image: m.image } : undefined;
 }
 
+/** Judul langkah dari registry ("Tara · Copywriter"), supaya ikut berubah bila nama/peran agent diganti. */
+function step(key: string, id: string, subEn: string, subId: string): RunStep {
+  const m = getMember(id);
+  const role = (r: string) => r.replace(/^AI /, "");
+  return { key, agent: agent(id), en: m ? `${m.name} · ${role(m.role.en)}` : id, id: m ? `${m.name} · ${role(m.role.id)}` : id, subEn, subId };
+}
+
 /** Alur "konten bulanan" memakai agent yang benar-benar ada di registry. */
 export function monthlyRun(): RunStep[] {
   return [
     { key: "ctx", en: "Client context loaded", id: "Konteks klien dimuat", subEn: "Voice Card and owner-confirmed facts", subId: "Voice Card dan fakta yang dikonfirmasi owner" },
-    { key: "plan", agent: agent("calendar-planner"), en: "Dimas · Content Planner", id: "Dimas · Content Planner", subEn: "Monthly plan and content pillars", subId: "Rencana bulanan dan pilar konten" },
-    { key: "copy", agent: agent("caption-writer"), en: "Tara · Copywriter", id: "Tara · Copywriter", subEn: "Captions, hooks and CTAs", subId: "Caption, hook, dan CTA" },
-    { key: "reel", agent: agent("reel-scripter"), en: "Raka · Reels Strategist", id: "Raka · Reels Strategist", subEn: "Reel scripts and shot lists", subId: "Naskah Reel dan shot list" },
-    { key: "loc", agent: agent("localizer"), en: "Nara · Localization", id: "Nara · Localization", subEn: "English and Indonesian versions", subId: "Versi Inggris dan Indonesia" },
+    step("plan", "calendar-planner", "Monthly plan and content pillars", "Rencana bulanan dan pilar konten"),
+    step("copy", "caption-writer", "Captions, hooks and CTAs", "Caption, hook, dan CTA"),
+    step("reel", "reel-scripter", "Reel scripts and shot lists", "Naskah Reel dan shot list"),
+    step("loc", "localizer", "English and Indonesian versions", "Versi Inggris dan Indonesia"),
     { key: "qc", en: "Automatic checks", id: "Cek otomatis", subEn: "Banned phrases, unproven claims, length, CTA", subId: "Frasa terlarang, klaim tanpa bukti, panjang, CTA" },
     { key: "human", human: true, en: "Human approval", id: "Persetujuan manusia", subEn: "Your team reviews before anything is published", subId: "Tim kamu mereview sebelum apa pun tayang" },
   ];

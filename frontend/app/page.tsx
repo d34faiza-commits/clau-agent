@@ -106,7 +106,7 @@ export default function Dashboard() {
               </table>
             </div>
           </Card>
-          <Card title={<L en="Needs your review" id="Menunggu review kamu" />} action={<Link href="/content" className="link"><L en="Open content" id="Buka konten" /></Link>} flush>
+          <Card title={<L en="In review" id="Sedang direview" />} action={<Link href="/content" className="link"><L en="Open content" id="Buka konten" /></Link>} flush>
             <ul className="list">
               {pending.map((c) => {
                 const m = getMember(c.agent)!;
@@ -132,7 +132,7 @@ export default function Dashboard() {
                 const m = getMember(a.agent)!;
                 return (
                   <li key={a.en}>
-                    <Avatar name={m.name} hue={m.hue} look={m.look} uniform={m.uniform} image={m.image} size="sm" />
+                    <Avatar name={m.name} hue={m.hue} look={m.look} uniform={m.uniform} image={m.image} size="sm" decorative />
                     <div className="list__main">
                       <span className="list__title" style={{ whiteSpace: "normal" }}>
                         {m.name} · <L en={a.en} id={a.id} />

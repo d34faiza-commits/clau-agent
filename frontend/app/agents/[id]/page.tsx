@@ -13,6 +13,9 @@ export function generateStaticParams() {
   return getTeam().map((m) => ({ id: m.id }));
 }
 
+// Hanya agent di registry; id lain langsung 404 tanpa render di server.
+export const dynamicParams = false;
+
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const m = getMember((await params).id);
   return { title: m ? `${m.name} · ${m.role.en} · CLAU` : "CLAU" };
@@ -35,7 +38,7 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
         <Icon name="chevronLeft" size={16} /> <L en="My AI Team" id="Tim AI Saya" />
       </Link>
       <div className="profile-head" style={{ ["--hue" as string]: m.hue }}>
-        <Avatar name={m.name} hue={m.hue} look={m.look} uniform={m.uniform} image={m.image} size="xl" status={m.status} />
+        <Avatar name={m.name} hue={m.hue} look={m.look} uniform={m.uniform} image={m.image} size="xl" status={m.status} decorative />
         <div>
           <h1>{m.name}</h1>
           <div className="profile-head__role"><L en={m.role.en} id={m.role.id} /></div>

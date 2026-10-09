@@ -43,9 +43,20 @@ export function useTheme() {
       setResolved(resolve(p2));
     };
     window.addEventListener("clau-theme", onStorage);
+    // Tab browser lain mengubah tema: terapkan juga di sini.
+    const onOtherTab = (e: StorageEvent) => {
+      if (e.key !== KEY) return;
+      const p2 = read();
+      const r = resolve(p2);
+      document.documentElement.dataset.theme = r;
+      setPrefState(p2);
+      setResolved(r);
+    };
+    window.addEventListener("storage", onOtherTab);
     return () => {
       mq.removeEventListener("change", onChange);
       window.removeEventListener("clau-theme", onStorage);
+      window.removeEventListener("storage", onOtherTab);
     };
   }, []);
 

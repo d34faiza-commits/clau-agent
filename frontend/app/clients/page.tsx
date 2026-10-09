@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Avatar from "../../components/Avatar";
+import DisabledAction from "../../components/DisabledAction";
 import { PageHeader, Progress, SimNotice } from "../../components/ui";
 import { CLIENTS, CONTENT, formatOf } from "../../lib/demo";
 import { D, L } from "../../lib/i18n";
@@ -14,9 +15,9 @@ export default function Clients() {
         title={<L en="Clients" id="Klien" />}
         subtitle={<L en="Every client gets a dedicated AI marketing team." id="Setiap klien punya tim marketing AI sendiri." />}
         actions={
-          <button type="button" className="btn btn--primary" disabled title="Available once the backend is connected">
+          <DisabledAction en="Available once the backend is connected" id="Tersedia setelah backend tersambung">
             + <L en="Add client" id="Tambah klien" />
-          </button>
+          </DisabledAction>
         }
       />
       <SimNotice />
