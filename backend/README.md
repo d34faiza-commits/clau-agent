@@ -18,6 +18,7 @@ pytest                                  # test API + konsistensi registry ↔ co
 |---|---|
 | `GET /health` | Status service |
 | `GET /agents` | Daftar agent dari `../agents/registry.json` + forbidden actions |
+| `GET /pillars` | 5 pilar dari `../agents/registry.json` (nama, status, repo) + id agent per pilar |
 | `POST /route` | `{"intent": "caption"}` → agent, pilar, skill, repo, approval minimum, status |
 
 ## Belum Ada (Planned)

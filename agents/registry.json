@@ -1,5 +1,5 @@
 {
-  "registry_version": "0.3.0",
+  "registry_version": "0.4.0",
   "router_source": "core/orchestrator/router.md",
   "default_forbidden_actions": [
     "publish",
@@ -7,6 +7,54 @@
     "self_approve",
     "change_price_or_availability",
     "store_credentials"
+  ],
+  "pillars_source": "core/README.md#5-pilar-clau-ai",
+  "pillars": [
+    {
+      "id": 1,
+      "name": {
+        "en": "Marketing & Content",
+        "id": "Marketing & Konten"
+      },
+      "status": "active",
+      "repo": "clau-ai-marketing"
+    },
+    {
+      "id": 2,
+      "name": {
+        "en": "Sales & Reservations",
+        "id": "Sales & Reservasi"
+      },
+      "status": "planned",
+      "repo": null
+    },
+    {
+      "id": 3,
+      "name": {
+        "en": "Guest Experience & Reputation",
+        "id": "Pengalaman Tamu & Reputasi"
+      },
+      "status": "planned",
+      "repo": null
+    },
+    {
+      "id": 4,
+      "name": {
+        "en": "Operations",
+        "id": "Operasional"
+      },
+      "status": "planned",
+      "repo": null
+    },
+    {
+      "id": 5,
+      "name": {
+        "en": "Analytics & Insights",
+        "id": "Analitik & Insight"
+      },
+      "status": "planned",
+      "repo": null
+    }
   ],
   "agents": [
     {

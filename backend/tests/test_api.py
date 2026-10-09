@@ -19,6 +19,14 @@ def test_agents_carry_forbidden_actions():
         assert "self_approve" in agent["forbidden_actions"]
 
 
+def test_pillars_list_all_five_with_agents():
+    pillars = client.get("/pillars").json()["pillars"]
+    assert [p["id"] for p in pillars] == [1, 2, 3, 4, 5]
+    assert all(p["agents"] for p in pillars)
+    assert "caption-writer" in pillars[0]["agents"]
+    assert pillars[1]["status"] == "planned"
+
+
 def test_route_active_intent():
     body = client.post("/route", json={"intent": "caption"}).json()
     assert body["pillar"] == 1

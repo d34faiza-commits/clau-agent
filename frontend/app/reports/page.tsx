@@ -1,7 +1,7 @@
-import { Card, Empty, Kpi, PageHeader, SimNotice } from "../../components/ui";
+import { AgentStatus, Card, Empty, Kpi, PageHeader, SimNotice } from "../../components/ui";
 import { CLIENTS, CONTENT, STATUS, STATUS_ORDER } from "../../lib/demo";
 import { L } from "../../lib/i18n";
-import { getMember } from "../../lib/team";
+import { PILLAR_LIST, getMember } from "../../lib/team";
 
 export const metadata = { title: "Reports · CLAU" };
 
@@ -40,6 +40,38 @@ export default function Reports() {
         </Card>
         <Card title={<L en="Content by AI agent" id="Konten per agent AI" />}>
           <Bars rows={byAgent} />
+        </Card>
+      </div>
+      <div className="mt">
+        <Card flush title={<L en="By pillar" id="Per pilar" />}>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th><L en="Pillar" id="Pilar" /></th>
+                  <th><L en="Status" id="Status" /></th>
+                  <th><L en="This period" id="Periode ini" /></th>
+                </tr>
+              </thead>
+              <tbody>
+                {PILLAR_LIST.map((p) => (
+                  <tr key={p.id}>
+                    <td>{p.id} · <L en={p.name.en} id={p.name.id} /></td>
+                    <td><AgentStatus status={p.status} /></td>
+                    <td className="muted">
+                      {p.id === 1 ? (
+                        <L en={`${CONTENT.length} content items`} id={`${CONTENT.length} konten`} />
+                      ) : p.id === 5 ? (
+                        <L en="This report (Pillar 1 template)" id="Laporan ini (template Pilar 1)" />
+                      ) : (
+                        <L en="No data: pillar not active" id="Belum ada data: pilar belum aktif" />
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Card>
       </div>
       <div className="grid-2-even mt">

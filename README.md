@@ -19,7 +19,7 @@ clau-ai-agents/
 ├── agents/
 │   ├── README.md
 │   └── registry.json     # agent → intent → skill/prompt/template di repo pilar
-├── backend/              # FastAPI: /health, /agents, /route (read-only)
+├── backend/              # FastAPI: /health, /agents, /pillars, /route (read-only)
 │   ├── app/main.py · requirements.txt · pytest.ini
 │   └── tests/            # test API + konsistensi registry ↔ core router
 ├── frontend/             # Next.js 16 (App Router): halaman registry agent
