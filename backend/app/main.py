@@ -16,7 +16,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 REGISTRY_PATH = Path(__file__).resolve().parents[2] / "agents" / "registry.json"
 
@@ -65,6 +65,17 @@ def list_agents() -> dict:
     registry = load_registry()
     forbidden = registry["default_forbidden_actions"]
     return {"agents": [{**agent, "forbidden_actions": forbidden} for agent in registry["agents"]]}
+
+
+@app.get("/pillars")
+def list_pillars() -> dict:
+    registry = load_registry()
+    return {
+        "pillars": [
+            {**pillar, "agents": [a["id"] for a in registry["agents"] if a["pillar"] == pillar["id"]]}
+            for pillar in registry["pillars"]
+        ]
+    }
 
 
 @app.post("/route")

@@ -6,6 +6,20 @@ Definisi agent platform CLAU AI. Setiap agent adalah **pemetaan**: intent (dari 
 
 Sumber tunggal: [registry.json](./registry.json).
 
+### `pillars`
+
+Daftar 5 pilar (`id`, `name.en`/`name.id`, `status`, `repo`). Nama, status, dan repo harus sama dengan tabel **5 Pilar CLAU AI** di `core/README.md` (dicek test). Frontend dan `GET /pillars` membaca dari sini; jangan hardcode nama pilar di kode.
+
+| # | Pilar | Status | Repo |
+|---|---|---|---|
+| 1 | Marketing & Content | `active` | clau-ai-marketing |
+| 2 | Sales & Reservations | `planned` | — |
+| 3 | Guest Experience & Reputation | `planned` | — |
+| 4 | Operations | `planned` | — |
+| 5 | Analytics & Insights | `planned` (intent `report` sementara memakai template Pilar 1) | — |
+
+### `agents`
+
 | Field | Arti |
 |---|---|
 | `id` | Nama agent |
@@ -36,7 +50,7 @@ Agent `planned`: sales-assistant (Pilar 2), guest-messenger (Pilar 3), sop-write
 
 ## Konsistensi
 
-`backend/tests/test_registry.py` mengecek bahwa intent di registry sama dengan tabel di `core/orchestrator/router.md` (bila submodule `core/` ter-init) dan bahwa setiap agent aktif punya artefak. `backend/tests/test_personas_evals.py` mengecek setiap agent punya kartu persona dan kasus uji yang valid (`python agents/evals/run_evals.py --check`).
+`backend/tests/test_registry.py` mengecek bahwa intent di registry sama dengan tabel di `core/orchestrator/router.md` (bila submodule `core/` ter-init) , bahwa setiap agent aktif punya artefak, dan bahwa `pillars` sama dengan tabel 5 pilar di `core/README.md` (agent aktif di pilar yang masih planned hanya boleh memakai artefak Pilar 1). `backend/tests/test_personas_evals.py` mengecek setiap agent punya kartu persona dan kasus uji yang valid (`python agents/evals/run_evals.py --check`).
 
 ## Persona & Eval
 

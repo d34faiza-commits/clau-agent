@@ -47,13 +47,11 @@ export type Member = Agent & {
 /** Agent konsep dari brief v3. BELUM ada di registry, belum punya persona/eval, tidak bisa dijalankan. */
 export type ConceptAgent = { name: string; role: Text; tagline: Text; look: Look; uniform: Uniform; image?: string };
 
-export const PILLARS: Record<number, Text> = {
-  1: { en: "Marketing & Content", id: "Marketing & Konten" },
-  2: { en: "Sales & Reservations", id: "Sales & Reservasi" },
-  3: { en: "Guest Experience", id: "Pengalaman Tamu" },
-  4: { en: "Operations", id: "Operasional" },
-  5: { en: "Analytics & Insights", id: "Analitik & Insight" },
-};
+export type Pillar = { id: number; name: Text; status: "active" | "planned"; repo: string | null };
+
+/** Nama & status 5 pilar; sumber: `agents/registry.json` → `pillars` (dicek test_registry terhadap README clau-ai-core). */
+export const PILLAR_LIST: Pillar[] = (registry as { pillars: Pillar[] }).pillars;
+export const PILLARS: Record<number, Text> = Object.fromEntries(PILLAR_LIST.map((p) => [p.id, p.name]));
 
 export const APPROVAL: Record<string, Text> = {
   L1: { en: "Checked by one team member", id: "Dicek satu orang di tim" },

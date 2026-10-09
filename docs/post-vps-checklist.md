@@ -22,5 +22,5 @@
   - Nilai dengan rubrik di `agents/evals/README.md` oleh owner atau orang yang pernah bekerja di front office/guest relations (bukan pembuat prompt).
   - Lulus: deterministik PASS + rata-rata rubrik ≥ 4, tidak ada dimensi < 3.
 - [ ] **3. Tambahkan kasus dari percakapan nyata** yang sudah dianonimkan (tanpa nama tamu, nomor kamar, tanggal menginap, nama properti client).
-- [ ] **4. Aktivasi pilar 2–4** (Sales, Guest Experience, Operations) setelah workflow & skill pilarnya di-approve owner: ubah status di `agents/registry.json` dan `core/orchestrator/router.md`, lalu jalankan eval agent terkait.
+- [ ] **4. Aktivasi pilar 2–4** (Sales, Guest Experience, Operations) setelah workflow & skill pilarnya di-approve owner: ubah status agent **dan** `pillars` (status + repo) di `agents/registry.json`, tabel pilar di `core/README.md` + `core/docs/5-pillar-architecture.md`, dan `core/orchestrator/router.md`, lalu jalankan eval agent terkait. Task per pilar: TASK-035 (Sales), TASK-036 (Guest Experience), TASK-037 (Operations), TASK-038 (Analytics) di board `CLAU-AI-CONTENT/tasks/`.
 - [ ] **5. TASK-032 (dynamic approval level)** diimplementasikan saat backend mulai menyimpan draft & approval.
