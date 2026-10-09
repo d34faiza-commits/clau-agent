@@ -46,7 +46,7 @@ export default function Agents() {
                     <th><L en="Status" id="Status" /></th>
                     <th><L en="Approval" id="Approval" /></th>
                     <th><L en="Test cases" id="Kasus uji" /></th>
-                    <th aria-label="Open" />
+                    <th><span className="sr-only"><L en="Open" id="Buka" /></span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -54,7 +54,7 @@ export default function Agents() {
                     <tr key={m.id}>
                       <td>
                         <Link href={`/agents/${m.id}`} className="cell-agent">
-                          <Avatar name={m.name} hue={m.hue} look={m.look} uniform={m.uniform} image={m.image} size="sm" />
+                          <Avatar name={m.name} hue={m.hue} look={m.look} uniform={m.uniform} image={m.image} size="sm" decorative />
                           <span>
                             <span className="cell-strong">{m.name}</span>
                             <span className="cell-sub"><L en={m.role.en} id={m.role.id} /></span>

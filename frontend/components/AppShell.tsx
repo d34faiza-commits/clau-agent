@@ -7,6 +7,7 @@ import Icon, { type IconName } from "./Icon";
 import Logo from "./Logo";
 import { L, useL, useLang } from "../lib/i18n";
 import { useTheme } from "../lib/theme";
+import { useDialog } from "../lib/useDialog";
 
 type Item = { href: string; en: string; id: string; icon: IconName; count?: number };
 type Group = { en: string; id: string; items: Item[] };
@@ -43,6 +44,8 @@ export default function AppShell({ children, activeAgents }: { children: ReactNo
   const { resolved, setPref } = useTheme();
   const tr = useL();
   useEffect(() => setOpen(false), [path]);
+  // Menu HP: fokus masuk ke menu, Esc menutup, halaman di belakang tidak ikut tergulir.
+  const sidebar = useDialog<HTMLElement>(open, () => setOpen(false));
 
   const isActive = (href: string) => (href === "/" ? path === "/" : path === href || path.startsWith(`${href}/`));
   const current = NAV.flatMap((g) => g.items).filter((i) => isActive(i.href)).pop();
@@ -50,7 +53,7 @@ export default function AppShell({ children, activeAgents }: { children: ReactNo
 
   return (
     <div className="shell">
-      <aside className={`sidebar${open ? " sidebar--open" : ""}`} aria-label={tr("Main navigation", "Navigasi utama")}>
+      <aside ref={sidebar} tabIndex={-1} className={`sidebar${open ? " sidebar--open" : ""}`} aria-label={tr("Main navigation", "Navigasi utama")}>
         <div className="sidebar__brand">
           <Link href="/" aria-label="Dashboard">
             <Logo />
@@ -91,7 +94,7 @@ export default function AppShell({ children, activeAgents }: { children: ReactNo
 
       <div className="main">
         <header className="topbar">
-          <button type="button" className="icon-btn icon-btn--ghost topbar__menu" onClick={() => setOpen(true)} aria-label={tr("Open menu", "Buka menu")}>
+          <button type="button" className="icon-btn icon-btn--ghost topbar__menu" onClick={() => setOpen(true)} aria-label={tr("Open menu", "Buka menu")} aria-expanded={open}>
             <Icon name="menu" />
           </button>
           <span className="topbar__title">{current ? (lang === "id" ? current.id : current.en) : "CLAU"}</span>

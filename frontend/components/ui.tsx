@@ -88,13 +88,13 @@ export function Progress({ value, total }: { value: number; total: number }) {
   );
 }
 
-export function Empty({ icon, title, body, action }: { icon: IconName; title: ReactNode; body: ReactNode; action?: ReactNode }) {
+export function Empty({ icon, title, body, action, heading: H = "h3" }: { icon: IconName; title: ReactNode; body: ReactNode; action?: ReactNode; heading?: "h1" | "h3" }) {
   return (
     <div className="empty">
       <span className="empty__icon">
         <Icon name={icon} size={22} />
       </span>
-      <h3>{title}</h3>
+      <H>{title}</H>
       <p>{body}</p>
       {action}
     </div>

@@ -11,6 +11,7 @@ export default function Avatar({
   image,
   size = "md",
   status,
+  decorative,
 }: {
   name: string;
   hue: string;
@@ -19,13 +20,15 @@ export default function Avatar({
   image?: string;
   size?: "sm" | "md" | "lg" | "xl";
   status?: "active" | "planned";
+  /** true bila nama agent sudah tertulis di sebelahnya, supaya pembaca layar tidak membacanya dua kali. */
+  decorative?: boolean;
 }) {
   const av = (
     <span
       className={`av av--${size}${look || image ? " av--char" : ""}`}
-      role="img"
-      aria-label={name}
+      {...(decorative ? { "aria-hidden": true } : { role: "img", "aria-label": name })}
       style={{
+        // Crop 3D memakai latar mint yang menyatu di file webp; warna tile sama agar tepinya tidak terlihat.
         background: image
           ? "#DDF4EE"
           : look

@@ -21,6 +21,14 @@ export function LangProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.lang = lang;
   }, [lang]);
+  // Ikut berganti bila bahasa diubah di tab browser lain.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === KEY && (e.newValue === "id" || e.newValue === "en")) setLangState(e.newValue);
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
   const setLang = useCallback((l: Lang) => {
     setLangState(l);
     try {

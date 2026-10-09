@@ -1,47 +1,40 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Avatar from "./Avatar";
 import { RunSteps, type RunStep } from "./GenerateRun";
 import Icon from "./Icon";
 import { Empty, Level, StatusBadge } from "./ui";
-import { CLIENTS, CONTENT, FORMATS, PREVIEW, STATUS, STATUS_ORDER, clientName, formatOf, projectName, type ContentItem, type ContentStatus, type Format } from "../lib/demo";
+import { CLIENTS, CONTENT, CONTENT_TYPES, FORMATS, PREVIEW, STATUS, STATUS_ORDER, clientName, formatOf, projectName, type ContentItem, type ContentStatus, type Format } from "../lib/demo";
 import { D, L, useL } from "../lib/i18n";
+import { useDialog } from "../lib/useDialog";
 import type { Look, Uniform } from "../lib/team";
 
 type AgentInfo = Record<string, { name: string; hue: string; look: Look; uniform: Uniform; image?: string }>;
 
-const TYPES = ["Instagram Post", "Instagram Reel", "Story", "Google Business", "WhatsApp Promotion", "Blog", "Campaign"];
-
-function useEscape(active: boolean, close: () => void) {
-  useEffect(() => {
-    if (!active) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [active, close]);
-}
+const FORMAT_CHIPS = (["post", "reel", "story", "google", "whatsapp", "blog", "other"] as const).filter((f) => CONTENT.some((c) => formatOf(c.type) === f));
 
 export default function ContentBoard({ agents, steps }: { agents: AgentInfo; steps: RunStep[] }) {
-  const params = useSearchParams();
   const tr = useL();
   const [tab, setTab] = useState<ContentStatus | "all">("all");
   const [fmt, setFmt] = useState<Format | "all">("all");
   const [open, setOpen] = useState(false);
   const [running, setRunning] = useState(false);
   const [preview, setPreview] = useState<ContentItem | null>(null);
+  // `/content?new=1` langsung membuka form. Dibaca setelah mount (bukan useSearchParams) supaya
+  // halaman statis tetap berisi tabel dan catatan SIMULASI tanpa menunggu JavaScript.
   useEffect(() => {
-    if (params?.get("new") === "1") setOpen(true);
-  }, [params]);
+    if (new URLSearchParams(window.location.search).get("new") === "1") setOpen(true);
+  }, []);
   const closeCreate = () => {
     setOpen(false);
     setRunning(false);
   };
-  useEscape(open, closeCreate);
-  useEscape(!!preview, () => setPreview(null));
+  const createRef = useDialog<HTMLDivElement>(open, closeCreate);
+  const previewRef = useDialog<HTMLElement>(!!preview, () => setPreview(null));
 
-  const rows = CONTENT.filter((c) => (tab === "all" || c.status === tab) && (fmt === "all" || formatOf(c.type) === fmt)).sort((a, b) => b.date.localeCompare(a.date));
+  const inFormat = CONTENT.filter((c) => fmt === "all" || formatOf(c.type) === fmt);
+  const rows = inFormat.filter((c) => tab === "all" || c.status === tab).sort((a, b) => b.date.localeCompare(a.date));
   const p = preview ? PREVIEW[preview.id] : undefined;
 
   return (
@@ -59,16 +52,16 @@ export default function ContentBoard({ agents, steps }: { agents: AgentInfo; ste
       </div>
 
       <section className="panel panel--flush">
-        <div className="tabs" role="tablist" aria-label={tr("Filter by status", "Filter status")}>
+        <div className="tabs" role="group" aria-label={tr("Filter by status", "Filter status")}>
           {(["all", ...STATUS_ORDER] as const).map((s) => (
-            <button key={s} type="button" role="tab" aria-selected={tab === s} className={`tab${tab === s ? " tab--active" : ""}`} onClick={() => setTab(s)}>
+            <button key={s} type="button" aria-pressed={tab === s} className={`tab${tab === s ? " tab--active" : ""}`} onClick={() => setTab(s)}>
               {s === "all" ? <L en="All" id="Semua" /> : <L en={STATUS[s].en} id={STATUS[s].id} />}
-              <span className="tab__count">{s === "all" ? CONTENT.length : CONTENT.filter((c) => c.status === s).length}</span>
+              <span className="tab__count">{s === "all" ? inFormat.length : inFormat.filter((c) => c.status === s).length}</span>
             </button>
           ))}
         </div>
         <div className="chips" role="group" aria-label={tr("Filter by format", "Filter format")}>
-          {(["all", "post", "reel", "story", "google", "whatsapp", "blog"] as const).map((f) => (
+          {(["all", ...FORMAT_CHIPS] as const).map((f) => (
             <button key={f} type="button" className="chip" aria-pressed={fmt === f} onClick={() => setFmt(f)}>
               {f === "all" ? <L en="All formats" id="Semua format" /> : <L en={FORMATS[f].en} id={FORMATS[f].id} />}
             </button>
@@ -91,10 +84,13 @@ export default function ContentBoard({ agents, steps }: { agents: AgentInfo; ste
               </thead>
               <tbody>
                 {rows.map((c) => (
-                  <tr key={c.id} className="is-click" onClick={() => setPreview(c)} onKeyDown={(e) => e.key === "Enter" && setPreview(c)} tabIndex={0}>
-                    <td><span className="cell-strong">{c.title}</span><span className="cell-sub">{c.type}</span></td>
+                  <tr key={c.id} className="is-click" onClick={() => setPreview(c)}>
+                    <td>
+                      <button type="button" className="link-btn cell-strong" onClick={(e) => { e.stopPropagation(); setPreview(c); }}>{c.title}</button>
+                      <span className="cell-sub">{c.type}</span>
+                    </td>
                     <td>{clientName(c.client)}<span className="cell-sub">{projectName(c.project)}</span></td>
-                    <td><span className="cell-agent"><Avatar {...agents[c.agent]} size="sm" />{agents[c.agent].name}</span></td>
+                    <td><span className="cell-agent"><Avatar {...agents[c.agent]} size="sm" decorative />{agents[c.agent].name}</span></td>
                     <td className="nowrap muted"><D iso={c.date} /></td>
                     <td><Level level={c.level} /></td>
                     <td><StatusBadge status={c.status} /></td>
@@ -109,7 +105,7 @@ export default function ContentBoard({ agents, steps }: { agents: AgentInfo; ste
       {preview && (
         <>
           <div className="drawer-scrim" onClick={() => setPreview(null)} />
-          <aside className="drawer" role="dialog" aria-modal="true" aria-labelledby="preview-title">
+          <aside className="drawer" role="dialog" aria-modal="true" aria-labelledby="preview-title" ref={previewRef} tabIndex={-1}>
             <div className="modal__head">
               <h2 id="preview-title">{preview.title}</h2>
               <button type="button" className="icon-btn icon-btn--ghost" onClick={() => setPreview(null)} aria-label={tr("Close", "Tutup")}><Icon name="x" /></button>
@@ -151,7 +147,7 @@ export default function ContentBoard({ agents, steps }: { agents: AgentInfo; ste
 
       {open && (
         <div className="modal-scrim" onClick={(e) => e.target === e.currentTarget && closeCreate()}>
-          <div className="modal" role="dialog" aria-modal="true" aria-labelledby="new-content-title">
+          <div className="modal" role="dialog" aria-modal="true" aria-labelledby="new-content-title" ref={createRef} tabIndex={-1}>
             <div className="modal__head">
               <h2 id="new-content-title">{running ? <L en="Your AI team is working" id="Tim AI kamu sedang bekerja" /> : <L en="Create content" id="Buat konten" />}</h2>
               <button type="button" className="icon-btn icon-btn--ghost" onClick={closeCreate} aria-label={tr("Close", "Tutup")}><Icon name="x" /></button>
@@ -168,7 +164,7 @@ export default function ContentBoard({ agents, steps }: { agents: AgentInfo; ste
               ) : (
                 <div className="form-grid">
                   <div className="field"><label htmlFor="f-client"><L en="Client" id="Klien" /></label><select id="f-client">{CLIENTS.map((c) => <option key={c.id}>{c.name}</option>)}</select></div>
-                  <div className="field"><label htmlFor="f-type"><L en="Content type" id="Jenis konten" /></label><select id="f-type">{TYPES.map((t) => <option key={t}>{t}</option>)}</select></div>
+                  <div className="field"><label htmlFor="f-type"><L en="Content type" id="Jenis konten" /></label><select id="f-type">{CONTENT_TYPES.map((t) => <option key={t}>{t}</option>)}</select></div>
                   <div className="field"><label htmlFor="f-goal"><L en="Goal" id="Tujuan" /></label><select id="f-goal"><option>{tr("Awareness", "Awareness")}</option><option>{tr("Direct bookings", "Booking langsung")}</option><option>{tr("Engagement", "Interaksi")}</option><option>{tr("Seasonal promotion", "Promo musiman")}</option></select></div>
                   <div className="field"><label htmlFor="f-aud"><L en="Audience" id="Audiens" /></label><select id="f-aud"><option>{tr("From client profile", "Dari profil klien")}</option><option>{tr("Australian travellers", "Wisatawan Australia")}</option><option>{tr("Domestic travellers", "Wisatawan domestik")}</option></select></div>
                   <div className="field"><label htmlFor="f-tone"><L en="Tone" id="Nada" /></label><select id="f-tone"><option>{tr("Client Voice Card", "Voice Card klien")}</option><option>{tr("Elegant", "Elegan")}</option><option>{tr("Relaxed", "Santai")}</option><option>{tr("Warm", "Hangat")}</option></select></div>

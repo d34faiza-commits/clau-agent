@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Avatar from "./Avatar";
 import Icon from "./Icon";
 import { L, useL } from "../lib/i18n";
+import { useDialog } from "../lib/useDialog";
 import type { Look, Uniform } from "../lib/team";
 
 export type RunStep = { key: string; agent?: { name: string; hue: string; look: Look; uniform: Uniform; image?: string }; en: string; id: string; subEn: string; subId: string; human?: boolean };
@@ -56,12 +57,7 @@ export function RunSteps({ steps, running }: { steps: RunStep[]; running: boolea
 export default function GenerateRun({ steps, label }: { steps: RunStep[]; label?: { en: string; id: string } }) {
   const [open, setOpen] = useState(false);
   const tr = useL();
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+  const dialog = useDialog<HTMLDivElement>(open, () => setOpen(false));
   return (
     <>
       <button type="button" className="btn btn--primary" onClick={() => setOpen(true)}>
@@ -71,7 +67,7 @@ export default function GenerateRun({ steps, label }: { steps: RunStep[]; label?
       {open &&
         createPortal(
         <div className="modal-scrim" onClick={(e) => e.target === e.currentTarget && setOpen(false)}>
-          <div className="modal" role="dialog" aria-modal="true" aria-labelledby="run-title">
+          <div className="modal" role="dialog" aria-modal="true" aria-labelledby="run-title" ref={dialog} tabIndex={-1}>
             <div className="modal__head">
               <h2 id="run-title">
                 <L en="Your AI team is working" id="Tim AI kamu sedang bekerja" />

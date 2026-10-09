@@ -1,5 +1,6 @@
 import { PageHeader, SimNotice } from "../../components/ui";
 import { CONTENT, SIM_DATE, STATUS, STATUS_ORDER, clientName } from "../../lib/demo";
+import { monthYear } from "../../lib/format";
 import { L } from "../../lib/i18n";
 
 export const metadata = { title: "Calendar · CLAU" };
@@ -19,7 +20,7 @@ export default function CalendarPage() {
 
   return (
     <>
-      <PageHeader title={<L en="Content calendar" id="Kalender konten" />} subtitle={<L en="October 2026 · publish dates for every client" id="Oktober 2026 · tanggal tayang semua klien" />} />
+      <PageHeader title={<L en="Content calendar" id="Kalender konten" />} subtitle={<L en={`${monthYear(SIM_DATE, "en")} · publish dates for every client`} id={`${monthYear(SIM_DATE, "id")} · tanggal tayang semua klien`} />} />
       <SimNotice />
       <div className="legend">
         {STATUS_ORDER.map((s) => (
@@ -38,8 +39,11 @@ export default function CalendarPage() {
               <div key={iso} className={`cal__day${out ? " cal__day--out" : ""}${iso === SIM_DATE ? " cal__day--today" : ""}`}>
                 <span className="cal__num">{Number(iso.slice(8))}</span>
                 {items.map((c) => (
-                  <span key={c.id} className={`cal__item cal__item--${STATUS[c.status].tone}`} title={`${c.title} · ${clientName(c.client)} · ${STATUS[c.status].en}`}>
+                  <span key={c.id} className={`cal__item cal__item--${STATUS[c.status].tone}`}>
                     {c.title}
+                    <span className="sr-only">
+                      {" · "}{clientName(c.client)} · <L en={STATUS[c.status].en} id={STATUS[c.status].id} />
+                    </span>
                   </span>
                 ))}
               </div>

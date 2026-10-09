@@ -33,6 +33,8 @@ const FORMAT_OF: Record<string, Format> = {
   "WhatsApp Promo": "whatsapp",
   Blog: "blog",
 };
+/** Jenis konten untuk form "Buat konten": semua jenis yang dihasilkan agent, urut per format. */
+export const CONTENT_TYPES = [...Object.keys(FORMAT_OF), "OTA Listing", "Campaign", "Calendar", "Localization", "Report"];
 export function formatOf(type: string): Format {
   return FORMAT_OF[type] ?? "other";
 }
@@ -178,13 +180,4 @@ export function clientName(id: string): string {
 
 export function projectName(id: string): string {
   return PROJECTS.find((p) => p.id === id)?.name ?? id;
-}
-
-export const MONTHS = {
-  en: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-  id: ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"],
-};
-export function fmtDate(iso: string, lang: "en" | "id" = "en"): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  return lang === "en" ? `${MONTHS.en[m - 1]} ${d}, ${y}` : `${d} ${MONTHS.id[m - 1]} ${y}`;
 }
