@@ -1,11 +1,16 @@
 # Update keamanan dependency otomatis (docs/security.md §5). Dependabot membuka PR; CI harus hijau
-# sebelum merge, dan owner tetap yang memutuskan merge.
+# sebelum merge, dan owner tetap yang memutuskan merge. Update mayor (mis. TypeScript 5 -> 7) tidak dibuka
+# otomatis: dikerjakan sebagai PR tersendiri setelah diuji (docs/security.md § 5).
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /frontend
     schedule:
       interval: weekly
+    ignore:
+      # Versi mayor tidak otomatis: diuji dan dikerjakan sengaja (keputusan owner 2026-10-09).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     open-pull-requests-limit: 5
     groups:
       frontend-minor:
@@ -14,8 +19,16 @@ updates:
     directory: /backend
     schedule:
       interval: weekly
+    ignore:
+      # Versi mayor tidak otomatis: diuji dan dikerjakan sengaja (keputusan owner 2026-10-09).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     open-pull-requests-limit: 5
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # Versi mayor tidak otomatis: diuji dan dikerjakan sengaja (keputusan owner 2026-10-09).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]

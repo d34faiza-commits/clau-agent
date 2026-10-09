@@ -47,7 +47,7 @@ Tidak ada CORS: browser dari domain lain tidak bisa memanggil API. Bila dashboar
 
 ## 4. Server VPS 1 (Nginx + systemd)
 
-File di repo: `scripts/deploy/nginx/clau.conf` dan `scripts/deploy/systemd/clau-frontend.service`. Cara memasang ada di [deploy/vps-1-setup.md § 7](./deploy/vps-1-setup.md#7-bagian-12--pengerasan-keamanan-2026-10-09).
+File di repo: `scripts/deploy/nginx/clau.conf` dan `scripts/deploy/systemd/clau-frontend.service`. **Terpasang di VPS 1 sejak 2026-10-09** (exposure systemd 1.4 OK). Cara memasang ada di [deploy/vps-1-setup.md § 7](./deploy/vps-1-setup.md#7-bagian-12--pengerasan-keamanan-2026-10-09).
 
 - **Nginx**: hanya GET/HEAD, rate limit 20 req/detik per IP (burst 60), maks 30 koneksi per IP, body 16 KB, timeout header/body 10 detik, file tersembunyi (`.git`, `.env`) selalu 404, header `Upgrade` dari klien tidak diteruskan.
 - **systemd**: `ProtectSystem=strict` (sistem read-only, kecuali folder rilis), `ProtectHome` (SSH key & deploy key tidak terbaca), `NoNewPrivileges`, tanpa capability, filter syscall, batas memori 1 GB dan 256 proses.
@@ -56,7 +56,7 @@ File di repo: `scripts/deploy/nginx/clau.conf` dan `scripts/deploy/systemd/clau-
 
 - `npm ci --ignore-scripts` di CI dan di server: script install dari paket npm tidak pernah dijalankan.
 - Job CI `audit`: `npm audit --audit-level=high`, `pip-audit --strict`, dan pemindai pola secret. Gagal = PR tidak boleh di-merge.
-- `.github/dependabot.yml`: PR update mingguan untuk npm, pip, dan GitHub Actions. Owner tetap yang merge.
+- `.github/dependabot.yml`: PR update mingguan (minor/patch) untuk npm, pip, dan GitHub Actions. Owner tetap yang merge. Versi **mayor** tidak dibuka otomatis (keputusan owner 2026-10-09, setelah PR TypeScript 5 → 7 merusak `tsc`): dikerjakan sebagai PR tersendiri setelah diuji.
 - GitHub Actions dipin ke commit SHA (tag bisa dipindah oleh pihak lain; SHA tidak).
 - **NEXT ACTION (owner, GitHub Settings)**: proteksi branch `main` (wajib PR + CI hijau, termasuk job `audit`), karena isi `main` tayang otomatis di VPS 1 dalam ±5 menit.
 
