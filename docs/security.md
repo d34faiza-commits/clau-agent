@@ -58,7 +58,7 @@ File di repo: `scripts/deploy/nginx/clau.conf` dan `scripts/deploy/systemd/clau-
 - Job CI `audit`: `npm audit --audit-level=high`, `pip-audit --strict`, dan pemindai pola secret. Gagal = PR tidak boleh di-merge.
 - `.github/dependabot.yml`: PR update mingguan (minor/patch) untuk npm, pip, dan GitHub Actions. Owner tetap yang merge. Versi **mayor** tidak dibuka otomatis (keputusan owner 2026-10-09, setelah PR TypeScript 5 → 7 merusak `tsc`): dikerjakan sebagai PR tersendiri setelah diuji.
 - GitHub Actions dipin ke commit SHA (tag bisa dipindah oleh pihak lain; SHA tidak).
-- **NEXT ACTION (owner, GitHub Settings)**: proteksi branch `main` (wajib PR + CI hijau, termasuk job `audit`), karena isi `main` tayang otomatis di VPS 1 dalam ±5 menit.
+- **GitHub Settings (owner, 2026-10-09, dilaporkan owner)**: ruleset branch `main` (wajib PR, status check `backend`, `frontend`, `audit`, `cross-validate`, blok force push & hapus; approval 0 karena owner tunggal) dan Dependabot alerts + security updates aktif. Alasan: isi `main` tayang otomatis di VPS 1 dalam ±5 menit.
 
 ## 6. Aturan Wajib Sebelum VPS 2 (Login, Database, AI, WhatsApp)
 
