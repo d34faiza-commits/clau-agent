@@ -15,6 +15,7 @@
 
 ## Setelah VPS siap
 
+- [ ] **0. Keamanan dulu.** Penuhi aturan wajib di [`security.md` § 6](./security.md#6-aturan-wajib-sebelum-vps-2-login-database-ai-whatsapp) (HTTPS, query berparameter, CSRF, otorisasi di server, allowlist SSRF, secret) sebelum login, database, atau data client dipakai.
 - [ ] **1. Hubungkan backend ke model AI.** API key hanya di VPS 2 (`.env` permission 600). Terapkan aturan data per provider (keputusan #5).
 - [ ] **2. Jalankan 33 kasus eval ke output nyata.**
   - Generate output untuk setiap kasus di `agents/evals/cases/*.json`.

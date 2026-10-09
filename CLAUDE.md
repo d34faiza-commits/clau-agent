@@ -27,6 +27,7 @@
 | `scripts/` | `sync-submodules.sh`, `check-core-pins.sh` |
 | `SUBMODULE.md` | Panduan submodule & GitHub Actions |
 | `.github/workflows/` | `ci.yml`, `cross-repo-validate.yml`, `sync-submodules.yml`, `notify-downstream.yml` |
+| `docs/security.md` | Audit & aturan keamanan: header, Nginx, sandbox systemd, supply chain; **aturan wajib sebelum login/DB/AI/WhatsApp di VPS 2** (§ 6) |
 | `docs/post-vps-checklist.md` | **Pengingat:** langkah wajib setelah VPS 1 & 2 siap (AI provider, eval 33 kasus, aktivasi pilar 2–4) |
 
 > 🔔 **Pengingat untuk agent:** bila owner menyebut VPS sudah siap, buka `docs/post-vps-checklist.md` dan ingatkan langkah-langkahnya.

@@ -8,19 +8,69 @@ change client systems (core/AI-CONSTITUTION.md §4).
 from __future__ import annotations
 
 import json
+import os
 from functools import lru_cache
 from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 __version__ = "0.4.0"
 
 REGISTRY_PATH = Path(__file__).resolve().parents[2] / "agents" / "registry.json"
 
-app = FastAPI(title="CLAU AI Agents", version=__version__)
+# Pengamanan (docs/security.md §3). Semua bisa diatur lewat environment di server, tanpa ubah kode.
+CLAU_ENV = os.environ.get("CLAU_ENV", "development")
+# Swagger /docs dan /openapi.json hanya untuk development; di produksi peta API tidak dibuka ke publik.
+DOCS_ENABLED = os.environ.get("CLAU_ENABLE_DOCS", "1" if CLAU_ENV == "development" else "0") == "1"
+# Hanya Host yang dikenal (cegah Host header injection / DNS rebinding). Di VPS 2 isi dengan domain API.
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get("CLAU_ALLOWED_HOSTS", "127.0.0.1,localhost,testserver").split(",") if h.strip()]
+# Body request maksimum: API ini hanya menerima JSON kecil ({"intent": "..."}).
+MAX_BODY_BYTES = 16 * 1024
+
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
+    "Referrer-Policy": "no-referrer",
+    "Cross-Origin-Resource-Policy": "same-origin",
+    "Cache-Control": "no-store",
+}
+
+app = FastAPI(
+    title="CLAU AI Agents",
+    version=__version__,
+    docs_url="/docs" if DOCS_ENABLED else None,
+    redoc_url=None,
+    openapi_url="/openapi.json" if DOCS_ENABLED else None,
+)
+# Tanpa CORSMiddleware: browser dari domain lain tidak bisa memanggil API ini (deny by default).
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=ALLOWED_HOSTS)
+
+
+@app.middleware("http")
+async def security_middleware(request: Request, call_next):
+    if request.method in {"POST", "PUT", "PATCH"}:
+        length = request.headers.get("content-length")
+        if length is None:
+            # Chunked tanpa Content-Length tidak diterima: ukuran harus diketahui sebelum dibaca.
+            response = JSONResponse(status_code=411, content=error_body("length_required", "Content-Length wajib diisi."))
+        elif not length.isdigit() or int(length) > MAX_BODY_BYTES:
+            response = JSONResponse(status_code=413, content=error_body("payload_too_large", "Body request terlalu besar."))
+        else:
+            response = await call_next(request)
+    else:
+        response = await call_next(request)
+    docs = DOCS_ENABLED and request.url.path in {"/docs", "/docs/oauth2-redirect"}
+    for key, value in SECURITY_HEADERS.items():
+        if docs and key == "Content-Security-Policy":
+            continue  # Swagger UI (development saja) memuat script & style dari CDN.
+        response.headers.setdefault(key, value)
+    return response
 
 
 class ApiError(Exception):
@@ -40,6 +90,20 @@ async def api_error_handler(_: Request, exc: ApiError) -> JSONResponse:
     return JSONResponse(status_code=exc.status_code, content=error_body(exc.code, exc.message))
 
 
+@app.exception_handler(StarletteHTTPException)
+async def http_error_handler(_: Request, exc: StarletteHTTPException) -> JSONResponse:
+    # 404/405 dll. memakai bentuk error kontrak, tanpa detail internal.
+    codes = {404: "not_found", 405: "method_not_allowed"}
+    message = {404: "Endpoint tidak ada.", 405: "Method tidak diizinkan."}.get(exc.status_code, "Request ditolak.")
+    return JSONResponse(status_code=exc.status_code, content=error_body(codes.get(exc.status_code, "http_error"), message), headers=getattr(exc, "headers", None))
+
+
+@app.exception_handler(Exception)
+async def internal_error_handler(_: Request, __: Exception) -> JSONResponse:
+    # Jangan bocorkan stack trace, path file, atau isi registry ke klien.
+    return JSONResponse(status_code=500, content=error_body("internal_error", "Terjadi kesalahan di server."))
+
+
 @app.exception_handler(RequestValidationError)
 async def validation_error_handler(_: Request, exc: RequestValidationError) -> JSONResponse:
     fields = ", ".join(".".join(str(p) for p in err["loc"][1:]) or "body" for err in exc.errors())
@@ -52,7 +116,10 @@ def load_registry() -> dict:
 
 
 class RouteRequest(BaseModel):
-    intent: str
+    # Field lain ditolak (bukan diabaikan), dan intent dibatasi ke format id registry.
+    model_config = ConfigDict(extra="forbid")
+
+    intent: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
 @app.get("/health")

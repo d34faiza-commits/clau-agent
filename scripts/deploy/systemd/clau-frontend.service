@@ -1,0 +1,48 @@
+[Unit]
+Description=CLAU AI frontend (Next.js)
+After=network.target
+
+# docs/security.md §4: proses web dikurung. Bila ada celah di aplikasi, penyerang tidak bisa menulis ke
+# sistem, membaca /home (SSH key, deploy key), memuat modul kernel, atau menaikkan hak akses.
+[Service]
+User=dea
+WorkingDirectory=/srv/clau/current/frontend
+Environment=NODE_ENV=production
+Environment=NEXT_TELEMETRY_DISABLED=1
+ExecStart=/usr/bin/node node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3000
+Restart=on-failure
+RestartSec=3
+
+NoNewPrivileges=true
+ProtectSystem=strict
+# Next.js menulis cache ISR ke .next/ di folder rilis.
+ReadWritePaths=/srv/clau/releases
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RemoveIPC=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallErrorNumber=EPERM
+UMask=0027
+LimitNOFILE=4096
+MemoryMax=1G
+TasksMax=256
+
+[Install]
+WantedBy=multi-user.target

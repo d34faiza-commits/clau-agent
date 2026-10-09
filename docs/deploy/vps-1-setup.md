@@ -15,6 +15,7 @@
 | Cek kesehatan 2026-10-08 | DATA FINAL — `clau-frontend`, nginx, fail2ban, `clau-deploy.timer` active; `/team` HTTP 200; rilis live = `main` (`8948618`), commit tanpa perubahan frontend dilewati build; UFW 22/80/443; disk 11%, RAM tersedia 3,3 GB; 0 update keamanan tertunda |
 | 10. Domain + Cloudflare + SSL | Ditunda — domain belum ditentukan |
 | 11. Backup config (tanpa `.env`) | Ditunda — setelah domain & Tailscale |
+| 12. Pengerasan keamanan aplikasi (header, Nginx, sandbox systemd) | Header keamanan ikut auto-deploy. Nginx & unit systemd: **NEXT ACTION** — pasang manual dengan langkah [§ 7](#7-bagian-12--pengerasan-keamanan-2026-10-09) |
 
 ## 2. Aturan
 
@@ -128,7 +129,7 @@ sudo systemctl daemon-reload && sudo systemctl enable --now clau-frontend
 curl -sI http://127.0.0.1:3000 | head -1      # HTTP/1.1 200 OK
 ```
 
-Nginx (`/etc/nginx/sites-available/clau`), `server_name _` sampai domain ditentukan:
+Nginx (`/etc/nginx/sites-available/clau`), `server_name _` sampai domain ditentukan. Versi yang dikeraskan (rate limit, GET/HEAD saja, batas body & timeout) ada di `scripts/deploy/nginx/clau.conf` — pasang lewat [§ 7](#7-bagian-12--pengerasan-keamanan-2026-10-09):
 
 ```nginx
 server {
@@ -212,7 +213,42 @@ ls -1t /srv/clau/releases/                       # pilih folder rilis
 ln -sfn /srv/clau/releases/<folder> /srv/clau/current && sudo systemctl restart clau-frontend
 ```
 
-## 7. RISK
+## 7. Bagian 12 — Pengerasan Keamanan (2026-10-09)
+
+Ringkasan ancaman dan alasan tiap pengaturan: [`../security.md`](../security.md). Header keamanan (CSP, anti-clickjacking, dll.) sudah ikut auto-deploy. Dua langkah di bawah dipasang **sekali, manual**, satu perintah per baris.
+
+**a. Nginx** (rate limit, GET/HEAD saja, body 16 KB, timeout pendek):
+
+```bash
+cd /srv/clau/clau-ai-agents && git pull --ff-only
+sudo cp /etc/nginx/sites-available/clau /etc/nginx/sites-available/clau.bak
+sudo cp scripts/deploy/nginx/clau.conf /etc/nginx/sites-available/clau
+sudo nginx -t
+sudo systemctl reload nginx
+curl -sI http://127.0.0.1/ | head -1                      # HTTP/1.1 200 OK
+curl -s -o /dev/null -w "%{http_code}\n" -X POST http://127.0.0.1/   # 405
+curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1/.env       # 404
+```
+
+Bila `nginx -t` gagal: `sudo cp /etc/nginx/sites-available/clau.bak /etc/nginx/sites-available/clau` lalu `sudo systemctl reload nginx`.
+
+**b. Sandbox systemd untuk frontend** (sistem read-only, `/home` tidak terbaca, tanpa hak tambahan):
+
+```bash
+sudo cp /etc/systemd/system/clau-frontend.service /etc/systemd/system/clau-frontend.service.bak
+sudo cp scripts/deploy/systemd/clau-frontend.service /etc/systemd/system/clau-frontend.service
+sudo systemctl daemon-reload
+sudo systemctl restart clau-frontend
+systemctl is-active clau-frontend                          # active
+curl -sI http://127.0.0.1:3000 | head -1                   # HTTP/1.1 200 OK
+systemd-analyze security clau-frontend | tail -1           # skor exposure (makin kecil makin aman)
+```
+
+Bila tidak `active` atau curl gagal: `journalctl -u clau-frontend -n 30 --no-pager` (kirim ke agent), lalu kembalikan dengan `sudo cp /etc/systemd/system/clau-frontend.service.bak /etc/systemd/system/clau-frontend.service`, `sudo systemctl daemon-reload`, `sudo systemctl restart clau-frontend`.
+
+**c. GitHub** (owner): Settings → Branches → proteksi `main` (wajib PR, CI hijau termasuk job `audit`). Settings → Code security → aktifkan Dependabot alerts & security updates.
+
+## 8. RISK
 
 - Selama belum ada domain + SSL, akses masih **HTTP via IP**. Aman untuk scaffold saat ini (tidak ada login/data), tetapi **jangan** menambahkan login, form, atau data client sebelum Bagian 9 (HTTPS) selesai.
 - Service masih berjalan sebagai user `dea`. Pindahkan ke user service khusus (non-login) sebelum produksi dengan data client.
