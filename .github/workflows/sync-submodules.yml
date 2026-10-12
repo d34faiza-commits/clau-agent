@@ -21,7 +21,7 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     env:
       HAS_TOKEN: ${{ secrets.SUBMODULE_TOKEN != '' }}
     steps:
@@ -72,7 +72,15 @@ jobs:
               --title "chore: sync submodules" \
               --body "Bump otomatis submodule ke commit terbaru (validator sudah lulus di workflow sync). Merge otomatis setelah CI hijau bila auto-merge aktif."
           fi
-          # Tanpa proteksi aktif, --auto ditolak karena PR bisa langsung di-merge: merge biasa.
+          # Merge hanya setelah semua check PR hijau. Tanpa proteksi yang dipaksa server
+          # (GitHub Free, repo private) gh pr merge langsung me-merge, jadi tunggu CI di sini.
+          for _ in $(seq 1 30); do
+            [ "$(gh pr view bot/sync-submodules --json statusCheckRollup --jq '.statusCheckRollup | length')" != "0" ] && break
+            sleep 10
+          done
+          if ! gh pr checks bot/sync-submodules --watch --fail-fast --interval 20; then
+            echo "::error::CI PR sync merah atau tidak jalan; PR tidak di-merge. Periksa PR bot/sync-submodules."
+            exit 1
+          fi
           gh pr merge bot/sync-submodules --auto --merge \
-            || gh pr merge bot/sync-submodules --merge \
-            || echo "::notice::PR sync menunggu CI; aktifkan Settings → General → Allow auto-merge agar ter-merge otomatis."
+            || gh pr merge bot/sync-submodules --merge
