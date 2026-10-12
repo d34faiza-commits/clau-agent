@@ -9,7 +9,7 @@
 | 1 | Tidak ada `api.` publik. Browser → `app.` (VPS 1); Next.js server memanggil VPS 2 lewat Tailscale |
 | 2 | Yang di-deploy: repo `clau-ai-agents` (frontend → VPS 1, backend → VPS 2); panduan di `clau-ai-agents/docs/deploy/` |
 | 3 | Versi ikut repo: Next.js 16 + Node 22 LTS, Python 3.12, PostgreSQL 16, Redis 7 (semua di-pin) |
-| 4 | Nama pilar ikut `clau-ai-core` (AI-CONSTITUTION v3.0.0): AI Marketing, AI Sales, AI Admin, AI Business Intelligence, AI Automation |
+| 4 | Nama pilar ikut `clau-ai-core` (AI-CONSTITUTION §2): AI Marketing, AI Sales, AI Admin, AI Business Intelligence, AI Automation |
 | 5 | Aturan data per AI provider ditambahkan ke AI-BOUNDARY (Restricted tidak pernah dikirim; data tamu disamarkan; panggilan AI dicatat) |
 | 6 | Backup VPS 1 = config tanpa `.env`; backup VPS 2 = DB terenkripsi + config ke Backblaze B2 + tes restore bulanan |
 
