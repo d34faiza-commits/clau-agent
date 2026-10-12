@@ -24,11 +24,12 @@ __version__ = "0.4.0"
 REGISTRY_PATH = Path(__file__).resolve().parents[2] / "agents" / "registry.json"
 
 # Pengamanan (docs/security.md §3). Semua bisa diatur lewat environment di server, tanpa ubah kode.
-CLAU_ENV = os.environ.get("CLAU_ENV", "development")
+CLAU_ENV = os.environ.get("CLAU_ENV") or "development"
 # Swagger /docs dan /openapi.json hanya untuk development; di produksi peta API tidak dibuka ke publik.
-DOCS_ENABLED = os.environ.get("CLAU_ENABLE_DOCS", "1" if CLAU_ENV == "development" else "0") == "1"
+# Nilai kosong (mis. dari docker compose) = tidak diatur.
+DOCS_ENABLED = (os.environ.get("CLAU_ENABLE_DOCS") or ("1" if CLAU_ENV == "development" else "0")) == "1"
 # Hanya Host yang dikenal (cegah Host header injection / DNS rebinding). Di VPS 2 isi dengan domain API.
-ALLOWED_HOSTS = [h.strip() for h in os.environ.get("CLAU_ALLOWED_HOSTS", "127.0.0.1,localhost,testserver").split(",") if h.strip()]
+ALLOWED_HOSTS = [h.strip() for h in (os.environ.get("CLAU_ALLOWED_HOSTS") or "127.0.0.1,localhost,testserver").split(",") if h.strip()]
 # Body request maksimum: API ini hanya menerima JSON kecil ({"intent": "..."}).
 MAX_BODY_BYTES = 16 * 1024
 

@@ -45,15 +45,18 @@ cd backend && pip install -r requirements.txt && pytest && uvicorn app.main:app 
 cd frontend && npm install && npm run dev
 ```
 
-### Docker (backend + frontend)
+### Docker (database + backend + frontend)
 
 ```bash
-cp .env.example .env                       # sekali; isi default aman (CLAU_ENV=production)
-docker compose up -d --build --wait        # backend http://127.0.0.1:8000 · frontend http://127.0.0.1:3000
-docker compose down
+scripts/init-env.sh                        # sekali: .env (chmod 600) + password database acak
+docker compose up -d --build --wait        # db → migrate → backend http://127.0.0.1:8000 · frontend http://127.0.0.1:3000
+docker compose run --rm backend python -m app.db.seed   # opsional: 4 klien fiktif SIMULASI
+docker compose down                        # data tetap di volume db-data (hapus total: down -v)
 ```
 
-- **Environment:** semua variabel ada di [`.env.example`](./.env.example) beserta artinya. `.env` tidak di-commit; secret (database, API key AI, WhatsApp) hanya di `.env` server, tidak pernah di repo ([docs/security.md](./docs/security.md) § 6). Test `backend/tests/test_env.py` memastikan setiap variabel yang dibaca kode tercantum dan tidak ada secret di template.
+- **Database:** PostgreSQL 16 tanpa port host. Service `migrate` (sekali jalan) membuat role & database lalu menjalankan migrasi Alembic; backend memakai **role aplikasi** tanpa hak DDL dan tidak pernah menerima password admin. Skema = `core/shared/database-schema.md`; Constraint Wajib ditegakkan di database (CHECK + trigger). Detail: [backend/README.md](./backend/README.md#database).
+
+- **Environment:** semua variabel ada di [`.env.example`](./.env.example) beserta artinya. `.env` tidak di-commit; secret (password database, API key AI, WhatsApp) hanya di `.env` lokal/server, tidak pernah di repo ([docs/security.md](./docs/security.md) § 6). Test `backend/tests/test_env.py` memastikan setiap variabel yang dibaca kode tercantum dan tidak ada secret di template.
 - **Image:** `backend/Dockerfile` (Python 3.12, dependency runtime saja: `backend/requirements-runtime.txt`) dan `frontend/Dockerfile` (Node 22, Next.js output standalone). Base image dipin ke digest dan diperbarui Dependabot. Build context = root repo dengan `.dockerignore` allowlist, jadi `.env`, `.git`, dan `core/` tidak pernah ikut ke image.
 - **Pengamanan container:** user non-root, filesystem read-only, tanpa capability Linux, `no-new-privileges`, batas memori & proses, port hanya di `127.0.0.1` (publik lewat Nginx + TLS). Dicek job CI `docker`.
 - **VPS 1** tetap memakai deploy tarik + systemd ([docs/deploy/vps-1-setup.md](./docs/deploy/vps-1-setup.md)); compose ini dipakai untuk kerja lokal dan menjadi dasar deploy VPS 2.

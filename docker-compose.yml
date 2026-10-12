@@ -1,12 +1,14 @@
-# CLAU AI platform: backend (FastAPI) + frontend (Next.js) dalam container.
+# CLAU AI platform: database (PostgreSQL 16), migrasi, backend (FastAPI), frontend (Next.js).
 #
-#   cp .env.example .env          # sekali; .env tidak di-commit
+#   scripts/init-env.sh           # sekali: buat .env dengan password database acak (tidak di-commit)
 #   docker compose up -d --build --wait
-#   docker compose down
+#   docker compose run --rm backend python -m app.db.seed     # opsional: data contoh SIMULASI
+#   docker compose down           # data database tetap di volume db-data (hapus: down -v)
 #
 # Port hanya dibuka di 127.0.0.1: akses publik selalu lewat reverse proxy (Nginx + TLS),
-# sama dengan VPS 1 (docs/deploy/vps-1-setup.md). Pengamanan container mengikuti sandbox
-# systemd di docs/security.md § 4: filesystem read-only, tanpa capability, tanpa root.
+# sama dengan VPS 1 (docs/deploy/vps-1-setup.md). Database tidak punya port host sama sekali.
+# Pengamanan container mengikuti sandbox systemd di docs/security.md § 4: filesystem read-only,
+# tanpa capability, tanpa root.
 name: clau
 
 x-hardening: &hardening
@@ -19,16 +21,60 @@ x-hardening: &hardening
     driver: json-file
     options: { max-size: "10m", max-file: "3" }
 
+x-backend-image: &backend-image
+  build: { context: ., dockerfile: backend/Dockerfile }
+  image: clau-backend:local
+
 services:
-  backend:
+  db:
     <<: *hardening
-    build: { context: ., dockerfile: backend/Dockerfile }
-    image: clau-backend:local
-    env_file:
-      - path: .env
-        required: false
+    image: postgres:16-bookworm@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4
+    # Entrypoint Postgres butuh capability ini sekali untuk menyiapkan folder data lalu turun ke user postgres.
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    environment:
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?isi .env dulu: scripts/init-env.sh}"
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+    volumes: [db-data:/var/lib/postgresql/data]
+    tmpfs: [/tmp, /var/run/postgresql]
+    shm_size: 128m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 1g
+    pids_limit: 256
+
+  # Sekali jalan: role & database (app/db/bootstrap.py, akun admin), lalu migrasi (role migrasi).
+  # Hanya service ini yang memegang password admin Postgres.
+  migrate:
+    <<: [*hardening, *backend-image]
+    restart: "no"
+    command: ["sh", "-c", "python -m app.db.bootstrap && alembic upgrade head"]
+    environment:
+      CLAU_DB_ADMIN_URL: postgresql://postgres:${POSTGRES_PASSWORD:?}@db:5432/postgres
+      CLAU_DB_MIGRATOR_PASSWORD: "${CLAU_DB_MIGRATOR_PASSWORD:?isi .env dulu: scripts/init-env.sh}"
+      CLAU_DB_APP_PASSWORD: "${CLAU_DB_APP_PASSWORD:?isi .env dulu: scripts/init-env.sh}"
+      CLAU_MIGRATION_DATABASE_URL: postgresql+psycopg://clau_migrator:${CLAU_DB_MIGRATOR_PASSWORD:?}@db:5432/clau
+    tmpfs: [/tmp]
+    depends_on:
+      db: { condition: service_healthy }
+    mem_limit: 512m
+    pids_limit: 128
+
+  backend:
+    <<: [*hardening, *backend-image]
+    # Variabel diberikan satu per satu (bukan env_file .env): backend tidak pernah memegang password
+    # admin Postgres atau role migrasi. Database lewat role aplikasi saja (tanpa DDL, audit_log append-only).
+    environment:
+      CLAU_ENV: ${CLAU_ENV:-production}
+      CLAU_ENABLE_DOCS: ${CLAU_ENABLE_DOCS:-}
+      CLAU_ALLOWED_HOSTS: ${CLAU_ALLOWED_HOSTS:-}
+      CLAU_DATABASE_URL: postgresql+psycopg://clau_app:${CLAU_DB_APP_PASSWORD:?}@db:5432/clau
     ports: ["127.0.0.1:${CLAU_BACKEND_PORT:-8000}:8000"]
     tmpfs: [/tmp]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
     mem_limit: 512m
     pids_limit: 128
 
@@ -43,3 +89,6 @@ services:
       - /app/frontend/.next/cache:uid=1000,gid=1000,mode=0750
     mem_limit: 1g
     pids_limit: 256
+
+volumes:
+  db-data:

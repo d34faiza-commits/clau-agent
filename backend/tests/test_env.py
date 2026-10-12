@@ -9,10 +9,16 @@ ENV_EXAMPLE = ROOT / ".env.example"
 
 # Tempat variabel CLAU_* dibaca saat runtime/deploy. CLAU_STANDALONE (frontend/next.config.mjs) hanya
 # dipakai di dalam frontend/Dockerfile saat build, jadi tidak perlu di .env.
-VAR_SOURCES = [*sorted((ROOT / "backend" / "app").glob("*.py")), ROOT / "docker-compose.yml", *sorted((ROOT / "scripts" / "deploy").glob("*.sh"))]
+VAR_SOURCES = [
+    *sorted((ROOT / "backend" / "app").rglob("*.py")),
+    ROOT / "backend" / "migrations" / "env.py",
+    ROOT / "backend" / "tests" / "conftest.py",
+    ROOT / "docker-compose.yml",
+    *sorted((ROOT / "scripts").rglob("*.sh")),
+]
 VAR_RE = re.compile(r"\b(CLAU_[A-Z0-9_]+)\b")
 ENV_LINE_RE = re.compile(r"^#?\s*([A-Z][A-Z0-9_]*)=(.*)$")
-SECRET_NAME_RE = re.compile(r"KEY|TOKEN|SECRET|PASSWORD|PASSWD|DATABASE_URL|DSN|CREDENTIAL", re.IGNORECASE)
+SECRET_NAME_RE = re.compile(r"KEY|TOKEN|SECRET|PASSWORD|PASSWD|DATABASE_URL|ADMIN_URL|DSN|CREDENTIAL", re.IGNORECASE)
 
 
 def env_example() -> dict[str, tuple[str, bool]]:
@@ -34,7 +40,7 @@ def test_every_clau_variable_is_documented():
 def test_env_example_has_no_secret_values():
     for name, (value, commented) in env_example().items():
         if SECRET_NAME_RE.search(name):
-            assert value == "", f"{name} di .env.example harus kosong (secret hanya di .env server)"
+            assert value == "" or value.startswith("postgresql"), f"{name} di .env.example harus kosong (secret hanya di .env server)"
     text = ENV_EXAMPLE.read_text(encoding="utf-8")
     assert not re.search(r"(sk-[A-Za-z0-9]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN)", text)
 
@@ -74,3 +80,35 @@ def test_compose_ports_bound_to_localhost():
     compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
     ports = re.findall(r'"([^"]*:\d+)"', compose.split("services:", 1)[1])
     assert ports and all(p.startswith("127.0.0.1:") for p in ports), f"port harus 127.0.0.1 saja: {ports}"
+
+
+def test_backend_never_receives_admin_or_migrator_secrets():
+    """Least privilege: hanya service migrate yang memegang password admin & migrasi."""
+    compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    services = re.split(r"^  (?=[a-z]+:\n)", compose.split("\nservices:\n", 1)[1].split("\nvolumes:", 1)[0], flags=re.MULTILINE)
+    code = lambda block: "\n".join(l for l in block.splitlines() if not l.strip().startswith("#"))  # noqa: E731
+    by_name = {block.split(":", 1)[0]: code(block) for block in services if block.strip()}
+    for name in ("backend", "frontend", "db"):
+        block = by_name[name]
+        assert "env_file" not in block, f"{name} tidak boleh memuat seluruh .env"
+    for name in ("backend", "frontend"):
+        for secret in ("POSTGRES_PASSWORD", "CLAU_DB_MIGRATOR_PASSWORD", "CLAU_DB_ADMIN_URL", "CLAU_MIGRATION_DATABASE_URL"):
+            assert secret not in by_name[name], f"{name} tidak boleh menerima {secret}"
+    assert "ports" not in by_name["db"], "database tidak boleh punya port host"
+
+
+def test_init_env_fills_passwords(tmp_path):
+    import shutil
+    import subprocess
+
+    (tmp_path / "scripts").mkdir()
+    shutil.copy(ROOT / "scripts" / "init-env.sh", tmp_path / "scripts")
+    shutil.copy(ENV_EXAMPLE, tmp_path / ".env.example")
+    subprocess.run(["bash", str(tmp_path / "scripts" / "init-env.sh")], check=True, capture_output=True)
+    env = (tmp_path / ".env").read_text(encoding="utf-8")
+    for name in ("POSTGRES_PASSWORD", "CLAU_DB_MIGRATOR_PASSWORD", "CLAU_DB_APP_PASSWORD"):
+        assert re.search(rf"^{name}=[0-9a-f]{{48}}$", env, re.MULTILINE), name
+    assert (tmp_path / ".env").stat().st_mode & 0o077 == 0, ".env harus chmod 600"
+    first = env
+    subprocess.run(["bash", str(tmp_path / "scripts" / "init-env.sh")], check=True, capture_output=True)
+    assert (tmp_path / ".env").read_text(encoding="utf-8") == first, ".env yang ada tidak boleh ditimpa"

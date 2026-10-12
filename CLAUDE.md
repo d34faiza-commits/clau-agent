@@ -11,7 +11,7 @@
 | Repo | `d34faiza-commits/clau-ai-agents` (private) |
 | Peran | Platform: registry agent, backend FastAPI, frontend Next.js (scaffold) |
 | Submodule | `core/` → clau-ai-core |
-| Status | Backend v0.4.0 scaffold: belum ada database, auth, atau pemanggilan AI model |
+| Status | Backend v0.4.0: API registry read-only + lapisan database (PostgreSQL 16, migrasi 0001, belum dipakai endpoint). Belum ada auth atau pemanggilan AI model |
 
 ## 2. Peta File
 
@@ -22,7 +22,8 @@
 | `agents/personas/` | Kartu persona per agent (gaya bahasa, etika, batas & eskalasi, contoh) |
 | `agents/evals/` | Kasus uji per agent + `run_evals.py` + rubrik "seperti manusia ahli" |
 | `backend/app/main.py` | `GET /health`, `GET /agents`, `GET /pillars`, `POST /route` (read-only, tanpa endpoint publish) |
-| `backend/tests/` | Test API, konsistensi registry ↔ `core/orchestrator/router.md` & tabel pilar `core/README.md`, persona & eval |
+| `backend/app/db/` · `backend/migrations/` | Model SQLAlchemy (15 tabel `core/shared/database-schema.md`), bootstrap role (migrasi vs aplikasi), seed SIMULASI; migrasi Alembic + trigger Constraint Wajib. Ubah skema = migrasi baru |
+| `backend/tests/` | Test API, konsistensi registry ↔ `core/orchestrator/router.md` & tabel pilar `core/README.md`, persona & eval, `test_db.py` (Constraint Wajib ke PostgreSQL sungguhan; butuh `CLAU_TEST_DB_ADMIN_URL`) |
 | `frontend/` | Next.js App Router; halaman registry agent |
 | `scripts/` | `sync-submodules.sh`, `check-core-pins.sh`, `deploy/` (VPS 1: pull deploy, Nginx, systemd) |
 | `.env.example` | Semua variabel environment + arti & default aman; tanpa secret (dites `backend/tests/test_env.py`) |
@@ -41,7 +42,7 @@ git submodule update --init
 cd backend && pip install -r requirements.txt && pytest
 python agents/evals/run_evals.py --check
 cd frontend && npm ci && npm run build
-cp .env.example .env && docker compose up -d --build --wait   # container lokal; docker compose down
+scripts/init-env.sh && docker compose up -d --build --wait   # db + migrate + backend + frontend; docker compose down
 ```
 
 Spesifikasi UI/UX (Portal Klien & Studio) dan design tokens ada di repo arsip `CLAU-AI-CONTENT/design/`.
