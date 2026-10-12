@@ -488,3 +488,11 @@ button { font: inherit; color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* Login & akun (app/login, app/account) */
+.auth-form { display: grid; gap: 14px; }
+.auth-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
+.auth-error { margin: 0; color: var(--color-error); font-size: 13px; }
+.auth-ok { margin: 0; color: var(--color-success-text); font-size: 13px; }
+.auth-notice { margin: 0 0 16px; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--color-warning-bg); color: var(--color-warning-text); border: 1px solid var(--color-warning-border); font-size: 14px; }
+.auth-secret { display: block; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--color-surface-muted); border: 1px solid var(--color-border); font-size: 15px; letter-spacing: 0.06em; word-break: break-all; user-select: all; }

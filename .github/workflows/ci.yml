@@ -94,6 +94,14 @@ jobs:
           docker compose logs migrate --no-color | grep -q "Running upgrade"
           docker compose run --rm -T backend python -m app.db.seed
           test -z "$(docker compose exec -T backend env | grep -E '^(POSTGRES_PASSWORD|CLAU_DB_MIGRATOR_PASSWORD|CLAU_DB_ADMIN_URL)=')"
+          # Login ujung ke ujung lewat frontend (/api → backend): owner dari CLI, lalu wajib aktifkan 2FA.
+          docker compose run --rm -T -e CLAU_BOOTSTRAP_PASSWORD=ci-sawah-teras-2026 backend \
+            python -m app.auth.cli create-owner --email owner@contoh.test --name "Owner CI"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/content)" = 307
+          curl -fsS -c jar -H 'origin: http://127.0.0.1:3000' -H 'content-type: application/json' \
+            -d '{"email":"owner@contoh.test","password":"ci-sawah-teras-2026"}' http://127.0.0.1:3000/api/auth/login | grep -q '"next":"mfa_setup"'
+          grep -q '__Host-clau_session' jar
+          test "$(curl -s -o /dev/null -w '%{http_code}' -b jar http://127.0.0.1:3000/api/users)" = 403
           curl -fsS http://127.0.0.1:8000/health
           curl -fsS -o /dev/null http://127.0.0.1:3000/
           curl -fsS -o /dev/null http://127.0.0.1:3000/agents

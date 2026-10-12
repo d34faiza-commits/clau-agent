@@ -1,4 +1,4 @@
-# Backend (FastAPI scaffold)
+# Backend (FastAPI)
 
 API read-only di atas registry agent dan router statis. **Tidak ada** endpoint yang publish konten, mengirim pesan ke tamu, atau mengubah sistem client (`core/AI-CONSTITUTION.md` §4). Kontrak: `core/shared/api-contracts.md`.
 
@@ -58,6 +58,30 @@ CLAU_MIGRATION_DATABASE_URL=postgresql+psycopg://clau_migrator:<pw>@127.0.0.1:54
 
 **Test database** (`tests/test_db.py`, 31 test) butuh PostgreSQL: set `CLAU_TEST_DB_ADMIN_URL` ke superuser Postgres sekali pakai, mis. `docker run -d -e POSTGRES_PASSWORD=x -p 127.0.0.1:55432:5432 postgres:16` lalu `CLAU_TEST_DB_ADMIN_URL=postgresql://postgres:x@127.0.0.1:55432/postgres pytest`. Tanpa variabel itu test database dilewati; di CI wajib (`CLAU_REQUIRE_DB_TESTS=1`). Test juga memastikan model = migrasi, migrasi bisa downgrade/upgrade, dan tabel = kontrak core.
 
+## Login & Hak Akses (0.5.0)
+
+Kontrak endpoint: [`core/shared/api-contracts.md`](../core/shared/api-contracts.md). Kode: `app/auth/`.
+
+| Aspek | Implementasi |
+|---|---|
+| Password | Argon2id (RFC 9106), min. 12 karakter, tidak memuat nama email (NIST SP 800-63B, tanpa aturan komposisi). Rehash otomatis bila parameter naik |
+| Sesi | Token acak 256-bit di cookie `__Host-clau_session` (`HttpOnly; Secure; SameSite=Lax; Path=/`); database hanya menyimpan SHA-256-nya. Habis setelah 120 menit tidak aktif / 12 jam. Token baru setiap login, ganti password, dan aktifkan 2FA |
+| CSRF | Header `X-CSRF-Token` = HMAC(`CLAU_SECRET_KEY`, token sesi) untuk semua POST/PUT/PATCH/DELETE; Origin & `Sec-Fetch-Site` lintas situs ditolak |
+| Brute force | 5 gagal per email (juga email tidak terdaftar) = 429 selama 15 menit; akun terdaftar juga dikunci di database. Respons email tidak terdaftar = password salah (tidak bisa menebak email). Batas per IP di Nginx saat deploy |
+| 2FA | TOTP (RFC 6238), **wajib untuk owner**; secret terenkripsi AES-GCM terikat id user; kode tidak bisa dipakai ulang. HP hilang: `python -m app.auth.cli reset-mfa --email …` di server |
+| Akun | Tidak ada pendaftaran publik. Owner pertama: `python -m app.auth.cli create-owner --email … --name …` (password lewat prompt tersembunyi). User lain dibuat owner (`POST /users`) dengan password sementara yang wajib diganti |
+| Hak akses | `app/auth/access.py`: peran dari `memberships`; staf agency melihat semua klien, `client_approver`/`viewer` klien hanya klien miliknya; level approval maksimal per klien. Owner tidak bisa menonaktifkan diri / menghapus owner terakhir |
+| Fail closed | `CLAU_SECRET_KEY` kosong/pendek → 503 `auth_unavailable`; database tidak ada → 503 `database_unavailable` |
+| Audit | `audit_log`: login, gagal login, logout, ganti password, 2FA aktif/reset, user dibuat/nonaktif/aktif, peran berubah |
+
+```bash
+# Owner pertama (sekali), dari root repo:
+docker compose run --rm backend python -m app.auth.cli create-owner --email owner@contoh.id --name "Nama Owner"
+# Login di http://127.0.0.1:3000 → aktifkan 2FA (wajib owner) → kelola user lewat API /users
+```
+
+Test: `tests/test_auth.py` (33 test ke PostgreSQL sungguhan, termasuk replay kode 2FA, rotasi sesi, CSRF, Origin, penguncian, owner terakhir).
+
 ## Belum Ada (Planned)
 
-Autentikasi (Tahap 1 PR 2), endpoint requests/drafts/qa-records/approvals (PR 3), pemanggilan AI model (Tahap 2, VPS 2).
+Endpoint requests/drafts/qa-records/approvals (Tahap 1 PR 3), halaman kelola user di UI, pemanggilan AI model (Tahap 2, VPS 2).

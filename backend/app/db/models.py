@@ -29,7 +29,7 @@ from sqlalchemy import (
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import BYTEA, JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 # Nama constraint/index deterministik: migrasi dan pesan error bisa merujuk nama yang sama.
@@ -104,12 +104,45 @@ class User(Base):
     timezone: Mapped[str] = mapped_column(Text, nullable=False, server_default="Asia/Makassar")
     salutation: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = created_at()
+    # Login (migrasi 0002, app/auth). Password hanya hash Argon2id; null = akun belum/tidak bisa login.
+    password_hash: Mapped[str | None] = mapped_column(Text)
+    must_change_password: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    # Secret TOTP terenkripsi AES-GCM (kunci dari CLAU_SECRET_KEY), terikat ke id user.
+    totp_secret_enc: Mapped[bytes | None] = mapped_column(BYTEA)
+    totp_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    totp_last_counter: Mapped[int | None] = mapped_column(BigInteger)  # cegah kode yang sama dipakai ulang
+    failed_logins: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __table_args__ = (
+        CheckConstraint("password_hash IS NULL OR password_hash LIKE '$argon2id$%'", name="password_argon2id"),
+        CheckConstraint("NOT totp_enabled OR totp_secret_enc IS NOT NULL", name="totp_has_secret"),
+        CheckConstraint("failed_logins >= 0", name="failed_logins_positive"),
         CheckConstraint("email ~ '^[^@[:space:]]+@[^@[:space:]]+$'", name="email_format"),
         CheckConstraint(one_of("locale", LOCALES), name="locale"),
         CheckConstraint(one_of("timezone", TIMEZONES), name="timezone"),
         # Satu akun per email, tanpa membedakan huruf besar/kecil.
         Index("uq_users_email_lower", func.lower(text("email")), unique=True),
+    )
+
+
+class UserSession(Base):
+    """Sesi login di server. Cookie hanya berisi token acak; database menyimpan SHA-256-nya, jadi kebocoran
+    database tidak memberi sesi yang bisa dipakai. Token CSRF diturunkan dari token sesi (HMAC), tidak disimpan."""
+
+    __tablename__ = "sessions"
+    token_hash: Mapped[str] = mapped_column(Text, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    # false = password benar tetapi 2FA wajib belum diaktifkan: hanya endpoint akun yang boleh dipakai.
+    mfa_ok: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    created_at: Mapped[datetime] = created_at()
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("token_hash ~ '^[0-9a-f]{64}$'", name="token_hash_sha256"),
+        CheckConstraint("expires_at > created_at", name="expires_after_created"),
     )
 
 

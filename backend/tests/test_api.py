@@ -63,5 +63,5 @@ def test_route_invalid_body_uses_contract_shape():
 
 
 def test_no_publish_endpoint():
-    paths = {route.path for route in app.routes}
+    paths = set(app.openapi()["paths"])  # termasuk router yang di-include (auth)
     assert not any("publish" in p or "send" in p for p in paths)

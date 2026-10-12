@@ -69,7 +69,12 @@ services:
     environment:
       CLAU_ENV: ${CLAU_ENV:-production}
       CLAU_ENABLE_DOCS: ${CLAU_ENABLE_DOCS:-}
-      CLAU_ALLOWED_HOSTS: ${CLAU_ALLOWED_HOSTS:-}
+      # "backend" selalu ditambahkan: Host saat frontend memanggil lewat jaringan internal compose.
+      CLAU_ALLOWED_HOSTS: "${CLAU_ALLOWED_HOSTS:-127.0.0.1,localhost},backend"
+      CLAU_ALLOWED_ORIGINS: ${CLAU_ALLOWED_ORIGINS:-}
+      CLAU_SECRET_KEY: "${CLAU_SECRET_KEY:?isi .env dulu: scripts/init-env.sh}"
+      CLAU_SESSION_IDLE_MINUTES: ${CLAU_SESSION_IDLE_MINUTES:-}
+      CLAU_SESSION_MAX_HOURS: ${CLAU_SESSION_MAX_HOURS:-}
       CLAU_DATABASE_URL: postgresql+psycopg://clau_app:${CLAU_DB_APP_PASSWORD:?}@db:5432/clau
     ports: ["127.0.0.1:${CLAU_BACKEND_PORT:-8000}:8000"]
     tmpfs: [/tmp]
@@ -82,6 +87,13 @@ services:
     <<: *hardening
     build: { context: ., dockerfile: frontend/Dockerfile }
     image: clau-frontend:local
+    # Browser hanya bicara ke frontend; /api/* diteruskan server Next.js ke backend lewat jaringan internal
+    # (keputusan VPS #1). CLAU_AUTH_ENABLED=1: halaman wajib login. Tanpa keduanya (VPS 1) = pratinjau SIMULASI.
+    environment:
+      CLAU_BACKEND_URL: http://backend:8000
+      CLAU_AUTH_ENABLED: ${CLAU_AUTH_ENABLED:-1}
+    depends_on:
+      backend: { condition: service_healthy }
     ports: ["127.0.0.1:${CLAU_FRONTEND_PORT:-3000}:3000"]
     # Cache ISR Next.js: satu-satunya folder yang ditulis aplikasi (uid 1000 = user node).
     tmpfs:

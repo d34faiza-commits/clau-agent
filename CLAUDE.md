@@ -11,7 +11,7 @@
 | Repo | `d34faiza-commits/clau-ai-agents` (private) |
 | Peran | Platform: registry agent, backend FastAPI, frontend Next.js (scaffold) |
 | Submodule | `core/` → clau-ai-core |
-| Status | Backend v0.4.0: API registry read-only + lapisan database (PostgreSQL 16, migrasi 0001, belum dipakai endpoint). Belum ada auth atau pemanggilan AI model |
+| Status | Backend v0.5.0: API registry + login & hak akses (sesi cookie, CSRF, 2FA wajib owner, `/users` owner) di atas PostgreSQL 16 (migrasi 0001–0002). Belum ada workflow draft/approval di API atau pemanggilan AI model |
 
 ## 2. Peta File
 
@@ -21,10 +21,11 @@
 | `agents/avatars/` | Master avatar 3D per agent + README (aturan, status gambar); crop UI di `frontend/public/agents/`; dijaga `backend/tests/test_avatars.py` |
 | `agents/personas/` | Kartu persona per agent (gaya bahasa, etika, batas & eskalasi, contoh) |
 | `agents/evals/` | Kasus uji per agent + `run_evals.py` + rubrik "seperti manusia ahli" |
-| `backend/app/main.py` | `GET /health`, `GET /agents`, `GET /pillars`, `POST /route` (read-only, tanpa endpoint publish) |
+| `backend/app/main.py` | `GET /health`, `GET /agents`, `GET /pillars`, `POST /route`; tanpa endpoint publish. Inventaris endpoint dikunci `tests/test_security.py` |
+| `backend/app/auth/` | Login, sesi, CSRF, 2FA TOTP, hak akses dari `memberships` (`access.py`), `/users` (owner), CLI `create-owner` / `reset-mfa` |
 | `backend/app/db/` · `backend/migrations/` | Model SQLAlchemy (15 tabel `core/shared/database-schema.md`), bootstrap role (migrasi vs aplikasi), seed SIMULASI; migrasi Alembic + trigger Constraint Wajib. Ubah skema = migrasi baru |
 | `backend/tests/` | Test API, konsistensi registry ↔ `core/orchestrator/router.md` & tabel pilar `core/README.md`, persona & eval, `test_db.py` (Constraint Wajib ke PostgreSQL sungguhan; butuh `CLAU_TEST_DB_ADMIN_URL`) |
-| `frontend/` | Next.js App Router; halaman registry agent |
+| `frontend/` | Next.js App Router; halaman registry agent, `/login`, `/account`; `app/api/[...path]` = jembatan ke backend; `proxy.ts` = penjaga halaman bila `CLAU_AUTH_ENABLED=1` |
 | `scripts/` | `sync-submodules.sh`, `check-core-pins.sh`, `deploy/` (VPS 1: pull deploy, Nginx, systemd) |
 | `.env.example` | Semua variabel environment + arti & default aman; tanpa secret (dites `backend/tests/test_env.py`) |
 | `docker-compose.yml` · `backend/Dockerfile` · `frontend/Dockerfile` · `.dockerignore` | Container backend + frontend: non-root, read-only, port 127.0.0.1; base image dipin digest; dicek job CI `docker` |
