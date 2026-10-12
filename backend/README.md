@@ -12,6 +12,8 @@ uvicorn app.main:app --reload          # http://127.0.0.1:8000/docs
 pytest                                  # test API + konsistensi registry ↔ core router
 ```
 
+`requirements.txt` = semua dependency (termasuk test). `requirements-runtime.txt` = yang masuk image Docker saja; pin keduanya harus sama (dites `tests/test_env.py`). Image: `docker build -f backend/Dockerfile -t clau-backend .` dari root repo, atau `docker compose up` (lihat README root). Variabel environment: [`../.env.example`](../.env.example).
+
 ## Endpoint
 
 | Method & path | Fungsi |

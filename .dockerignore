@@ -1,0 +1,14 @@
+# Allowlist: hanya file yang dibutuhkan image yang masuk build context.
+# .env, .git, core/, docs/, test, dan node_modules lokal tidak pernah ikut ke image.
+*
+!agents/registry.json
+!agents/personas/
+!agents/evals/cases/
+!backend/app/
+!backend/requirements-runtime.txt
+!frontend/
+frontend/node_modules/
+frontend/.next/
+frontend/next-env.d.ts
+frontend/*.tsbuildinfo
+**/__pycache__/

@@ -62,3 +62,30 @@ jobs:
             echo "::error::Kemungkinan credential ter-commit. Hapus, rotasi key, lalu bersihkan riwayat."
             exit 1
           fi
+
+  # Image produksi (backend/Dockerfile, frontend/Dockerfile) harus bisa dibangun, sehat di docker compose,
+  # dan tetap memegang pengamanan dasar: /docs mati, Host asing ditolak, proses bukan root.
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build & start
+        run: |
+          cp .env.example .env
+          docker compose up -d --build --wait --wait-timeout 180
+      - name: Smoke test
+        run: |
+          curl -fsS http://127.0.0.1:8000/health
+          curl -fsS -o /dev/null http://127.0.0.1:3000/
+          curl -fsS -o /dev/null http://127.0.0.1:3000/agents
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/docs)" = 404
+          test "$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: evil.example' http://127.0.0.1:8000/health)" = 400
+          for s in backend frontend; do test "$(docker compose exec -T "$s" id -u)" != 0; done
+          docker image ls --format '{{.Repository}}:{{.Tag}} {{.Size}}' | grep ':local'
+      - name: Logs
+        if: failure()
+        run: docker compose logs --no-color
+      - name: Stop
+        if: always()
+        run: docker compose down -v

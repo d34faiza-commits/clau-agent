@@ -24,8 +24,10 @@ clau-ai-agents/
 │   └── tests/            # test API + konsistensi registry ↔ core router
 ├── frontend/             # Next.js 16 (App Router): halaman registry agent
 │   ├── app/layout.tsx · app/page.tsx · next.config.mjs · package.json · package-lock.json · tsconfig.json
-├── scripts/              # sync-submodules.sh, check-core-pins.sh
-└── .github/workflows/    # ci.yml, cross-repo-validate.yml, sync-submodules.yml, notify-downstream.yml
+├── scripts/              # sync-submodules.sh, check-core-pins.sh, deploy/ (VPS 1)
+├── docker-compose.yml    # backend + frontend dalam container (port hanya 127.0.0.1)
+├── .env.example          # semua variabel environment (tanpa secret); salin ke .env
+└── .github/workflows/    # ci.yml, cross-repo-validate.yml, sync-submodules.yml, notify-downstream.yml, main-guard.yml
 ```
 
 ## Setup
@@ -42,6 +44,19 @@ cd backend && pip install -r requirements.txt && pytest && uvicorn app.main:app 
 # Frontend (terminal lain)
 cd frontend && npm install && npm run dev
 ```
+
+### Docker (backend + frontend)
+
+```bash
+cp .env.example .env                       # sekali; isi default aman (CLAU_ENV=production)
+docker compose up -d --build --wait        # backend http://127.0.0.1:8000 · frontend http://127.0.0.1:3000
+docker compose down
+```
+
+- **Environment:** semua variabel ada di [`.env.example`](./.env.example) beserta artinya. `.env` tidak di-commit; secret (database, API key AI, WhatsApp) hanya di `.env` server, tidak pernah di repo ([docs/security.md](./docs/security.md) § 6). Test `backend/tests/test_env.py` memastikan setiap variabel yang dibaca kode tercantum dan tidak ada secret di template.
+- **Image:** `backend/Dockerfile` (Python 3.12, dependency runtime saja: `backend/requirements-runtime.txt`) dan `frontend/Dockerfile` (Node 22, Next.js output standalone). Base image dipin ke digest dan diperbarui Dependabot. Build context = root repo dengan `.dockerignore` allowlist, jadi `.env`, `.git`, dan `core/` tidak pernah ikut ke image.
+- **Pengamanan container:** user non-root, filesystem read-only, tanpa capability Linux, `no-new-privileges`, batas memori & proses, port hanya di `127.0.0.1` (publik lewat Nginx + TLS). Dicek job CI `docker`.
+- **VPS 1** tetap memakai deploy tarik + systemd ([docs/deploy/vps-1-setup.md](./docs/deploy/vps-1-setup.md)); compose ini dipakai untuk kerja lokal dan menjadi dasar deploy VPS 2.
 
 ## Roadmap Platform
 
