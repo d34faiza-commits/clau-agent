@@ -24,6 +24,15 @@ updates:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
     open-pull-requests-limit: 5
+  # Base image Docker (dipin ke digest) di backend/Dockerfile dan frontend/Dockerfile.
+  - package-ecosystem: docker
+    directories: [/backend, /frontend]
+    schedule:
+      interval: weekly
+    ignore:
+      # Versi mayor (mis. Python 3.13, Node 24) tidak otomatis (keputusan owner 2026-10-09).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:

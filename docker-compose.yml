@@ -1,0 +1,45 @@
+# CLAU AI platform: backend (FastAPI) + frontend (Next.js) dalam container.
+#
+#   cp .env.example .env          # sekali; .env tidak di-commit
+#   docker compose up -d --build --wait
+#   docker compose down
+#
+# Port hanya dibuka di 127.0.0.1: akses publik selalu lewat reverse proxy (Nginx + TLS),
+# sama dengan VPS 1 (docs/deploy/vps-1-setup.md). Pengamanan container mengikuti sandbox
+# systemd di docs/security.md § 4: filesystem read-only, tanpa capability, tanpa root.
+name: clau
+
+x-hardening: &hardening
+  restart: unless-stopped
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  init: true
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "3" }
+
+services:
+  backend:
+    <<: *hardening
+    build: { context: ., dockerfile: backend/Dockerfile }
+    image: clau-backend:local
+    env_file:
+      - path: .env
+        required: false
+    ports: ["127.0.0.1:${CLAU_BACKEND_PORT:-8000}:8000"]
+    tmpfs: [/tmp]
+    mem_limit: 512m
+    pids_limit: 128
+
+  frontend:
+    <<: *hardening
+    build: { context: ., dockerfile: frontend/Dockerfile }
+    image: clau-frontend:local
+    ports: ["127.0.0.1:${CLAU_FRONTEND_PORT:-3000}:3000"]
+    # Cache ISR Next.js: satu-satunya folder yang ditulis aplikasi (uid 1000 = user node).
+    tmpfs:
+      - /tmp
+      - /app/frontend/.next/cache:uid=1000,gid=1000,mode=0750
+    mem_limit: 1g
+    pids_limit: 256

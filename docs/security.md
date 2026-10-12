@@ -52,12 +52,16 @@ File di repo: `scripts/deploy/nginx/clau.conf` dan `scripts/deploy/systemd/clau-
 - **Nginx**: hanya GET/HEAD, rate limit 20 req/detik per IP (burst 60), maks 30 koneksi per IP, body 16 KB, timeout header/body 10 detik, file tersembunyi (`.git`, `.env`) selalu 404, header `Upgrade` dari klien tidak diteruskan.
 - **systemd**: `ProtectSystem=strict` (sistem read-only, kecuali folder rilis), `ProtectHome` (SSH key & deploy key tidak terbaca), `NoNewPrivileges`, tanpa capability, filter syscall, batas memori 1 GB dan 256 proses.
 
+### Container (docker-compose.yml, 2026-10-12)
+
+Setara sandbox systemd di atas, untuk kerja lokal dan dasar VPS 2: user non-root (backend uid 10001, frontend `node`), filesystem read-only (hanya `/tmp` dan cache Next.js di tmpfs), `cap_drop: ALL`, `no-new-privileges`, batas memori (512 MB / 1 GB) dan proses, port hanya `127.0.0.1`. Image tidak membawa tool test, compiler, atau `sharp`; `.dockerignore` allowlist sehingga `.env`, `.git`, dan `core/` tidak masuk build context. Diverifikasi job CI `docker` (health, `/docs` 404, Host asing 400, proses bukan root).
+
 ## 5. Supply Chain & Repo
 
 - `npm ci --ignore-scripts` di CI dan di server: script install dari paket npm tidak pernah dijalankan.
 - Job CI `audit`: `npm audit --audit-level=high`, `pip-audit --strict`, dan pemindai pola secret. Gagal = PR tidak boleh di-merge.
 - `.github/dependabot.yml`: PR update mingguan (minor/patch) untuk npm, pip, dan GitHub Actions. Owner tetap yang merge. Versi **mayor** tidak dibuka otomatis (keputusan owner 2026-10-09, setelah PR TypeScript 5 → 7 merusak `tsc`): dikerjakan sebagai PR tersendiri setelah diuji.
-- GitHub Actions dipin ke commit SHA (tag bisa dipindah oleh pihak lain; SHA tidak).
+- GitHub Actions dipin ke commit SHA (tag bisa dipindah oleh pihak lain; SHA tidak). Base image Docker dipin ke digest dengan alasan yang sama; Dependabot (`docker`) memperbaruinya.
 - **GitHub Settings (owner, 2026-10-09, dilaporkan owner)**: ruleset branch `main` dibuat (wajib PR, status check `backend`, `frontend`, `audit`, `cross-validate`, blok force push & hapus; approval 0 karena owner tunggal) dan Dependabot alerts + security updates aktif. Alasan: isi `main` tayang otomatis di VPS 1 dalam ±5 menit.
 - **Status proteksi `main` (dicek 2026-10-12)**: **RISK**: ruleset **tidak dipaksa** server karena GitHub Free tidak memaksa proteksi di repo private (API: `protected: false`; PR #27 di-merge 8 detik setelah commit bot, sebelum CI jalan). Keputusan owner 2026-10-12: tetap Free, ganti dengan deteksi: workflow `main-guard.yml` (di core, marketing, agents) membuat check merah + email bila commit masuk `main` tanpa PR, di-force push, atau PR di-merge sebelum check wajib hijau. Bot sync menunggu CI hijau sebelum merge. Push langsung tetap **secara teknis bisa**; disiplin owner yang mencegahnya.
 

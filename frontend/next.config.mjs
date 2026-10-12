@@ -42,6 +42,14 @@ const securityHeaders = [
 const nextConfig = {
   // The page imports ../agents/registry.json (repo root), so Turbopack's root is the repo root.
   turbopack: { root: path.join(here, "..") },
+  // Image Docker (frontend/Dockerfile) memakai output standalone: hanya file yang dipakai saat runtime
+  // yang ikut ke image (tanpa compiler SWC & dev dependency). VPS 1 tetap `next start` (tanpa env ini).
+  ...(process.env.CLAU_STANDALONE === "1" && {
+    output: "standalone",
+    outputFileTracingRoot: path.join(here, ".."),
+    // sharp hanya untuk optimizer gambar, yang dimatikan (images.unoptimized): jangan ikut ke image.
+    outputFileTracingExcludes: { "*": ["node_modules/sharp/**", "node_modules/@img/**"] },
+  }),
   // Jangan umumkan teknologi server.
   poweredByHeader: false,
   // next/image tidak dipakai: matikan optimizer agar endpoint /_next/image tidak bisa disalahgunakan
