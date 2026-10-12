@@ -11,8 +11,11 @@ on:
   repository_dispatch:
     types: [submodule-updated]
 
+# checks/statuses: baca hasil CI PR sync pakai GITHUB_TOKEN (PAT fine-grained tidak bisa).
 permissions:
   contents: read
+  checks: read
+  statuses: read
 
 concurrency:
   group: sync-submodules
@@ -21,7 +24,7 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     env:
       HAS_TOKEN: ${{ secrets.SUBMODULE_TOKEN != '' }}
     steps:
@@ -72,15 +75,34 @@ jobs:
               --title "chore: sync submodules" \
               --body "Bump otomatis submodule ke commit terbaru (validator sudah lulus di workflow sync). Merge otomatis setelah CI hijau bila auto-merge aktif."
           fi
-          # Merge hanya setelah semua check PR hijau. Tanpa proteksi yang dipaksa server
-          # (GitHub Free, repo private) gh pr merge langsung me-merge, jadi tunggu CI di sini.
-          for _ in $(seq 1 30); do
-            [ "$(gh pr view bot/sync-submodules --json statusCheckRollup --jq '.statusCheckRollup | length')" != "0" ] && break
-            sleep 10
+          # Merge hanya setelah semua check wajib di head PR hijau. GitHub Free tidak memaksa
+          # proteksi di repo private, jadi gh pr merge langsung me-merge: tunggu CI di sini.
+          # Check run dibaca pakai GITHUB_TOKEN (checks: read); SUBMODULE_TOKEN tidak punya izin itu.
+          # Daftar check sama dengan main-guard.yml dan core/AI-BOUNDARY.md (Disiplin Push).
+          required="backend frontend audit cross-validate"
+          head="$(git rev-parse HEAD)"
+          echo "menunggu check wajib ($required) di $head"
+          for _ in $(seq 1 75); do
+            runs="$(GH_TOKEN="${{ github.token }}" gh api "repos/${{ github.repository }}/commits/$head/check-runs?per_page=100" \
+              --jq '.check_runs[] | [.name, .status, (.conclusion // "")] | @tsv')"
+            state=ok
+            for check in $required; do
+              rows="$(awk -F'\t' -v n="$check" '$1 == n' <<<"$runs")"
+              if grep -qE $'\t(failure|cancelled|timed_out|action_required|startup_failure|stale)$' <<<"$rows"; then
+                printf '%s\n' "$runs"
+                echo "::error::Check $check gagal di PR sync; PR tidak di-merge. Periksa PR bot/sync-submodules."
+                exit 1
+              fi
+              grep -qE $'\tcompleted\tsuccess$' <<<"$rows" || state=wait
+            done
+            [ "$state" = ok ] && break
+            sleep 20
           done
-          if ! gh pr checks bot/sync-submodules --watch --fail-fast --interval 20; then
-            echo "::error::CI PR sync merah atau tidak jalan; PR tidak di-merge. Periksa PR bot/sync-submodules."
+          if [ "$state" != ok ]; then
+            printf '%s\n' "$runs"
+            echo "::error::Check wajib belum hijau setelah 25 menit; PR sync tidak di-merge."
             exit 1
           fi
+          echo "semua check wajib hijau; merge PR sync"
           gh pr merge bot/sync-submodules --auto --merge \
             || gh pr merge bot/sync-submodules --merge
