@@ -6,6 +6,8 @@
 !agents/evals/cases/
 !backend/app/
 !backend/requirements-runtime.txt
+!backend/alembic.ini
+!backend/migrations/
 !frontend/
 frontend/node_modules/
 frontend/.next/

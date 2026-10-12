@@ -14,6 +14,20 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    # Test database (tests/test_db.py) memakai PostgreSQL sungguhan, versi & digest sama dengan compose.
+    # Password ini hanya untuk container CI sekali pakai, bukan secret.
+    services:
+      postgres:
+        image: postgres:16-bookworm@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4
+        env:
+          POSTGRES_PASSWORD: ci-only
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      CLAU_TEST_DB_ADMIN_URL: postgresql://postgres:ci-only@127.0.0.1:5432/postgres
+      # Test database wajib jalan di CI: tanpa database = gagal, bukan dilewati.
+      CLAU_REQUIRE_DB_TESTS: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -72,10 +86,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build & start
         run: |
-          cp .env.example .env
-          docker compose up -d --build --wait --wait-timeout 180
+          scripts/init-env.sh
+          docker compose up -d --build --wait --wait-timeout 240
       - name: Smoke test
         run: |
+          test "$(docker compose ps -a migrate --format '{{.ExitCode}}')" = 0
+          docker compose logs migrate --no-color | grep -q "Running upgrade"
+          docker compose run --rm -T backend python -m app.db.seed
+          test -z "$(docker compose exec -T backend env | grep -E '^(POSTGRES_PASSWORD|CLAU_DB_MIGRATOR_PASSWORD|CLAU_DB_ADMIN_URL)=')"
           curl -fsS http://127.0.0.1:8000/health
           curl -fsS -o /dev/null http://127.0.0.1:3000/
           curl -fsS -o /dev/null http://127.0.0.1:3000/agents

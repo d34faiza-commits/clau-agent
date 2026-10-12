@@ -56,6 +56,10 @@ File di repo: `scripts/deploy/nginx/clau.conf` dan `scripts/deploy/systemd/clau-
 
 Setara sandbox systemd di atas, untuk kerja lokal dan dasar VPS 2: user non-root (backend uid 10001, frontend `node`), filesystem read-only (hanya `/tmp` dan cache Next.js di tmpfs), `cap_drop: ALL`, `no-new-privileges`, batas memori (512 MB / 1 GB) dan proses, port hanya `127.0.0.1`. Image tidak membawa tool test, compiler, atau `sharp`; `.dockerignore` allowlist sehingga `.env`, `.git`, dan `core/` tidak masuk build context. Diverifikasi job CI `docker` (health, `/docs` 404, Host asing 400, proses bukan root).
 
+### Database (2026-10-12, lokal & dasar VPS 2)
+
+Sudah diterapkan dari § 6: role aplikasi **tanpa hak DDL** (tidak bisa CREATE/ALTER/DROP/TRUNCATE; diuji), akses lewat SQLAlchemy/psycopg dengan parameter (tanpa SQL rakitan string), database tanpa port host (hanya jaringan internal compose), password SCRAM-SHA-256, tiga kredensial terpisah (admin hanya di service `migrate`; backend hanya role aplikasi; diuji `test_env.py`), `audit_log` append-only di level database, dan aturan approval (SIMULASI, review independen, approval per versi, tayang butuh approval) ditolak database sendiri. Belum: backup terenkripsi + uji restore (saat VPS 2), dan isolasi data per klien di query (PR login/otorisasi).
+
 ## 5. Supply Chain & Repo
 
 - `npm ci --ignore-scripts` di CI dan di server: script install dari paket npm tidak pernah dijalankan.

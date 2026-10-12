@@ -17,6 +17,9 @@ RUN pip install --no-cache-dir -r backend/requirements-runtime.txt
 
 COPY agents/registry.json agents/registry.json
 COPY backend/app backend/app
+# Migrasi ikut di image: service compose `migrate` menjalankannya dengan role migrasi.
+COPY backend/alembic.ini backend/alembic.ini
+COPY backend/migrations backend/migrations
 
 # User tanpa hak root dan tanpa shell login; file aplikasi milik root (tidak bisa diubah proses).
 RUN useradd --system --uid 10001 --no-create-home --shell /usr/sbin/nologin clau
