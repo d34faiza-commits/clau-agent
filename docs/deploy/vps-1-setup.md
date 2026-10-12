@@ -252,4 +252,4 @@ Bila tidak `active` atau curl gagal: `journalctl -u clau-frontend -n 30 --no-pag
 
 - Selama belum ada domain + SSL, akses masih **HTTP via IP**. Aman untuk scaffold saat ini (tidak ada login/data), tetapi **jangan** menambahkan login, form, atau data client sebelum Bagian 9 (HTTPS) selesai.
 - Service masih berjalan sebagai user `dea`. Pindahkan ke user service khusus (non-login) sebelum produksi dengan data client.
-- Push ke `main` tampil di VPS 1 dalam ±5 menit. `main` harus lewat CI hijau (build frontend sudah dicek di CI) dan sebaiknya diproteksi (PR + review) agar perubahan tidak langsung live tanpa dicek.
+- Push ke `main` tampil di VPS 1 dalam ±5 menit. `main` harus lewat CI hijau (build frontend sudah dicek di CI) dan wajib lewat PR dengan CI hijau (`core/AI-BOUNDARY.md` § Disiplin Push, dijaga `main-guard`) agar perubahan tidak langsung live tanpa dicek.

@@ -1,0 +1,65 @@
+name: Main Guard
+
+# GitHub Free tidak memaksa branch protection di repo private. Workflow ini menjadi
+# penggantinya (deteksi, bukan blokir): setiap push ke main harus berasal dari PR yang
+# di-merge, dan semua REQUIRED_CHECKS di commit head PR itu harus hijau SEBELUM merge.
+# Gagal = check merah di main + email ke yang push/merge. Tindak lanjut: AI-BOUNDARY.md
+# di clau-ai-core (§ Disiplin Push).
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
+
+jobs:
+  main-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      SHA: ${{ github.event.after }}
+      REQUIRED_CHECKS: "backend frontend audit cross-validate"
+    steps:
+      - name: Push ke main harus lewat PR dengan CI hijau
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event.forced }}" = "true" ]; then
+            echo "::error::Force push ke main ($SHA). Riwayat main ditulis ulang; periksa dan laporkan ke owner."
+            exit 1
+          fi
+          # Asosiasi commit → PR kadang baru tersedia beberapa detik setelah merge.
+          pr=""
+          for _ in 1 2 3 4 5 6; do
+            pr="$(gh api "repos/$REPO/commits/$SHA/pulls" \
+              --jq "[.[] | select(.merged_at != null and .base.ref == \"main\")] | first // empty")"
+            [ -n "$pr" ] && break
+            sleep 10
+          done
+          if [ -z "$pr" ]; then
+            echo "::error::Commit $SHA masuk main tanpa PR yang di-merge (push langsung). Wajib: branch → PR → CI hijau → merge."
+            exit 1
+          fi
+          number="$(jq -r .number <<<"$pr")"
+          head="$(jq -r .head.sha <<<"$pr")"
+          merged_at="$(jq -r .merged_at <<<"$pr")"
+          echo "PR #$number, head $head, merged $merged_at"
+          runs="$(gh api "repos/$REPO/commits/$head/check-runs?per_page=100" --paginate \
+            --jq '.check_runs[] | [.name, (.conclusion // "pending"), (.completed_at // "")] | @tsv')"
+          missing=""
+          for check in $REQUIRED_CHECKS; do
+            # Lulus bila ada minimal satu run bernama $check yang success dan selesai sebelum merge.
+            if ! awk -F'\t' -v n="$check" -v t="$merged_at" \
+                '$1 == n && $2 == "success" && $3 != "" && $3 <= t { ok = 1 } END { exit !ok }' <<<"$runs"; then
+              missing="$missing $check"
+            fi
+          done
+          if [ -n "$missing" ]; then
+            echo "Check run di head PR:"; printf '%s\n' "$runs"
+            echo "::error::PR #$number di-merge sebelum check wajib hijau:$missing"
+            exit 1
+          fi
+          echo "OK: PR #$number, semua check wajib ($REQUIRED_CHECKS) hijau sebelum merge."

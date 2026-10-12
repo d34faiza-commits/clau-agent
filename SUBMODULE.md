@@ -87,7 +87,7 @@ git config submodule.recurse true
 | Workflow | Repo | Trigger | Fungsi |
 |---|---|---|---|
 | `notify-downstream.yml` | core, agents | Push ke `main` | Kirim `repository_dispatch` (`submodule-updated`) ke repo konsumen: core → agents & marketing; agents → marketing |
-| `sync-submodules.yml` | marketing, agents | Harian 06.17 WITA, manual, `submodule-updated` | Jalankan `scripts/sync-submodules.sh --pr-branch bot/sync-submodules`: majukan pin, validasi, commit `chore(<path>): bump …`, push ke branch `bot/sync-submodules`, lalu buka PR ke `main` (merge otomatis setelah CI hijau bila auto-merge aktif) |
+| `sync-submodules.yml` | marketing, agents | Harian 06.17 WITA, manual, `submodule-updated` | Jalankan `scripts/sync-submodules.sh --pr-branch bot/sync-submodules`: majukan pin, validasi, commit `chore(<path>): bump …`, push ke branch `bot/sync-submodules`, lalu buka PR ke `main` (workflow menunggu semua check PR; merge hanya bila hijau, merah = PR dibiarkan terbuka dan job gagal) |
 | `cross-repo-validate.yml` | marketing, agents | Push, PR, manual, `submodule-updated` | Checkout semua submodule, lalu validator core, validator repo dengan `--require-submodules`, test backend agents terhadap router core, dan cek pin core |
 | `validate.yml` / `ci.yml` | semua | Push, PR | Validasi tanpa submodule (tidak butuh token); referensi ke submodule dilewati |
 
@@ -100,7 +100,7 @@ Kalau validasi gagal, sync **tidak** commit dan workflow merah. Pin lama tetap d
 1. GitHub → **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
 2. **Repository access:** *Only select repositories* → `clau-ai-core`, `clau-ai-marketing`, `clau-ai-agents`.
 3. **Permissions → Repository permissions → Contents: Read and write** dan **Pull requests: Read and write** (bot membuka PR sync karena `main` terproteksi). Metadata (read) otomatis ikut.
-   Aktifkan juga **Settings → General → Allow auto-merge** di clau-ai-marketing dan clau-ai-agents agar PR sync ter-merge sendiri setelah CI hijau.
+   Aktifkan juga **Settings → General → Allow auto-merge** di clau-ai-marketing dan clau-ai-agents agar PR sync ter-merge lewat auto-merge bila proteksi `main` dipaksa server. Tanpa itu, workflow tetap menunggu CI hijau sebelum merge.
 4. Expiration: pilih tanggal, lalu catat tanggal perpanjangannya.
 5. Simpan token sebagai secret **`SUBMODULE_TOKEN`** di **ketiga** repo: repo → **Settings → Secrets and variables → Actions → New repository secret**.
 

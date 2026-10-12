@@ -58,7 +58,8 @@ File di repo: `scripts/deploy/nginx/clau.conf` dan `scripts/deploy/systemd/clau-
 - Job CI `audit`: `npm audit --audit-level=high`, `pip-audit --strict`, dan pemindai pola secret. Gagal = PR tidak boleh di-merge.
 - `.github/dependabot.yml`: PR update mingguan (minor/patch) untuk npm, pip, dan GitHub Actions. Owner tetap yang merge. Versi **mayor** tidak dibuka otomatis (keputusan owner 2026-10-09, setelah PR TypeScript 5 → 7 merusak `tsc`): dikerjakan sebagai PR tersendiri setelah diuji.
 - GitHub Actions dipin ke commit SHA (tag bisa dipindah oleh pihak lain; SHA tidak).
-- **GitHub Settings (owner, 2026-10-09, dilaporkan owner)**: ruleset branch `main` (wajib PR, status check `backend`, `frontend`, `audit`, `cross-validate`, blok force push & hapus; approval 0 karena owner tunggal) dan Dependabot alerts + security updates aktif. Alasan: isi `main` tayang otomatis di VPS 1 dalam ±5 menit.
+- **GitHub Settings (owner, 2026-10-09, dilaporkan owner)**: ruleset branch `main` dibuat (wajib PR, status check `backend`, `frontend`, `audit`, `cross-validate`, blok force push & hapus; approval 0 karena owner tunggal) dan Dependabot alerts + security updates aktif. Alasan: isi `main` tayang otomatis di VPS 1 dalam ±5 menit.
+- **Status proteksi `main` (dicek 2026-10-12)**: **RISK**: ruleset **tidak dipaksa** server karena GitHub Free tidak memaksa proteksi di repo private (API: `protected: false`; PR #27 di-merge 8 detik setelah commit bot, sebelum CI jalan). Keputusan owner 2026-10-12: tetap Free, ganti dengan deteksi: workflow `main-guard.yml` (di core, marketing, agents) membuat check merah + email bila commit masuk `main` tanpa PR, di-force push, atau PR di-merge sebelum check wajib hijau. Bot sync menunggu CI hijau sebelum merge. Push langsung tetap **secara teknis bisa**; disiplin owner yang mencegahnya.
 
 ## 6. Aturan Wajib Sebelum VPS 2 (Login, Database, AI, WhatsApp)
 
