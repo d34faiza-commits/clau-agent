@@ -60,6 +60,10 @@ Setara sandbox systemd di atas, untuk kerja lokal dan dasar VPS 2: user non-root
 
 Sudah diterapkan dari § 6: role aplikasi **tanpa hak DDL** (tidak bisa CREATE/ALTER/DROP/TRUNCATE; diuji), akses lewat SQLAlchemy/psycopg dengan parameter (tanpa SQL rakitan string), database tanpa port host (hanya jaringan internal compose), password SCRAM-SHA-256, tiga kredensial terpisah (admin hanya di service `migrate`; backend hanya role aplikasi; diuji `test_env.py`), `audit_log` append-only di level database, dan aturan approval (SIMULASI, review independen, approval per versi, tayang butuh approval) ditolak database sendiri. Belum: backup terenkripsi + uji restore (saat VPS 2), dan isolasi data per klien di query (PR login/otorisasi).
 
+### Login (2026-10-12, Tahap 1 PR 2)
+
+Sudah diterapkan dari § 6: Argon2id, sesi di server (cookie `__Host-` HttpOnly/Secure/SameSite=Lax, token di-hash), CSRF token + cek Origin, kunci akun + throttle per email (tanpa membocorkan email terdaftar), sesi kedaluwarsa (idle 120 menit, maks 12 jam), 2FA TOTP wajib owner (secret terenkripsi, anti-replay), otorisasi peran di server, audit log, tanpa pendaftaran publik. Backend tidak dipanggil browser langsung. Belum: HTTPS + HSTS (wajib sebelum dipakai di server, butuh domain), batas login per IP di Nginx, 2FA untuk `content_lead`.
+
 ## 5. Supply Chain & Repo
 
 - `npm ci --ignore-scripts` di CI dan di server: script install dari paket npm tidak pernah dijalankan.

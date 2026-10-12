@@ -108,6 +108,7 @@ def test_init_env_fills_passwords(tmp_path):
     env = (tmp_path / ".env").read_text(encoding="utf-8")
     for name in ("POSTGRES_PASSWORD", "CLAU_DB_MIGRATOR_PASSWORD", "CLAU_DB_APP_PASSWORD"):
         assert re.search(rf"^{name}=[0-9a-f]{{48}}$", env, re.MULTILINE), name
+    assert re.search(r"^CLAU_SECRET_KEY=[0-9a-f]{96}$", env, re.MULTILINE)
     assert (tmp_path / ".env").stat().st_mode & 0o077 == 0, ".env harus chmod 600"
     first = env
     subprocess.run(["bash", str(tmp_path / "scripts" / "init-env.sh")], check=True, capture_output=True)

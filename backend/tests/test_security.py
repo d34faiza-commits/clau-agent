@@ -94,12 +94,22 @@ def test_internal_error_hides_details(monkeypatch):
     assert "secret" not in response.text and "/srv" not in response.text
 
 
-def test_only_read_endpoints_and_route():
-    # Tidak ada endpoint tulis selain /route (read-only lookup) dan tidak ada publish (AI-CONSTITUTION §4).
-    paths = {(m, r.path) for r in app.routes for m in getattr(r, "methods", set()) if m not in {"HEAD", "OPTIONS"}}
-    allowed = {("GET", "/health"), ("GET", "/agents"), ("GET", "/pillars"), ("POST", "/route")}
-    assert {p for p in paths if not p[1].startswith(("/docs", "/openapi"))} == allowed
-    assert not any("publish" in p for _, p in paths)
+ENDPOINTS = {
+    ("GET", "/health"), ("GET", "/agents"), ("GET", "/pillars"), ("POST", "/route"),
+    # Login & akun (Tahap 1 PR 2): butuh sesi + CSRF, kecuali login sendiri.
+    ("POST", "/auth/login"), ("GET", "/auth/me"), ("POST", "/auth/logout"), ("POST", "/auth/password"),
+    ("POST", "/auth/mfa/setup"), ("POST", "/auth/mfa/confirm"),
+    # Manajemen user: khusus owner.
+    ("GET", "/users"), ("POST", "/users"), ("PUT", "/users/{user_id}/memberships"),
+    ("POST", "/users/{user_id}/disable"), ("POST", "/users/{user_id}/enable"),
+}
+
+
+def test_endpoint_inventory_has_no_publish_or_send():
+    # Setiap endpoint baru harus tercatat di sini (ditinjau), dan tidak ada publish/kirim (AI-CONSTITUTION §4).
+    paths = {(m.upper(), path) for path, ops in app.openapi()["paths"].items() for m in ops}
+    assert paths == ENDPOINTS
+    assert not any(word in path for _, path in paths for word in ("publish", "send", "post-to"))
 
 
 def test_docs_disabled_in_production(monkeypatch):

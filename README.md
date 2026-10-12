@@ -51,9 +51,11 @@ cd frontend && npm install && npm run dev
 scripts/init-env.sh                        # sekali: .env (chmod 600) + password database acak
 docker compose up -d --build --wait        # db → migrate → backend http://127.0.0.1:8000 · frontend http://127.0.0.1:3000
 docker compose run --rm backend python -m app.db.seed   # opsional: 4 klien fiktif SIMULASI
+docker compose run --rm backend python -m app.auth.cli create-owner --email <email> --name "<nama>"   # owner pertama
 docker compose down                        # data tetap di volume db-data (hapus total: down -v)
 ```
 
+- **Login:** semua halaman wajib login (`CLAU_AUTH_ENABLED=1`). Browser hanya bicara ke frontend; `/api/*` diteruskan server Next.js ke backend lewat jaringan internal (keputusan VPS #1). Sesi cookie aman + CSRF, 2FA wajib owner, tanpa pendaftaran publik. Detail: [backend/README.md](./backend/README.md#login--hak-akses-050). VPS 1 (tanpa backend) tetap pratinjau SIMULASI tanpa login.
 - **Database:** PostgreSQL 16 tanpa port host. Service `migrate` (sekali jalan) membuat role & database lalu menjalankan migrasi Alembic; backend memakai **role aplikasi** tanpa hak DDL dan tidak pernah menerima password admin. Skema = `core/shared/database-schema.md`; Constraint Wajib ditegakkan di database (CHECK + trigger). Detail: [backend/README.md](./backend/README.md#database).
 
 - **Environment:** semua variabel ada di [`.env.example`](./.env.example) beserta artinya. `.env` tidak di-commit; secret (password database, API key AI, WhatsApp) hanya di `.env` lokal/server, tidak pernah di repo ([docs/security.md](./docs/security.md) § 6). Test `backend/tests/test_env.py` memastikan setiap variabel yang dibaca kode tercantum dan tidak ada secret di template.

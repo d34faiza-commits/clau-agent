@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Buat .env dari .env.example dengan password database acak (heksadesimal 48 karakter).
+# Buat .env dari .env.example dengan password database acak (heksadesimal 48 karakter) dan
+# CLAU_SECRET_KEY acak (96 karakter).
 # Tidak pernah menimpa .env yang sudah ada. .env dibuat chmod 600 dan tidak di-commit (.gitignore).
 #
 #   scripts/init-env.sh
@@ -17,5 +18,6 @@ umask 077
 sed -e "s/^POSTGRES_PASSWORD=\$/POSTGRES_PASSWORD=$(gen)/" \
     -e "s/^CLAU_DB_MIGRATOR_PASSWORD=\$/CLAU_DB_MIGRATOR_PASSWORD=$(gen)/" \
     -e "s/^CLAU_DB_APP_PASSWORD=\$/CLAU_DB_APP_PASSWORD=$(gen)/" \
+    -e "s/^CLAU_SECRET_KEY=\$/CLAU_SECRET_KEY=$(gen)$(gen)/" \
     .env.example > .env
 echo ".env dibuat (chmod 600) dengan password database acak"

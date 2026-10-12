@@ -17,9 +17,13 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy.exc import IntegrityError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-__version__ = "0.4.0"
+from app.auth.routes import router as auth_router
+from app.errors import ApiError, db_rule_code, error_body
+
+__version__ = "0.5.0"
 
 REGISTRY_PATH = Path(__file__).resolve().parents[2] / "agents" / "registry.json"
 
@@ -74,18 +78,6 @@ async def security_middleware(request: Request, call_next):
     return response
 
 
-class ApiError(Exception):
-    """Error with the contract shape {"error": {"code", "message"}} (core/shared/api-contracts.md)."""
-
-    def __init__(self, status_code: int, code: str, message: str) -> None:
-        super().__init__(message)
-        self.status_code, self.code, self.message = status_code, code, message
-
-
-def error_body(code: str, message: str) -> dict:
-    return {"error": {"code": code, "message": message}}
-
-
 @app.exception_handler(ApiError)
 async def api_error_handler(_: Request, exc: ApiError) -> JSONResponse:
     return JSONResponse(status_code=exc.status_code, content=error_body(exc.code, exc.message))
@@ -97,6 +89,13 @@ async def http_error_handler(_: Request, exc: StarletteHTTPException) -> JSONRes
     codes = {404: "not_found", 405: "method_not_allowed"}
     message = {404: "Endpoint tidak ada.", 405: "Method tidak diizinkan."}.get(exc.status_code, "Request ditolak.")
     return JSONResponse(status_code=exc.status_code, content=error_body(codes.get(exc.status_code, "http_error"), message), headers=getattr(exc, "headers", None))
+
+
+@app.exception_handler(IntegrityError)
+async def integrity_error_handler(_: Request, exc: IntegrityError) -> JSONResponse:
+    # Aturan yang ditolak database (CHECK/trigger, migrasi 0001): kode aturan saja, tanpa detail SQL.
+    code = db_rule_code(str(exc.orig))
+    return JSONResponse(status_code=409, content=error_body(code, "Data ditolak aturan sistem."))
 
 
 @app.exception_handler(Exception)
@@ -164,3 +163,6 @@ def route(request: RouteRequest) -> dict:
                 "next_step": "produce_draft" if agent["status"] == "active" else "escalate_to_owner",
             }
     raise ApiError(404, "unknown_intent", f"Intent '{request.intent}' tidak dikenal; tanya requester.")
+
+
+app.include_router(auth_router)

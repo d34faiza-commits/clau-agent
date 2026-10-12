@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import Icon, { type IconName } from "./Icon";
+import UserMenu from "./UserMenu";
 import Logo from "./Logo";
 import { L, useL, useLang } from "../lib/i18n";
 import { useTheme } from "../lib/theme";
@@ -126,9 +127,7 @@ export default function AppShell({ children, activeAgents }: { children: ReactNo
           <button type="button" className="icon-btn icon-btn--ghost topbar__notify" aria-label={tr("Notifications (not available yet)", "Notifikasi (belum tersedia)")} disabled>
             <Icon name="bell" size={18} />
           </button>
-          <span className="avatar-user" title={tr("Owner (preview)", "Owner (pratinjau)")}>
-            <Icon name="user" size={16} />
-          </span>
+          <UserMenu />
         </header>
         <main className="content">{children}</main>
       </div>
