@@ -1,6 +1,6 @@
 # Frontend (Next.js) — UI v2 Enterprise
 
-Platform **CLAU AI** (modul aktif: Content Studio; tampilan v2) mengikuti [`docs/design/2026-10-07-enterprise-ui-brief.txt`](../docs/design/2026-10-07-enterprise-ui-brief.txt). Belum ada login, database, atau koneksi ke backend AI.
+Platform **CLAU AI** (modul aktif: Content Studio; tampilan v2) mengikuti [`docs/design/2026-10-07-enterprise-ui-brief.txt`](../docs/design/2026-10-07-enterprise-ui-brief.txt). Login (`/login`, `/account`, `/users`) aktif bila `CLAU_AUTH_ENABLED=1` dan `CLAU_BACKEND_URL` terisi (docker compose / VPS 2); di VPS 1 (tanpa backend) halaman itu menampilkan "login belum aktif" dan data tetap contoh SIMULASI. Belum ada koneksi ke AI model.
 
 ## Versi UI
 
@@ -51,6 +51,9 @@ Platform **CLAU AI** (modul aktif: Content Studio; tampilan v2) mengikuti [`docs
 | `/workflows` | Alur brief → agent → cek otomatis → review manusia → publish oleh manusia |
 | `/reports` | Produksi konten; engagement **tidak** ditampilkan sampai data platform asli tersedia |
 | `/settings` | Workspace & integrasi (read-only) |
+| `/login` | Masuk: password → kode 2FA atau kode cadangan |
+| `/account` | Akun: ganti password, aktifkan 2FA (QR), kode cadangan, sesi aktif & keluar semua perangkat |
+| `/users` | Owner: buat user, ubah peran/klien, nonaktifkan/aktifkan |
 
 ## Data
 

@@ -2,7 +2,7 @@
 
 **Platform CLAU AI**: tempat agent menjalankan skill dari repo pilar untuk bisnis hospitality Indonesia. Repo ini berisi kode (frontend Next.js, backend FastAPI) dan **registry agent**. Aturan isi konten tidak ditulis di sini; aturan ada di [clau-ai-core](https://github.com/d34faiza-commits/clau-ai-core) (submodule `core/`) dan repo pilar.
 
-> **Status:** Private — v0.1.0, **scaffold** (split dari `CLAU-AI-CONTENT`, 2026-10-04). Belum ada database, autentikasi, atau pemanggilan AI model.
+> **Status:** Private. Backend v0.6.0: PostgreSQL 16 (migrasi 0001–0003), login + 2FA (QR & kode cadangan) + `/users`, backup terenkripsi. Belum ada workflow request/draft/approval di API (Tahap 1 PR 3) dan pemanggilan AI model. Status kerja terkini: [status & handoff](https://github.com/d34faiza-commits/CLAU-AI-CONTENT/blob/main/docs/status.md).
 
 ## Prinsip Platform
 
@@ -17,14 +17,15 @@ clau-ai-agents/
 ├── README.md · SUBMODULE.md · ACKNOWLEDGMENT.md · LICENSE
 ├── core/                 # submodule → clau-ai-core
 ├── agents/
-│   ├── README.md
-│   └── registry.json     # agent → intent → skill/prompt/template di repo pilar
-├── backend/              # FastAPI: /health, /agents, /pillars, /route (read-only)
-│   ├── app/main.py · requirements.txt · pytest.ini
-│   └── tests/            # test API + konsistensi registry ↔ core router
-├── frontend/             # Next.js 16 (App Router): halaman registry agent
-│   ├── app/layout.tsx · app/page.tsx · next.config.mjs · package.json · package-lock.json · tsconfig.json
-├── scripts/              # sync-submodules.sh, check-core-pins.sh, deploy/ (VPS 1)
+│   ├── README.md · registry.json   # agent → intent → skill/prompt/template di repo pilar
+│   └── avatars/ · personas/ · evals/
+├── backend/              # FastAPI: /health, /agents, /pillars, /route, /auth/*, /users
+│   ├── app/main.py · app/auth/ · app/db/ · Dockerfile · requirements*.txt
+│   ├── migrations/       # Alembic 0001–0003 (skema = core/shared/database-schema.md)
+│   └── tests/            # API, auth, database sungguhan, konsistensi registry ↔ core router
+├── frontend/             # Next.js 16 (App Router): registry agent, /login, /account, /users; Dockerfile
+├── docs/                 # security.md, post-vps-checklist.md, deploy/vps-1-setup.md, design/
+├── scripts/              # init-env.sh, db-backup.sh/db-restore.sh, sync-submodules.sh, check-core-pins.sh, deploy/ (VPS 1)
 ├── docker-compose.yml    # backend + frontend dalam container (port hanya 127.0.0.1)
 ├── .env.example          # semua variabel environment (tanpa secret); salin ke .env
 └── .github/workflows/    # ci.yml, cross-repo-validate.yml, sync-submodules.yml, notify-downstream.yml, main-guard.yml
@@ -56,23 +57,23 @@ scripts/db-backup.sh                       # backup terenkripsi; uji: scripts/db
 docker compose down                        # data tetap di volume db-data (hapus total: down -v)
 ```
 
-- **Login:** semua halaman wajib login (`CLAU_AUTH_ENABLED=1`). Browser hanya bicara ke frontend; `/api/*` diteruskan server Next.js ke backend lewat jaringan internal (keputusan VPS #1). Sesi cookie aman + CSRF, 2FA wajib owner (QR + kode cadangan), tanpa pendaftaran publik; owner mengelola akun di `/users`. Detail: [backend/README.md](./backend/README.md#login--hak-akses-050). VPS 1 (tanpa backend) tetap pratinjau SIMULASI tanpa login.
+- **Login:** semua halaman wajib login (`CLAU_AUTH_ENABLED=1`). Browser hanya bicara ke frontend; `/api/*` diteruskan server Next.js ke backend lewat jaringan internal (keputusan VPS #1). Sesi cookie aman + CSRF, 2FA wajib owner (QR + kode cadangan), tanpa pendaftaran publik; owner mengelola akun di `/users`. Detail: [backend/README.md](./backend/README.md#login--hak-akses-050-diperkuat-060). VPS 1 (tanpa backend) tetap pratinjau SIMULASI tanpa login.
 - **Database:** PostgreSQL 16 tanpa port host. Service `migrate` (sekali jalan) membuat role & database lalu menjalankan migrasi Alembic; backend memakai **role aplikasi** tanpa hak DDL dan tidak pernah menerima password admin. Skema = `core/shared/database-schema.md`; Constraint Wajib ditegakkan di database (CHECK + trigger). Detail: [backend/README.md](./backend/README.md#database).
 
 - **Environment:** semua variabel ada di [`.env.example`](./.env.example) beserta artinya. `.env` tidak di-commit; secret (password database, API key AI, WhatsApp) hanya di `.env` lokal/server, tidak pernah di repo ([docs/security.md](./docs/security.md) § 6). Test `backend/tests/test_env.py` memastikan setiap variabel yang dibaca kode tercantum dan tidak ada secret di template.
 - **Image:** `backend/Dockerfile` (Python 3.12, dependency runtime saja: `backend/requirements-runtime.txt`) dan `frontend/Dockerfile` (Node 22, Next.js output standalone). Base image dipin ke digest dan diperbarui Dependabot. Build context = root repo dengan `.dockerignore` allowlist, jadi `.env`, `.git`, dan `core/` tidak pernah ikut ke image.
 - **Pengamanan container:** user non-root, filesystem read-only, tanpa capability Linux, `no-new-privileges`, batas memori & proses, port hanya di `127.0.0.1` (publik lewat Nginx + TLS). Dicek job CI `docker`.
-- **VPS 1** tetap memakai deploy tarik + systemd ([docs/deploy/vps-1-setup.md](./docs/deploy/vps-1-setup.md)); compose ini dipakai untuk kerja lokal dan menjadi dasar deploy VPS 2.
+- **VPS 1** tetap memakai deploy tarik + systemd dengan user khusus `clau-web` / `clau-deploy` dan cek harian `clau-vps1-check` ([docs/deploy/vps-1-setup.md](./docs/deploy/vps-1-setup.md)); compose ini dipakai untuk kerja lokal dan menjadi dasar deploy VPS 2.
 
 ## Roadmap Platform
 
 | Tahap | Isi | Status |
 |---|---|---|
-| 0 | Scaffold + registry + router statis | ✅ Repo ini |
-| 1 | Form request → `POST /requests` + priority engine | Planned |
-| 2 | Pemanggilan AI model per skill, simpan draft + tabel klaim | Planned |
-| 3 | QA record + approval workflow (review independen L2/L3) | Planned |
-| 4 | Database sesuai `core/shared/database-schema.md` | Planned |
+| 0 | Scaffold + registry + router statis | ✅ |
+| 1 · PR 1 | Database sesuai `core/shared/database-schema.md` (PostgreSQL 16, Constraint Wajib di database) | ✅ 0.4.0 |
+| 1 · PR 2 / 2b | Login, hak akses, 2FA, `/users`, backup terenkripsi, audit keamanan | ✅ 0.5.0 / 0.6.0 |
+| 1 · PR 3 | Request → draft → QA → approval di API (review independen L2/L3 dicek server) | Berikutnya |
+| 2 | Pemanggilan AI model per skill, simpan draft + tabel klaim (VPS 2) | Planned |
 
 Setiap tahap tetap Level 1 otomasi (manusia yang publish), kecuali owner menyetujui level lebih tinggi lewat revisi Constitution.
 

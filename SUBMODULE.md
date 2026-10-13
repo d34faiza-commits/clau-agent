@@ -6,7 +6,7 @@ Panduan Git submodule untuk tiga repo CLAU AI. File ini identik di `clau-ai-mark
 
 ```text
 clau-ai-marketing
-├── core/      → clau-ai-core     (branch main)
+├── core/      → clau-ai-core     (= pin agents/core, bukan main core)
 └── agents/    → clau-ai-agents   (branch main)
     └── core/  → clau-ai-core     (pin milik clau-ai-agents)
 
@@ -27,7 +27,8 @@ Prinsip yang perlu diingat:
 - **Submodule = pin ke satu commit**, bukan salinan yang ikut berubah otomatis. Repo induk menyimpan hash commit submodule; isi file tetap di repo aslinya.
 - **Edit di repo asal**, bukan di folder submodule. Perubahan di `core/` atau `agents/` di dalam repo lain tidak ikut ke repo aslinya dan akan tertimpa saat sync.
 - Semua repo **private**: akun atau token yang meng-clone harus punya akses ke ketiga repo.
-- `agents/core/` mengikuti pin milik clau-ai-agents. Script sync dan workflow mengecek pin core sama di semua tempat (`scripts/check-core-pins.sh`).
+- `agents/core/` mengikuti pin milik clau-ai-agents, dan `core/` di marketing disamakan dengan pin itu. Core baru masuk marketing hanya setelah agents lulus test terhadapnya. Pin beda = gagal (`scripts/check-core-pins.sh --strict` di script sync dan `cross-repo-validate`).
+- **`main` wajib lewat PR dengan CI hijau** (core `AI-BOUNDARY.md` § Disiplin Push), juga untuk bump submodule. Script menolak push langsung ke `main`.
 
 ## 2. Clone Pertama Kali
 
@@ -40,23 +41,25 @@ git submodule update --init --recursive
 
 ## 3. Cara Update Submodule
 
-Cara paling aman adalah memakai script. Script ini menjalankan validator sebelum commit dan membuat satu commit per submodule, sesuai `core/AI-BOUNDARY.md` §Multi-Repo & Submodule:
+Biasanya tidak perlu manual: workflow `sync-submodules` membuat PR bump otomatis (§ 5). Bila perlu manual, pakai script. Script menjalankan validator sebelum commit dan membuat satu commit per submodule, sesuai `core/AI-BOUNDARY.md` §Multi-Repo & Submodule:
 
 ```bash
-scripts/sync-submodules.sh              # sync ke terbaru + validasi + commit + push
+scripts/sync-submodules.sh --pr-branch chore/bump-submodules   # sync + validasi + commit + push branch, lalu buka PR
 scripts/sync-submodules.sh --dry-run    # lihat perubahan saja, tanpa commit
-scripts/sync-submodules.sh --no-push    # commit lokal, push sendiri nanti
+scripts/sync-submodules.sh --no-push    # commit lokal saja
 ```
 
 Manual (kalau perlu kontrol penuh), contoh untuk `core`:
 
 ```bash
-git submodule update --remote core      # ambil commit terbaru branch main di clau-ai-core
+git switch -c chore/bump-core
+git submodule update --remote core      # agents: commit terbaru main core. Marketing: samakan dengan agents/core
 git -C core log --oneline -5            # cek apa yang berubah
 python3 scripts/validate.py --require-submodules   # (marketing) atau: cd backend && pytest (agents)
+bash scripts/check-core-pins.sh --strict
 git add core
 git commit -m "chore(core): bump core to $(git -C core rev-parse --short HEAD)"
-git push
+git push -u origin chore/bump-core      # lalu buka PR ke main, merge setelah CI hijau
 ```
 
 Untuk mengunci submodule ke commit tertentu (rollback):
@@ -86,9 +89,10 @@ git config submodule.recurse true
 
 | Workflow | Repo | Trigger | Fungsi |
 |---|---|---|---|
-| `notify-downstream.yml` | core, agents | Push ke `main` | Kirim `repository_dispatch` (`submodule-updated`) ke repo konsumen: core → agents & marketing; agents → marketing |
-| `sync-submodules.yml` | marketing, agents | Harian 06.17 WITA, manual, `submodule-updated` | Jalankan `scripts/sync-submodules.sh --pr-branch bot/sync-submodules`: majukan pin, validasi, commit `chore(<path>): bump …`, push ke branch `bot/sync-submodules`, lalu buka PR ke `main` (workflow menunggu semua check PR; merge hanya bila hijau, merah = PR dibiarkan terbuka dan job gagal) |
-| `cross-repo-validate.yml` | marketing, agents | Push, PR, manual, `submodule-updated` | Checkout semua submodule, lalu validator core, validator repo dengan `--require-submodules`, test backend agents terhadap router core, dan cek pin core |
+| `notify-downstream.yml` | core, agents | Push ke `main` | Kirim `repository_dispatch` (`submodule-updated`): core → agents; agents → marketing (marketing menerima core lewat agents) |
+| `sync-submodules.yml` | marketing, agents | Harian 06.17 WITA, manual, `submodule-updated` | Jalankan `scripts/sync-submodules.sh --pr-branch bot/sync-submodules`: majukan pin, validasi, commit `chore(<path>): bump …`, push ke branch `bot/sync-submodules`, lalu buka PR ke `main` (workflow menunggu semua run check wajib di head PR; merge hanya bila hijau dan head tidak berubah, merah = PR dibiarkan terbuka dan job gagal; PR bot basi ditutup otomatis) |
+| `cross-repo-validate.yml` | marketing, agents | Push, PR, manual | Checkout semua submodule (token tidak disimpan untuk step berikutnya), lalu validator core, validator repo dengan `--require-submodules`, test backend agents terhadap router core, dan pin core wajib sama. Tanpa token = gagal |
+| `main-guard.yml` | core, marketing, agents | Push ke `main` | Push harus dari PR yang di-merge setelah **semua** run check wajib (dari GitHub Actions) hijau; PR yang mengubah workflow ditandai warning |
 | `validate.yml` / `ci.yml` | semua | Push, PR | Validasi tanpa submodule (tidak butuh token); referensi ke submodule dilewati |
 
 Kalau validasi gagal, sync **tidak** commit dan workflow merah. Pin lama tetap dipakai sampai masalahnya diperbaiki di repo asal.
@@ -99,14 +103,14 @@ Kalau validasi gagal, sync **tidak** commit dan workflow merah. Pin lama tetap d
 
 1. GitHub → **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
 2. **Repository access:** *Only select repositories* → `clau-ai-core`, `clau-ai-marketing`, `clau-ai-agents`.
-3. **Permissions → Repository permissions → Contents: Read and write** dan **Pull requests: Read and write** (bot membuka PR sync karena `main` terproteksi). Metadata (read) otomatis ikut.
-   Aktifkan juga **Settings → General → Allow auto-merge** di clau-ai-marketing dan clau-ai-agents agar PR sync ter-merge lewat auto-merge bila proteksi `main` dipaksa server. Tanpa itu, workflow tetap menunggu CI hijau sebelum merge.
+3. **Permissions → Repository permissions → Contents: Read and write** dan **Pull requests: Read and write** (bot membuka PR sync karena `main` wajib lewat PR; GitHub Free tidak memaksanya di server, jadi workflow sendiri menunggu CI hijau sebelum merge). Metadata (read) otomatis ikut.
 4. Expiration: pilih tanggal, lalu catat tanggal perpanjangannya.
 5. Simpan token sebagai secret **`SUBMODULE_TOKEN`** di **ketiga** repo: repo → **Settings → Secrets and variables → Actions → New repository secret**.
+6. **Disarankan:** buat token kedua yang **read-only** (repo sama, **Contents: Read-only** saja) dan simpan sebagai **`SUBMODULE_READ_TOKEN`** di clau-ai-marketing dan clau-ai-agents, di **Actions secrets** dan **Dependabot secrets** (Settings → Secrets and variables → Dependabot). `cross-repo-validate` memakainya lebih dulu; PR Dependabot tidak bisa membaca Actions secrets.
 
-Selama secret belum ada, workflow `sync-submodules`, `cross-repo-validate`, dan `notify-downstream` tetap hijau tapi dilewati, dengan notice "SUBMODULE_TOKEN belum diset".
+Tanpa token, `sync-submodules` dan `notify-downstream` dilewati (notice), sedangkan `cross-repo-validate` **gagal**: check wajib tidak boleh hijau tanpa memvalidasi apa pun.
 
-**RISK:** token ini bisa menulis ke ketiga repo. Jangan simpan token di file, jangan bagikan, dan cabut (revoke) kalau bocor. Commit dari bot tercatat atas nama `github-actions[bot]`.
+**RISK:** `SUBMODULE_TOKEN` bisa menulis ke ketiga repo; hanya workflow dari kode `main` (sync, notify) yang memakainya untuk menulis. Jangan simpan token di file, jangan bagikan, dan cabut (revoke) kalau bocor. Commit bump dibuat atas nama `github-actions[bot]`; merge PR tercatat atas nama pemilik token. Catat tanggal kedaluwarsa token: saat habis, `cross-repo-validate` merah di semua PR.
 
 ## 6. Troubleshooting
 

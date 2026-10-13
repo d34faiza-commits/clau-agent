@@ -15,10 +15,15 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [next, setNext] = useState("/");
+  // VPS 1 (pratinjau tanpa backend): form tidak ditampilkan, karena login memang belum aktif di sana.
+  const [preview, setPreview] = useState(false);
 
   useEffect(() => {
     document.title = `${tr("Sign in", "Masuk")} · CLAU AI`;
     setNext(safeNext(new URLSearchParams(window.location.search).get("next")));
+    api<Me>("auth/me").then((r) => {
+      if (!r.ok && r.code === "backend_unavailable") setPreview(true);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -53,43 +58,49 @@ export default function LoginPage() {
       <PageHeader title={<L en="Sign in" id="Masuk" />} subtitle={<L en="Agency staff and client approvers. Accounts are created by the owner." id="Staf agency dan approver klien. Akun dibuat oleh owner." />} />
       <div className="auth-narrow">
         <Card>
-          <form onSubmit={submit} className="auth-form" noValidate>
-            <div className="field">
-              <label htmlFor="email">Email</label>
-              <input id="email" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={step !== "password"} />
-            </div>
-            <div className="field">
-              <label htmlFor="password">
-                <L en="Password" id="Password" />
-              </label>
-              <input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={step !== "password"} />
-            </div>
-            {step === "totp" && (
+          {preview ? (
+            <p className="muted">
+              <L en="Sign-in is not active on this server yet (preview with sample data)." id="Login belum aktif di server ini (pratinjau dengan data contoh)." />
+            </p>
+          ) : (
+            <form onSubmit={submit} className="auth-form" noValidate>
               <div className="field">
-                <label htmlFor="code">{tr("6-digit code from your authenticator app", "Kode 6 digit dari aplikasi authenticator")}</label>
-                <input id="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} required autoFocus value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} />
+                <label htmlFor="email">Email</label>
+                <input id="email" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={step !== "password"} />
               </div>
-            )}
-            {step === "recovery" && (
               <div className="field">
-                <label htmlFor="recovery">{tr("Backup code (e.g. abcde-fghij)", "Kode cadangan (mis. abcde-fghij)")}</label>
-                <input id="recovery" autoComplete="off" autoCapitalize="none" spellCheck={false} maxLength={20} required autoFocus value={code} onChange={(e) => setCode(e.target.value)} />
+                <label htmlFor="password">
+                  <L en="Password" id="Password" />
+                </label>
+                <input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={step !== "password"} />
               </div>
-            )}
-            {error && (
-              <p className="auth-error" role="alert">
-                {error}
-              </p>
-            )}
-            <button type="submit" className="btn btn--primary" disabled={busy || !email || !password || !codeValid}>
-              {busy ? tr("Checking…", "Memeriksa…") : step === "password" ? tr("Sign in", "Masuk") : tr("Verify", "Verifikasi")}
-            </button>
-            {step !== "password" && (
-              <button type="button" className="link-btn" onClick={useRecovery}>
-                {step === "totp" ? tr("Lost your phone? Use a backup code", "HP hilang? Pakai kode cadangan") : tr("Use the authenticator app instead", "Pakai aplikasi authenticator saja")}
+              {step === "totp" && (
+                <div className="field">
+                  <label htmlFor="code">{tr("6-digit code from your authenticator app", "Kode 6 digit dari aplikasi authenticator")}</label>
+                  <input id="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} required autoFocus value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} />
+                </div>
+              )}
+              {step === "recovery" && (
+                <div className="field">
+                  <label htmlFor="recovery">{tr("Backup code (e.g. abcde-fghij)", "Kode cadangan (mis. abcde-fghij)")}</label>
+                  <input id="recovery" autoComplete="off" autoCapitalize="none" spellCheck={false} maxLength={20} required autoFocus value={code} onChange={(e) => setCode(e.target.value)} />
+                </div>
+              )}
+              {error && (
+                <p className="auth-error" role="alert">
+                  {error}
+                </p>
+              )}
+              <button type="submit" className="btn btn--primary" disabled={busy || !email || !password || !codeValid}>
+                {busy ? tr("Checking…", "Memeriksa…") : step === "password" ? tr("Sign in", "Masuk") : tr("Verify", "Verifikasi")}
               </button>
-            )}
-          </form>
+              {step !== "password" && (
+                <button type="button" className="link-btn" onClick={useRecovery}>
+                  {step === "totp" ? tr("Lost your phone? Use a backup code", "HP hilang? Pakai kode cadangan") : tr("Use the authenticator app instead", "Pakai aplikasi authenticator saja")}
+                </button>
+              )}
+            </form>
+          )}
         </Card>
       </div>
     </>

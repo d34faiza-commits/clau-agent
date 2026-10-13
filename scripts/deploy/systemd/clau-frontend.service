@@ -2,10 +2,13 @@
 Description=CLAU AI frontend (Next.js)
 After=network.target
 
-# docs/security.md §4: proses web dikurung. Bila ada celah di aplikasi, penyerang tidak bisa menulis ke
-# sistem, membaca /home (SSH key, deploy key), memuat modul kernel, atau menaikkan hak akses.
+# docs/security.md §4: proses web dikurung. Bila ada celah di aplikasi, penyerang tidak bisa menulis apa pun
+# (termasuk kode rilis), membaca /home atau deploy key, menghubungi internet, memuat modul kernel, atau
+# menaikkan hak akses. User clau-web tanpa login & tanpa sudo; file rilis milik clau-deploy (hanya dibaca).
+# Dipasang oleh scripts/deploy/vps1-harden.sh (docs/deploy/vps-1-setup.md § 8).
 [Service]
-User=dea
+User=clau-web
+Group=clau-web
 WorkingDirectory=/srv/clau/current/frontend
 Environment=NODE_ENV=production
 Environment=NEXT_TELEMETRY_DISABLED=1
@@ -14,9 +17,8 @@ Restart=on-failure
 RestartSec=3
 
 NoNewPrivileges=true
+# Semua read-only: dashboard tidak memakai ISR/next/image, jadi Next.js tidak menulis ke .next/ (diuji 27 halaman).
 ProtectSystem=strict
-# Next.js menulis cache ISR ke .next/ di folder rilis.
-ReadWritePaths=/srv/clau/releases
 ProtectHome=true
 PrivateTmp=true
 PrivateDevices=true
@@ -28,6 +30,9 @@ ProtectClock=true
 ProtectHostname=true
 ProtectProc=invisible
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+# Jaringan hanya localhost (Nginx) dan Tailscale (backend VPS 2 nanti, termasuk MagicDNS 100.100.100.100).
+IPAddressDeny=any
+IPAddressAllow=localhost 100.64.0.0/10 fd7a:115c:a1e0::/48
 RestrictNamespaces=true
 RestrictRealtime=true
 RestrictSUIDSGID=true

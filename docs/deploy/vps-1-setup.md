@@ -2,7 +2,7 @@
 
 > Panduan dan catatan status setup VPS 1 (`clau-vps1`), server untuk frontend Next.js. Keputusan dasar ada di [`../post-vps-checklist.md`](../post-vps-checklist.md). IP server **tidak** ditulis di repo; gunakan `<IP_VPS_1>`.
 
-## 1. Status (diperbarui 2026-10-09)
+## 1. Status (diperbarui 2026-10-13)
 
 | Bagian | Status |
 |---|---|
@@ -13,8 +13,9 @@
 | 8. Deploy frontend (akses via IP, HTTP) | DATA FINAL — 2026-10-07: service `clau-frontend` active, Nginx proxy ke 127.0.0.1:3000, halaman registry tampil di `http://<IP_VPS_1>` |
 | 9. Auto-deploy dari repo (pull-based) | DATA FINAL — 2026-10-07: `clau-deploy.timer` aktif (5 menit), service frontend memakai `/srv/clau/current` |
 | Cek kesehatan 2026-10-08 | DATA FINAL — `clau-frontend`, nginx, fail2ban, `clau-deploy.timer` active; `/team` HTTP 200; rilis live = `main` (`8948618`), commit tanpa perubahan frontend dilewati build; UFW 22/80/443; disk 11%, RAM tersedia 3,3 GB; 0 update keamanan tertunda |
-| 10. Domain + Cloudflare + SSL | Ditunda — domain belum ditentukan |
-| 11. Backup config (tanpa `.env`) | Ditunda — setelah domain & Tailscale |
+| 10. Domain + Cloudflare + SSL | Ditunda — domain belum ada (owner, 2026-10-13). Selama itu VPS 1 tetap pratinjau tanpa login |
+| 11. Backup config (tanpa `.env`) | Siap pasang (§ 8): mingguan ke `/var/backups/clau/`; salinan di luar server menyusul bersama Backblaze B2 (VPS 2) |
+| 13. User khusus, jaringan web dikunci, cek & backup rutin | Siap pasang (§ 8) — diuji 2026-10-13 di Ubuntu 24.04 + systemd (container): deploy, sandbox, rollback, jalankan ulang. NEXT ACTION: owner menjalankan § 8 dan mengirim hasil `sudo clau-vps1-check` |
 | 12. Pengerasan keamanan aplikasi (header, Nginx, sandbox systemd) | DATA FINAL — 2026-10-09: rilis `8acf7a4` live (CSP & `X-Frame-Options: DENY` ada, `X-Powered-By` hilang); Nginx `scripts/deploy/nginx/clau.conf` terpasang (`nginx -t` OK; `/` 200, POST 405, `/.env` 404); `clau-frontend.service` sandbox terpasang, `active`, `systemd-analyze security` = **1.4 OK**. Backup: `/etc/nginx/sites-available/clau.bak`, `/etc/systemd/system/clau-frontend.service.bak`. Proteksi `main` + Dependabot alerts: aktif (owner, 2026-10-09) |
 
 ## 2. Aturan
@@ -248,8 +249,50 @@ Bila tidak `active` atau curl gagal: `journalctl -u clau-frontend -n 30 --no-pag
 
 **c. GitHub** (owner): Settings → Branches → proteksi `main` (wajib PR, CI hijau termasuk job `audit`). Settings → Code security → aktifkan Dependabot alerts & security updates.
 
-## 8. RISK
+## 8. Bagian 13 — User Khusus, Cek & Backup Rutin (2026-10-13)
+
+Tanpa domain, ini langkah terakhir agar VPS 1 maksimal untuk perannya sekarang (pratinjau tanpa login/data).
+
+| Sebelum | Sesudah |
+|---|---|
+| Frontend dan deploy jalan sebagai `dea` (admin, punya sudo) | Frontend = `clau-web` (tanpa login/sudo, hanya membaca); deploy = `clau-deploy` (pemilik `/srv/clau` + deploy key, sudo hanya restart frontend) |
+| Proses web bisa menulis folder rilis & menghubungi internet | Semua read-only; jaringan hanya localhost + Tailscale |
+| Cek kesehatan manual, perintah satu per satu | `sudo clau-vps1-check`: satu daftar OK / PERLU DICEK / GAGAL |
+| Backup config belum ada | Mingguan (Minggu 02:00), tanpa `.env`/private key, 8 terakhir |
+| Update kernel menunggu reboot manual | Reboot otomatis 03:30 WITA bila update keamanan memerlukannya (pratinjau mati ±1 menit) |
+
+**Pasang** (sekali; ulangi bila file di `scripts/deploy/` berubah). Login `ssh dea@<IP_VPS_1>`, lalu satu perintah per baris:
+
+```bash
+sudo journalctl -u clau-deploy -n 3 --no-pager      # pastikan commit ini sudah ter-pull (≤ 5 menit setelah merge)
+sudo bash /srv/clau/clau-ai-agents/scripts/deploy/vps1-harden.sh
+```
+
+Script berhenti dan **mengembalikan semuanya otomatis** bila satu langkah gagal (frontend tetap hidup sebagai `dea`); kirim outputnya ke agent. Hasil akhir = daftar `clau-vps1-check`. Yang wajib OK: Layanan, Aplikasi, Deploy, Keamanan server.
+
+**Rutin** (mis. tiap Senin, atau setelah ada masalah):
+
+```bash
+sudo clau-vps1-check                                # screenshot hasilnya bila ada GAGAL
+```
+
+Sesudah tahap ini, `dea` tidak bisa membaca `/srv/clau` tanpa sudo (disengaja). Perintah operasional jadi:
+
+```bash
+sudo journalctl -u clau-deploy -n 30 --no-pager     # log deploy
+sudo systemctl start clau-deploy                     # deploy sekarang (tanpa menunggu 5 menit)
+sudo -u clau-deploy /srv/clau/clau-ai-agents/scripts/deploy/vps1-deploy.sh --force   # paksa build ulang
+sudo ls -1t /var/backups/clau/                       # backup config
+```
+
+Rollback manual ke rilis sebelumnya: `sudo -u clau-deploy ln -sfn /srv/clau/releases/<folder> /srv/clau/current` lalu `sudo systemctl restart clau-frontend`. Kembali ke keadaan sebelum § 8: unit lama tersimpan di `/var/backups/clau/pre-harden-<waktu>/`.
+
+**Tailscale (owner, admin console, ±5 menit):** hapus entri lama `clau-vps1-aja`; **Disable key expiry** untuk `clau-vps1` (tanpa ini VPS 1 terputus dari tailnet saat key habis). ACL dibuat saat VPS 2 bergabung.
+
+## 9. RISK
 
 - Selama belum ada domain + SSL, akses masih **HTTP via IP**. Aman untuk scaffold saat ini (tidak ada login/data), tetapi **jangan** menambahkan login, form, atau data client sebelum Bagian 9 (HTTPS) selesai.
-- Service masih berjalan sebagai user `dea`. Pindahkan ke user service khusus (non-login) sebelum produksi dengan data client.
+- Sampai § 8 dipasang, service masih berjalan sebagai user `dea`.
+- `vps1-harden.sh` dijalankan root dari folder repo milik `clau-deploy`. Isinya = `main` di GitHub (ditarik deploy key), jadi kepercayaan sama dengan kode yang tayang; jalankan hanya setelah PR terkait di-merge.
+- Deploy mengambil `main` tanpa menunggu CI di `main` selesai (server tidak punya akses API GitHub). Penjaga saat ini: `main` wajib lewat PR dengan CI hijau. Usulan gerbang `release/vps1` (hanya commit yang CI-nya hijau yang tayang) menunggu persetujuan owner.
 - Push ke `main` tampil di VPS 1 dalam ±5 menit. `main` harus lewat CI hijau (build frontend sudah dicek di CI) dan wajib lewat PR dengan CI hijau (`core/AI-BOUNDARY.md` § Disiplin Push, dijaga `main-guard`) agar perubahan tidak langsung live tanpa dicek.

@@ -1,0 +1,8 @@
+[Unit]
+Description=CLAU VPS 1 config backup (tanpa secret)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/clau-backup-config
+PrivateTmp=true
+ProtectHome=read-only
