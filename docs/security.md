@@ -1,14 +1,14 @@
 # Keamanan Platform CLAU AI
 
-> Status per 2026-10-09: dashboard VPS 1 (frontend Next.js, HTTP via IP) + backend FastAPI read-only (belum di-deploy). Belum ada database, login, atau pemanggilan model AI. Dokumen ini mencatat ancaman yang sudah ditangani, cara memasang perlindungan di server, dan **aturan wajib** sebelum fitur berisiko (login, data client, AI, WhatsApp) dibangun di VPS 2.
+> Status per 2026-10-13: VPS 1 = pratinjau frontend (HTTP via IP, tanpa backend, tanpa login, data SIMULASI). Backend 0.6.0 (PostgreSQL 16, login + 2FA, `/users`, backup terenkripsi) sudah dibangun dan dites lokal/CI, **belum di-deploy** (menunggu VPS 2 + domain/HTTPS). Belum ada pemanggilan model AI. Dokumen ini mencatat ancaman yang sudah ditangani, cara memasang perlindungan di server, dan **aturan wajib** sebelum fitur berisiko (login, data client, AI, WhatsApp) dibangun di VPS 2.
 
 ## 1. Ringkasan Audit 2026-10-09
 
 | Serangan | Status sekarang | Alasan / perlindungan |
 |---|---|---|
-| SQL injection | Tidak berlaku sekarang | Belum ada database. Input `/route` dibatasi pola `^[a-z0-9-]+$` (≤ 64). Aturan untuk VPS 2: § 6 |
+| SQL injection | Tertutup | Semua query lewat SQLAlchemy berparameter; role aplikasi tanpa hak DDL (§ Database). Input `/route` dibatasi pola `^[a-z0-9-]+$` (≤ 64) |
 | SSRF | Tertutup | Server tidak pernah mengambil URL dari input. Optimizer `/_next/image` dimatikan (`images.unoptimized`) |
-| CSRF / XSRF | Tidak berlaku sekarang | Tidak ada cookie, sesi, atau endpoint yang mengubah data. Nginx hanya menerima GET/HEAD. Aturan login: § 6 |
+| CSRF / XSRF | Tertutup (backend 0.5.0+) | Token CSRF terikat sesi (HMAC) + cek `Origin`/`Sec-Fetch-Site` + cookie `SameSite=Lax`. VPS 1: Nginx hanya menerima GET/HEAD |
 | XSS | Terlindungi | React meng-escape semua teks; satu-satunya `dangerouslySetInnerHTML` adalah skrip tema konstan. CSP membatasi script ke domain sendiri |
 | Clickjacking | Tertutup | `X-Frame-Options: DENY` + CSP `frame-ancestors 'none'` |
 | Path traversal | Tertutup | Id agent divalidasi sebelum membaca file persona/eval; route dinamis hanya id dari registry (`dynamicParams = false`) |
@@ -26,7 +26,7 @@ Hasil saat audit: `npm audit` 0 kerentanan, `pip-audit` 0 kerentanan, tidak ada 
 
 Dikirim Next.js untuk semua path (`frontend/next.config.mjs`): `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` (kamera, mikrofon, lokasi, pembayaran, dll. dimatikan), `Cross-Origin-Opener-Policy`, `Cross-Origin-Resource-Policy`.
 
-**RISK**: CSP memakai `script-src 'unsafe-inline'`, karena Next.js menyisipkan data halaman sebagai script inline yang berbeda per halaman. Script dari domain lain tetap diblokir. **NEXT ACTION** saat ada login: pindah ke CSP berbasis nonce (render dinamis + middleware).
+**RISK**: CSP memakai `script-src 'unsafe-inline'`, karena Next.js menyisipkan data halaman sebagai script inline yang berbeda per halaman. Script dari domain lain tetap diblokir. **NEXT ACTION** (jatuh tempo: login sudah ada, wajib sebelum login dipakai di VPS 2): pindah ke CSP berbasis nonce (render dinamis + `proxy.ts`).
 
 ## 3. Backend (FastAPI)
 
@@ -47,10 +47,12 @@ Tidak ada CORS: browser dari domain lain tidak bisa memanggil API. Bila dashboar
 
 ## 4. Server VPS 1 (Nginx + systemd)
 
-File di repo: `scripts/deploy/nginx/clau.conf` dan `scripts/deploy/systemd/clau-frontend.service`. **Terpasang di VPS 1 sejak 2026-10-09** (exposure systemd 1.4 OK). Cara memasang ada di [deploy/vps-1-setup.md § 7](./deploy/vps-1-setup.md#7-bagian-12--pengerasan-keamanan-2026-10-09).
+File di repo: `scripts/deploy/nginx/clau.conf` dan `scripts/deploy/systemd/` (`clau-frontend`, `clau-deploy`, `clau-config-backup`). Tahap 1 **terpasang di VPS 1 sejak 2026-10-09** (exposure 1.4 OK). Tahap 2 (2026-10-13, `scripts/deploy/vps1-harden.sh`): user khusus, jaringan web dikunci, cek & backup rutin. Cara memasang: [deploy/vps-1-setup.md § 7–8](./deploy/vps-1-setup.md#8-bagian-13--user-khusus-cek--backup-rutin-2026-10-13).
 
 - **Nginx**: hanya GET/HEAD, rate limit 20 req/detik per IP (burst 60), maks 30 koneksi per IP, body 16 KB, timeout header/body 10 detik, file tersembunyi (`.git`, `.env`) selalu 404, header `Upgrade` dari klien tidak diteruskan.
-- **systemd**: `ProtectSystem=strict` (sistem read-only, kecuali folder rilis), `ProtectHome` (SSH key & deploy key tidak terbaca), `NoNewPrivileges`, tanpa capability, filter syscall, batas memori 1 GB dan 256 proses.
+- **systemd**: `ProtectSystem=strict` (semua read-only, termasuk kode rilis), `ProtectHome` (SSH key tidak terbaca), `NoNewPrivileges`, tanpa capability, filter syscall, batas memori 1 GB dan 256 proses. Jaringan hanya localhost + Tailscale (`IPAddressDeny=any`): proses web tidak bisa menghubungi internet.
+- **User terpisah (tahap 2)**: `clau-web` menjalankan frontend (tanpa login, tanpa sudo, hanya membaca rilis); `clau-deploy` memiliki `/srv/clau` dan deploy key read-only, sudo hanya `systemctl restart clau-frontend`; user admin `dea` tidak menjalankan aplikasi. Bila aplikasi dibobol, penyerang tidak bisa mengubah kodenya sendiri, membaca deploy key, atau naik ke sudo.
+- **Rutin**: `sudo clau-vps1-check` (layanan, header, firewall, SSH, update, disk, Tailscale, file terpasang = repo); backup config mingguan tanpa secret ke `/var/backups/clau/`; update keamanan otomatis dengan reboot 03:30 WITA bila perlu.
 
 ### Container (docker-compose.yml, 2026-10-12)
 

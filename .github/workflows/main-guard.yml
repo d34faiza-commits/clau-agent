@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   main-guard:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:
       GH_TOKEN: ${{ github.token }}
@@ -47,16 +47,24 @@ jobs:
           head="$(jq -r .head.sha <<<"$pr")"
           merged_at="$(jq -r .merged_at <<<"$pr")"
           echo "PR #$number, head $head, merged $merged_at"
+          # Hanya check run dari GitHub Actions (app lain/check buatan token tidak bisa menyamar dengan nama sama).
+          # API mengembalikan run terbaru per check suite: re-run yang lulus menggantikan yang gagal.
           runs="$(gh api "repos/$REPO/commits/$head/check-runs?per_page=100" --paginate \
-            --jq '.check_runs[] | [.name, (.conclusion // "pending"), (.completed_at // "")] | @tsv')"
+            --jq '.check_runs[] | select(.app.slug == "github-actions") | [.name, (.conclusion // "pending"), (.completed_at // "")] | @tsv')"
           missing=""
           for check in $REQUIRED_CHECKS; do
-            # Lulus bila ada minimal satu run bernama $check yang success dan selesai sebelum merge.
+            # Lulus bila ada run bernama $check, SEMUA run itu (event push & pull_request) success, dan
+            # semuanya selesai sebelum merge.
             if ! awk -F'\t' -v n="$check" -v t="$merged_at" \
-                '$1 == n && $2 == "success" && $3 != "" && $3 <= t { ok = 1 } END { exit !ok }' <<<"$runs"; then
+                '$1 == n { seen = 1; if ($2 != "success" || $3 == "" || $3 > t) bad = 1 } END { exit !(seen && !bad) }' <<<"$runs"; then
               missing="$missing $check"
             fi
           done
+          # PR yang mengubah workflow bisa melemahkan check yang ia sendiri harus lewati: tandai untuk dibaca owner.
+          wf="$(gh api "repos/$REPO/pulls/$number/files?per_page=100" --paginate --jq '.[].filename | select(startswith(".github/workflows/"))')"
+          if [ -n "$wf" ]; then
+            echo "::warning::PR #$number mengubah workflow CI; pastikan check wajib tidak dilemahkan: $(tr '\n' ' ' <<<"$wf")"
+          fi
           if [ -n "$missing" ]; then
             echo "Check run di head PR:"; printf '%s\n' "$runs"
             echo "::error::PR #$number di-merge sebelum check wajib hijau:$missing"

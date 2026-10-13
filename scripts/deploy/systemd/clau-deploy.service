@@ -3,8 +3,22 @@ Description=CLAU frontend pull-based deploy (VPS 1)
 After=network-online.target
 Wants=network-online.target
 
+# User clau-deploy: pemilik /srv/clau dan deploy key read-only. Tidak bisa login; sudo hanya untuk
+# `systemctl restart clau-frontend` (/etc/sudoers.d/clau-deploy). Karena sudo, jangan tambah NoNewPrivileges,
+# PrivateDevices, ProtectKernelModules, atau SystemCallFilter: semuanya memasang seccomp/NNP dan sudo gagal.
 [Service]
 Type=oneshot
-User=dea
+User=clau-deploy
+Group=clau-deploy
+Environment=HOME=/var/lib/clau-deploy
+Environment=NEXT_TELEMETRY_DISABLED=1
 ExecStart=/srv/clau/clau-ai-agents/scripts/deploy/vps1-deploy.sh
 TimeoutStartSec=15min
+Nice=10
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+# File rilis 640/750; grup clau-web (setgid di /srv/clau) agar clau-web bisa membaca, user lain tidak.
+UMask=0027

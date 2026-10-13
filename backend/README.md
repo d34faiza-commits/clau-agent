@@ -1,6 +1,6 @@
 # Backend (FastAPI)
 
-API read-only di atas registry agent dan router statis. **Tidak ada** endpoint yang publish konten, mengirim pesan ke tamu, atau mengubah sistem client (`core/AI-CONSTITUTION.md` §4). Kontrak: `core/shared/api-contracts.md`.
+API registry agent, router statis, login & kelola user (`/auth/*`, `/users`). **Tidak ada** endpoint yang publish konten, mengirim pesan ke tamu, atau mengubah sistem client (`core/AI-CONSTITUTION.md` §4). Kontrak: `core/shared/api-contracts.md`.
 
 ## Jalankan
 
@@ -29,7 +29,7 @@ Input dibatasi, body ≤ 16 KB, Host divalidasi, header keamanan di setiap respo
 
 ## Database
 
-PostgreSQL 16 (SQLAlchemy 2 + Alembic + psycopg 3). Skema mengikuti kontrak [`core/shared/database-schema.md`](../core/shared/database-schema.md): 15 tabel di `app/db/models.py`, migrasi di `migrations/versions/`.
+PostgreSQL 16 (SQLAlchemy 2 + Alembic + psycopg 3). Skema mengikuti kontrak [`core/shared/database-schema.md`](../core/shared/database-schema.md): 17 tabel di `app/db/models.py`, migrasi di `migrations/versions/`.
 
 | Aturan (Constraint Wajib kontrak) | Ditegakkan oleh |
 |---|---|

@@ -2,44 +2,46 @@ name: Cross-Repo Validation
 
 # Validasi dengan semua submodule ter-checkout (core, agents, agents/core):
 # validator core, validator repo ini dengan --require-submodules, test backend agents
-# terhadap router core, dan cek pin core yang sama di semua repo.
-# Butuh secret SUBMODULE_TOKEN; tanpa secret, job dilewati (notice).
+# terhadap router core, dan cek pin core yang sama di semua repo (wajib sama).
+# Token: SUBMODULE_READ_TOKEN (PAT read-only, disarankan) atau SUBMODULE_TOKEN. Tanpa token = GAGAL, bukan
+# dilewati: check wajib yang hijau tanpa memvalidasi apa pun menipu main-guard. PR Dependabot butuh token yang
+# sama di Settings → Secrets → Dependabot (SUBMODULE.md § Setup GitHub Actions).
+# Token tidak disimpan di .git/config (persist-credentials: false): kode dari branch PR yang dijalankan di
+# step berikutnya tidak bisa membacanya.
 on:
   push:
   pull_request:
   workflow_dispatch:
-  repository_dispatch:
-    types: [submodule-updated]
 
 permissions:
   contents: read
 
 jobs:
   cross-validate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
-      HAS_TOKEN: ${{ secrets.SUBMODULE_TOKEN != '' }}
+      HAS_TOKEN: ${{ (secrets.SUBMODULE_READ_TOKEN || secrets.SUBMODULE_TOKEN) != '' }}
     steps:
       - name: Token check
         if: env.HAS_TOKEN != 'true'
-        run: echo "::notice::SUBMODULE_TOKEN belum diset; validasi antar repo dilewati. Lihat SUBMODULE.md §Setup GitHub Actions."
+        run: |
+          echo "::error::Token submodule tidak tersedia (SUBMODULE_READ_TOKEN / SUBMODULE_TOKEN; PR Dependabot: Dependabot secrets). Validasi antar repo tidak bisa jalan. Lihat SUBMODULE.md § Setup GitHub Actions."
+          exit 1
 
       - name: Checkout (with submodules)
-        if: env.HAS_TOKEN == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          token: ${{ secrets.SUBMODULE_TOKEN }}
+          token: ${{ secrets.SUBMODULE_READ_TOKEN || secrets.SUBMODULE_TOKEN }}
           submodules: recursive
+          persist-credentials: false
 
       - name: Set up Python
-        if: env.HAS_TOKEN == 'true'
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
 
       - name: Install dependencies
-        if: env.HAS_TOKEN == 'true'
         run: |
           python -m pip install jsonschema==4.26.0
           for req in backend/requirements.txt agents/backend/requirements.txt; do
@@ -47,22 +49,18 @@ jobs:
           done
 
       - name: Validate clau-ai-core (submodule)
-        if: env.HAS_TOKEN == 'true'
         run: python core/scripts/validate_core.py
 
       - name: Validate this repo (submodules required)
-        if: env.HAS_TOKEN == 'true'
         run: |
           if [ -f scripts/validate.py ]; then python scripts/validate.py --require-submodules
           else echo "repo ini tidak punya scripts/validate.py"; fi
 
       - name: Test agents backend against core router
-        if: env.HAS_TOKEN == 'true'
         run: |
           for dir in backend agents/backend; do
             if [ -d "$dir/tests" ]; then (cd "$dir" && python -m pytest -q); fi
           done
 
       - name: Check core pin is consistent
-        if: env.HAS_TOKEN == 'true'
-        run: bash scripts/check-core-pins.sh
+        run: bash scripts/check-core-pins.sh --strict
