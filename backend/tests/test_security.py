@@ -97,8 +97,8 @@ def test_internal_error_hides_details(monkeypatch):
 ENDPOINTS = {
     ("GET", "/health"), ("GET", "/agents"), ("GET", "/pillars"), ("POST", "/route"),
     # Login & akun (Tahap 1 PR 2): butuh sesi + CSRF, kecuali login sendiri.
-    ("POST", "/auth/login"), ("GET", "/auth/me"), ("POST", "/auth/logout"), ("POST", "/auth/password"),
-    ("POST", "/auth/mfa/setup"), ("POST", "/auth/mfa/confirm"),
+    ("POST", "/auth/login"), ("GET", "/auth/me"), ("POST", "/auth/logout"), ("POST", "/auth/logout-all"),
+    ("POST", "/auth/password"), ("POST", "/auth/mfa/setup"), ("POST", "/auth/mfa/confirm"), ("POST", "/auth/mfa/recovery-codes"),
     # Manajemen user: khusus owner.
     ("GET", "/users"), ("POST", "/users"), ("PUT", "/users/{user_id}/memberships"),
     ("POST", "/users/{user_id}/disable"), ("POST", "/users/{user_id}/enable"),

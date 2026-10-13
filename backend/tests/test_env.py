@@ -97,19 +97,28 @@ def test_backend_never_receives_admin_or_migrator_secrets():
     assert "ports" not in by_name["db"], "database tidak boleh punya port host"
 
 
-def test_init_env_fills_passwords(tmp_path):
+def test_init_env_fills_secrets_and_never_changes_existing(tmp_path):
     import shutil
     import subprocess
 
     (tmp_path / "scripts").mkdir()
     shutil.copy(ROOT / "scripts" / "init-env.sh", tmp_path / "scripts")
     shutil.copy(ENV_EXAMPLE, tmp_path / ".env.example")
-    subprocess.run(["bash", str(tmp_path / "scripts" / "init-env.sh")], check=True, capture_output=True)
+    run = lambda: subprocess.run(["bash", str(tmp_path / "scripts" / "init-env.sh")], check=True, capture_output=True, text=True).stdout  # noqa: E731
+    run()
     env = (tmp_path / ".env").read_text(encoding="utf-8")
     for name in ("POSTGRES_PASSWORD", "CLAU_DB_MIGRATOR_PASSWORD", "CLAU_DB_APP_PASSWORD"):
         assert re.search(rf"^{name}=[0-9a-f]{{48}}$", env, re.MULTILINE), name
-    assert re.search(r"^CLAU_SECRET_KEY=[0-9a-f]{96}$", env, re.MULTILINE)
+    for name in ("CLAU_SECRET_KEY", "CLAU_BACKUP_PASSPHRASE"):
+        assert re.search(rf"^{name}=[0-9a-f]{{96}}$", env, re.MULTILINE), name
     assert (tmp_path / ".env").stat().st_mode & 0o077 == 0, ".env harus chmod 600"
-    first = env
-    subprocess.run(["bash", str(tmp_path / "scripts" / "init-env.sh")], check=True, capture_output=True)
-    assert (tmp_path / ".env").read_text(encoding="utf-8") == first, ".env yang ada tidak boleh ditimpa"
+    assert "sudah lengkap" in run() and (tmp_path / ".env").read_text(encoding="utf-8") == env
+
+    # Upgrade: .env lama tanpa secret baru -> secret ditambahkan, password database tidak berubah.
+    old = "\n".join(l for l in env.splitlines() if not l.startswith(("CLAU_SECRET_KEY=", "CLAU_BACKUP_PASSPHRASE="))) + "\n"
+    (tmp_path / ".env").write_text(old, encoding="utf-8")
+    assert "CLAU_SECRET_KEY" in run()
+    upgraded = (tmp_path / ".env").read_text(encoding="utf-8")
+    assert re.search(r"^CLAU_SECRET_KEY=[0-9a-f]{96}$", upgraded, re.MULTILINE)
+    db_lines = [l for l in env.splitlines() if l.startswith(("POSTGRES_PASSWORD=", "CLAU_DB_"))]
+    assert all(l in upgraded.splitlines() for l in db_lines), "password database yang ada tidak boleh berubah"

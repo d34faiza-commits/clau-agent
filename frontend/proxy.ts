@@ -3,7 +3,8 @@
 // Ini hanya pengalihan kenyamanan: keamanan sesungguhnya ada di backend (setiap endpoint mengecek sesi & peran).
 import { NextResponse, type NextRequest } from "next/server";
 
-const SESSION_COOKIE = "__Host-clau_session";
+// Nama cookie sesi: __Host- (produksi) atau tanpa Secure bila backend CLAU_ENV=development (Safari di localhost).
+const SESSION_COOKIES = ["__Host-clau_session", "clau_session_dev"];
 
 function isPublic(pathname: string) {
   return pathname === "/login" || pathname.startsWith("/api/") || pathname.startsWith("/_next/") || /\.(webp|png|svg|ico|txt)$/.test(pathname);
@@ -12,7 +13,7 @@ function isPublic(pathname: string) {
 export function proxy(request: NextRequest) {
   if (process.env.CLAU_AUTH_ENABLED !== "1") return NextResponse.next();
   const { pathname, search } = request.nextUrl;
-  if (isPublic(pathname) || request.cookies.has(SESSION_COOKIE)) return NextResponse.next();
+  if (isPublic(pathname) || SESSION_COOKIES.some((c) => request.cookies.has(c))) return NextResponse.next();
   const url = request.nextUrl.clone();
   url.pathname = "/login";
   url.search = `?next=${encodeURIComponent(pathname + search)}`;

@@ -496,3 +496,30 @@ button { font: inherit; color: inherit; }
 .auth-ok { margin: 0; color: var(--color-success-text); font-size: 13px; }
 .auth-notice { margin: 0 0 16px; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--color-warning-bg); color: var(--color-warning-text); border: 1px solid var(--color-warning-border); font-size: 14px; }
 .auth-secret { display: block; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--color-surface-muted); border: 1px solid var(--color-border); font-size: 15px; letter-spacing: 0.06em; word-break: break-all; user-select: all; }
+.auth-narrow { max-width: 420px; }
+.auth-hint { margin: -6px 0 0; font-size: 12px; }
+.auth-link { color: var(--color-primary-text, var(--color-primary)); font-size: 13px; }
+.auth-notice--error { background: var(--color-surface); color: var(--color-error); border-color: var(--color-error); }
+.auth-qr { width: 180px; height: 180px; max-width: 100%; border-radius: var(--radius-sm); background: #ffffff; border: 1px solid var(--color-border); }
+.auth-codes { margin: 0 0 16px; padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--color-warning-border); background: var(--color-warning-bg); color: var(--color-text); display: grid; gap: 10px; }
+.auth-codes h2 { margin: 0; font-size: 16px; }
+.auth-codes p { margin: 0; font-size: 14px; max-width: 65ch; }
+.auth-code-list { margin: 0; padding-left: 22px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 18px; }
+.auth-code-list code { font-size: 15px; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
+.auth-code-text { width: 100%; font: 14px/1.5 ui-monospace, monospace; padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); }
+.auth-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.auth-count { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Kelola pengguna (app/users) */
+.users-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.users-layout > :last-child { max-width: 560px; }
+@media (min-width: 1500px) { .users-layout { grid-template-columns: minmax(0, 1fr) 380px; } .users-layout > :last-child { max-width: none; } }
+.users-layout .field input, .users-layout .field select { width: 100%; min-width: 0; box-sizing: border-box; }
+.users-name { font-weight: 600; }
+.users-email { font-size: 12px; }
+.users-roles { display: flex; flex-wrap: wrap; gap: 4px; }
+.users-row-actions { justify-content: flex-end; }
+.users-edit { display: grid; gap: 8px; min-width: 220px; }
+.users-fields { display: grid; gap: 10px; }
+.users-password { display: flex; gap: 8px; }
+.users-password input { flex: 1; min-width: 0; }

@@ -70,8 +70,11 @@ services:
       CLAU_ENV: ${CLAU_ENV:-production}
       CLAU_ENABLE_DOCS: ${CLAU_ENABLE_DOCS:-}
       # "backend" selalu ditambahkan: Host saat frontend memanggil lewat jaringan internal compose.
-      CLAU_ALLOWED_HOSTS: "${CLAU_ALLOWED_HOSTS:-127.0.0.1,localhost},backend"
-      CLAU_ALLOWED_ORIGINS: ${CLAU_ALLOWED_ORIGINS:-}
+      # Healthcheck container memakai 127.0.0.1, jadi ikut ditambahkan walau domain sudah diatur.
+      CLAU_ALLOWED_HOSTS: "${CLAU_ALLOWED_HOSTS:-localhost},backend,127.0.0.1"
+      # Default mengikuti CLAU_FRONTEND_PORT, agar ganti port tidak membuat login ditolak (origin_not_allowed).
+      CLAU_ALLOWED_ORIGINS: "${CLAU_ALLOWED_ORIGINS:-http://127.0.0.1:${CLAU_FRONTEND_PORT:-3000},http://localhost:${CLAU_FRONTEND_PORT:-3000}}"
+      CLAU_HASH_CONCURRENCY: ${CLAU_HASH_CONCURRENCY:-}
       CLAU_SECRET_KEY: "${CLAU_SECRET_KEY:?isi .env dulu: scripts/init-env.sh}"
       CLAU_SESSION_IDLE_MINUTES: ${CLAU_SESSION_IDLE_MINUTES:-}
       CLAU_SESSION_MAX_HOURS: ${CLAU_SESSION_MAX_HOURS:-}
