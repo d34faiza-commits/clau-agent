@@ -9,13 +9,13 @@
 | 1–5. OS, hostname, user admin `dea` + SSH key | DATA FINAL — Ubuntu 24.04 LTS, kernel 6.8.0-146, 2 vCPU / 3.8 GB RAM / 79 GB |
 | 6. Hardening (UFW, sshd, fail2ban, unattended-upgrades) | DATA FINAL — diverifikasi: UFW active (22/80/443), root & password login ditolak, fail2ban jail `sshd` active |
 | 7a–7b. Node 22 + Nginx + swap 2 GB | DATA FINAL — 2026-10-07 |
-| 7c. Tailscale | DATA FINAL — 2026-10-09: dipasang ulang (cek 2026-10-08 menemukan `tailscale` tidak terpasang dan `tailscaled` inactive), join ulang sebagai `clau-vps1`, `tailscaled` active. Entri lama offline diganti nama `clau-vps1-aja`. Users: Dea Karisna (Owner), Pak Indra (Admin, sejak 2026-10-07). NEXT ACTION: hapus entri `clau-vps1-aja`, disable key expiry `clau-vps1`, ACL setelah VPS 2 join |
+| 7c. Tailscale | DATA FINAL — 2026-10-09: dipasang ulang (cek 2026-10-08 menemukan `tailscale` tidak terpasang dan `tailscaled` inactive), join ulang sebagai `clau-vps1`, `tailscaled` active. Entri lama offline diganti nama `clau-vps1-aja`. Users: Dea Karisna (Owner), Pak Indra (Admin, sejak 2026-10-07). 2026-10-13: entri `clau-vps1-aja` dihapus, key expiry `clau-vps1` dimatikan (dicek `clau-vps1-check`). NEXT ACTION: ACL setelah VPS 2 join |
 | 8. Deploy frontend (akses via IP, HTTP) | DATA FINAL — 2026-10-07: service `clau-frontend` active, Nginx proxy ke 127.0.0.1:3000, halaman registry tampil di `http://<IP_VPS_1>` |
 | 9. Auto-deploy dari repo (pull-based) | DATA FINAL — 2026-10-07: `clau-deploy.timer` aktif (5 menit), service frontend memakai `/srv/clau/current` |
 | Cek kesehatan 2026-10-08 | DATA FINAL — `clau-frontend`, nginx, fail2ban, `clau-deploy.timer` active; `/team` HTTP 200; rilis live = `main` (`8948618`), commit tanpa perubahan frontend dilewati build; UFW 22/80/443; disk 11%, RAM tersedia 3,3 GB; 0 update keamanan tertunda |
 | 10. Domain + Cloudflare + SSL | Ditunda — domain belum ada (owner, 2026-10-13). Selama itu VPS 1 tetap pratinjau tanpa login |
-| 11. Backup config (tanpa `.env`) | Siap pasang (§ 8): mingguan ke `/var/backups/clau/`; salinan di luar server menyusul bersama Backblaze B2 (VPS 2) |
-| 13. User khusus, jaringan web dikunci, cek & backup rutin | Siap pasang (§ 8) — diuji 2026-10-13 di Ubuntu 24.04 + systemd (container): deploy, sandbox, rollback, jalankan ulang. NEXT ACTION: owner menjalankan § 8 dan mengirim hasil `sudo clau-vps1-check` |
+| 11. Backup config (tanpa `.env`) | DATA FINAL — 2026-10-13: dipasang owner (`vps1-harden.sh`), `sudo clau-vps1-check` = **0 gagal, 0 perlu dicek**: backup pertama `vps1-config-20261013T113858Z` (17 file config), lalu mingguan ke `/var/backups/clau/`. NEXT ACTION: salinan di luar server bersama Backblaze B2 (VPS 2) |
+| 13. User khusus, jaringan web dikunci, cek & backup rutin | DATA FINAL — 2026-10-13: dipasang owner (`vps1-harden.sh`), `sudo clau-vps1-check` = **0 gagal, 0 perlu dicek**: frontend sebagai `clau-web` (exposure 1.3), deploy sebagai `clau-deploy` (rilis `013f587`), deploy key lama di `~dea` dihapus, UFW/SSH/fail2ban/Tailscale OK, disk 12%, RAM tersedia 2,7 GB |
 | 12. Pengerasan keamanan aplikasi (header, Nginx, sandbox systemd) | DATA FINAL — 2026-10-09: rilis `8acf7a4` live (CSP & `X-Frame-Options: DENY` ada, `X-Powered-By` hilang); Nginx `scripts/deploy/nginx/clau.conf` terpasang (`nginx -t` OK; `/` 200, POST 405, `/.env` 404); `clau-frontend.service` sandbox terpasang, `active`, `systemd-analyze security` = **1.4 OK**. Backup: `/etc/nginx/sites-available/clau.bak`, `/etc/systemd/system/clau-frontend.service.bak`. Proteksi `main` + Dependabot alerts: aktif (owner, 2026-10-09) |
 
 ## 2. Aturan
@@ -292,7 +292,6 @@ Rollback manual ke rilis sebelumnya: `sudo -u clau-deploy ln -sfn /srv/clau/rele
 ## 9. RISK
 
 - Selama belum ada domain + SSL, akses masih **HTTP via IP**. Aman untuk scaffold saat ini (tidak ada login/data), tetapi **jangan** menambahkan login, form, atau data client sebelum Bagian 9 (HTTPS) selesai.
-- Sampai § 8 dipasang, service masih berjalan sebagai user `dea`.
 - `vps1-harden.sh` dijalankan root dari folder repo milik `clau-deploy`. Isinya = `main` di GitHub (ditarik deploy key), jadi kepercayaan sama dengan kode yang tayang; jalankan hanya setelah PR terkait di-merge.
 - Deploy mengambil `main` tanpa menunggu CI di `main` selesai (server tidak punya akses API GitHub). Penjaga saat ini: `main` wajib lewat PR dengan CI hijau. Usulan gerbang `release/vps1` (hanya commit yang CI-nya hijau yang tayang) menunggu persetujuan owner.
 - Push ke `main` tampil di VPS 1 dalam ±5 menit. `main` harus lewat CI hijau (build frontend sudah dicek di CI) dan wajib lewat PR dengan CI hijau (`core/AI-BOUNDARY.md` § Disiplin Push, dijaga `main-guard`) agar perubahan tidak langsung live tanpa dicek.
