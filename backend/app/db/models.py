@@ -138,11 +138,27 @@ class UserSession(Base):
     mfa_ok: Mapped[bool] = mapped_column(Boolean, nullable=False)
     created_at: Mapped[datetime] = created_at()
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __table_args__ = (
         CheckConstraint("token_hash ~ '^[0-9a-f]{64}$'", name="token_hash_sha256"),
         CheckConstraint("expires_at > created_at", name="expires_after_created"),
+    )
+
+
+class MfaRecoveryCode(Base):
+    """Kode cadangan 2FA sekali pakai (HP hilang). Hanya HMAC-SHA256 kode yang disimpan; kode asli ditampilkan
+    sekali saat dibuat. used_at terisi = sudah dipakai."""
+
+    __tablename__ = "mfa_recovery_codes"
+    id: Mapped[int] = pk()
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    code_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = created_at()
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        UniqueConstraint("user_id", "code_hash"),
+        CheckConstraint("code_hash ~ '^[0-9a-f]{64}$'", name="code_hash_sha256"),
     )
 
 

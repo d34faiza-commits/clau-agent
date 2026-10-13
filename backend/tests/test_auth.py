@@ -18,7 +18,7 @@ from app.auth import crypto  # noqa: E402
 from app.auth.config import SESSION_COOKIE  # noqa: E402
 from app.auth.deps import get_db, now  # noqa: E402
 from app.auth.routes import throttle  # noqa: E402
-from app.db.models import AuditLog, Client, Membership, User, UserSession  # noqa: E402
+from app.db.models import AuditLog, Client, Membership, MfaRecoveryCode, User, UserSession  # noqa: E402
 from app.main import app  # noqa: E402
 from tests.conftest import TempDatabase, admin_url_or_skip, sqlalchemy_url  # noqa: E402
 
@@ -377,3 +377,179 @@ def test_cli_creates_single_owner():
         eng.dispose()
     finally:
         db.drop()
+
+
+# --- Temuan audit PR 2b ---------------------------------------------------------------------------
+
+
+def test_login_always_runs_argon2_for_unknown_and_disabled(factory, monkeypatch):
+    """Tanpa ini, waktu respons membedakan email terdaftar (Argon2 ~puluhan ms) dari yang tidak (~1 ms)."""
+    calls = []
+    real = crypto.verify_password
+    monkeypatch.setattr(crypto, "verify_password", lambda h, p: calls.append(h) or real(h, p))
+    disabled = make_user(factory)
+    with factory() as s, s.begin():
+        s.get(User, disabled.id).disabled_at = now()
+    client().post("/auth/login", json={"email": "hantu@contoh.test", "password": "apa-saja-123456"})
+    login(client(), disabled)
+    assert len(calls) == 2
+
+
+def test_errors_are_fresh_instances():
+    from app.auth.routes import invalid_credentials, too_many_attempts
+
+    assert invalid_credentials() is not invalid_credentials() and too_many_attempts() is not too_many_attempts()
+
+
+def test_non_ascii_digits_and_csrf_do_not_crash(factory):
+    secret = pyotp.random_base32()
+    owner = make_user(factory, role="owner", level="L3", mfa_secret=secret)
+    r = login(client(), owner, totp_code="１２３４５６")
+    assert r.status_code == 401 and r.json()["error"]["code"] == "invalid_mfa_code"
+    # httpx tidak bisa mengirim header non-ASCII; browser/curl bisa (latin-1), jadi fungsinya diuji langsung.
+    assert crypto.csrf_valid(SECRET.encode(), "token-sesi", "tökén") is False
+
+
+def test_unknown_email_failures_are_not_written_to_audit_log(factory):
+    with factory() as s:
+        before = s.scalar(select(func.count()).select_from(AuditLog))
+    for i in range(3):
+        client().post("/auth/login", json={"email": f"acak{i}@contoh.test", "password": "apa-saja-123456"})
+    with factory() as s:
+        assert s.scalar(select(func.count()).select_from(AuditLog)) == before
+
+
+def test_throttle_memory_is_bounded():
+    from app.auth.routes import LoginThrottle
+
+    t = LoginThrottle(limit=2, window_seconds=900, max_keys=3)
+    for i in range(10):
+        t.fail(f"user{i}@x")
+    assert len(t._fails) == 3
+    t.reset("user9@x")
+    assert not t.blocked("tidak-pernah@x") and "tidak-pernah@x" not in t._fails
+
+
+def test_password_change_brute_force_locks_and_ends_sessions(factory):
+    user = make_user(factory)
+    c = client()
+    login(c, user)
+    for _ in range(5):
+        r = c.post("/auth/password", json={"current_password": "tebakan-salah-1", "new_password": "kebun-teh-bedugul-9"}, headers=csrf(c))
+        if r.status_code == 401:
+            break
+        assert r.json()["error"]["code"] == "invalid_current_password"
+    assert c.get("/auth/me").status_code == 401, "gagal ke-5 memutus sesi (cookie curian tidak bisa terus menebak)"
+    throttle._fails.clear()
+    assert login(client(), user).status_code == 429
+
+
+def test_rotated_secret_key_gives_clear_error(factory, monkeypatch):
+    secret = pyotp.random_base32()
+    owner = make_user(factory, role="owner", level="L3", mfa_secret=secret)
+    monkeypatch.setenv("CLAU_SECRET_KEY", "z" * 48)
+    r = login(client(), owner, totp_code=pyotp.TOTP(secret).now())
+    assert r.status_code == 503 and r.json()["error"]["code"] == "mfa_key_mismatch"
+
+
+def test_totp_counter_is_consumed_atomically(factory):
+    from app.auth.routes import consume_totp
+
+    user = make_user(factory, mfa_secret=pyotp.random_base32())
+    with factory() as a, a.begin():
+        assert consume_totp(a, a.get(User, user.id), 1000)
+    with factory() as b, b.begin():
+        assert not consume_totp(b, b.get(User, user.id), 1000), "counter yang sama tidak boleh lolos dua kali"
+        assert consume_totp(b, b.get(User, user.id), 1001)
+
+
+def test_owner_changes_take_advisory_lock(factory, engine):
+    from app.auth.routes import OWNER_CHANGE_LOCK, lock_owner_changes
+
+    with factory() as a, a.begin():
+        lock_owner_changes(a)
+        with engine.connect() as other:
+            held = other.exec_driver_sql(
+                "SELECT count(*) FROM pg_locks WHERE locktype = 'advisory' AND granted AND objid = %s" % OWNER_CHANGE_LOCK
+            ).scalar()
+        assert held == 1
+
+
+def test_old_sessions_are_purged(factory):
+    from app.auth.routes import purge_sessions
+
+    user = make_user(factory)
+    old = now() - timedelta(days=3)
+    with factory() as s, s.begin():
+        s.add(UserSession(token_hash="a" * 64, user_id=user.id, mfa_ok=True, created_at=old - timedelta(hours=1), last_seen_at=old, expires_at=old))
+    login(client(), user)  # login membersihkan sesi lama milik user ini
+    with factory() as s:
+        assert s.get(UserSession, "a" * 64) is None
+    with factory() as s, s.begin():
+        s.add(UserSession(token_hash="b" * 64, user_id=user.id, mfa_ok=True, created_at=old - timedelta(hours=1), last_seen_at=old, expires_at=old))
+    with factory() as s, s.begin():
+        assert purge_sessions(s) >= 1
+
+
+# --- Fitur PR 2b ----------------------------------------------------------------------------------
+
+
+def enable_mfa(factory) -> tuple[TestClient, User, str, list[str]]:
+    owner = make_user(factory, role="owner", level="L3")
+    c = client()
+    login(c, owner)
+    setup = c.post("/auth/mfa/setup", headers=csrf(c)).json()
+    assert setup["qr_svg"].startswith("data:image/svg+xml")
+    r = c.post("/auth/mfa/confirm", json={"code": pyotp.TOTP(setup["secret"]).now()}, headers=csrf(c)).json()
+    return c, owner, setup["secret"], r["recovery_codes"]
+
+
+def test_mfa_confirm_returns_ten_recovery_codes_stored_hashed(factory):
+    c, owner, _, codes = enable_mfa(factory)
+    assert len(codes) == 10 and len(set(codes)) == 10
+    assert c.get("/auth/me").json()["recovery_codes_left"] == 10
+    with factory() as s:
+        hashes = s.scalars(select(MfaRecoveryCode.code_hash).where(MfaRecoveryCode.user_id == owner.id)).all()
+    assert not set(codes) & set(hashes)
+
+
+def test_recovery_code_logs_in_once(factory):
+    _, owner, _, codes = enable_mfa(factory)
+    c = client()
+    r = login(c, owner, recovery_code=codes[0].upper().replace("-", " "))
+    assert r.status_code == 200 and r.json()["recovery_codes_left"] == 9
+    again = login(client(), owner, recovery_code=codes[0])
+    assert again.json()["error"]["code"] == "invalid_recovery_code"
+    with factory() as s:
+        assert "mfa_required" not in str(s.scalars(select(AuditLog.meta).where(AuditLog.action == "login", AuditLog.actor_id == owner.id)).all()[-1])
+
+
+def test_regenerate_recovery_codes_needs_password(factory):
+    c, _, _, codes = enable_mfa(factory)
+    assert c.post("/auth/mfa/recovery-codes", json={"password": "tebakan-salah-1"}, headers=csrf(c)).json()["error"]["code"] == "invalid_current_password"
+    new = c.post("/auth/mfa/recovery-codes", json={"password": PASSWORD}, headers=csrf(c)).json()["recovery_codes"]
+    assert len(new) == 10 and not set(new) & set(codes)
+
+
+def test_logout_all_devices(factory):
+    user = make_user(factory)
+    phone, laptop = client(), client()
+    login(phone, user)
+    login(laptop, user)
+    assert laptop.get("/auth/me").json()["active_sessions"] == 2
+    assert laptop.post("/auth/logout-all", headers=csrf(laptop)).status_code == 204
+    assert phone.get("/auth/me").status_code == 401 and laptop.get("/auth/me").status_code == 401
+
+
+def test_dev_mode_uses_non_secure_cookie(factory, monkeypatch):
+    monkeypatch.setenv("CLAU_ENV", "development")
+    user = make_user(factory)
+    c = TestClient(app, base_url="http://testserver", headers={"origin": ORIGIN})
+    r = login(c, user)
+    assert r.headers["set-cookie"].startswith("clau_session_dev=") and "secure" not in r.headers["set-cookie"].lower()
+    assert c.get("/auth/me").status_code == 200
+
+
+@pytest.mark.parametrize("password", ["Password2026!!", "bismillah12345", "123456789012", "qwertyuiop12", "clau-ai-2026!!"])
+def test_common_passwords_rejected(password):
+    assert crypto.password_problem(password, "budi@contoh.test") is not None

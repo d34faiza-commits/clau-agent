@@ -36,7 +36,15 @@ export default function AppShell({ children, activeAgents }: { children: ReactNo
       ],
     },
     { en: "Insights", id: "Insight", items: [{ href: "/reports", en: "Reports", id: "Laporan", icon: "reports" }] },
-    { en: "System", id: "Sistem", items: [{ href: "/settings", en: "Settings", id: "Pengaturan", icon: "settings" }] },
+    {
+      en: "System",
+      id: "Sistem",
+      items: [
+        { href: "/settings", en: "Settings", id: "Pengaturan", icon: "settings" },
+        { href: "/account", en: "Account", id: "Akun", icon: "user" },
+        { href: "/users", en: "Users", id: "Pengguna", icon: "users" },
+      ],
+    },
   ];
 
   const path = usePathname() ?? "/";

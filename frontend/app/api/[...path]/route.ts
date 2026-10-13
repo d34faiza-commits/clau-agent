@@ -14,6 +14,30 @@ function error(status: number, code: string, message: string) {
   return Response.json({ error: { code, message } }, { status, headers: { "cache-control": "no-store" } });
 }
 
+async function readCapped(stream: ReadableStream<Uint8Array> | null, limit: number): Promise<ArrayBuffer | null> {
+  if (!stream) return new ArrayBuffer(0);
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > limit) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+  const out = new Uint8Array(size);
+  let offset = 0;
+  for (const c of chunks) {
+    out.set(c, offset);
+    offset += c.byteLength;
+  }
+  return out.buffer;
+}
+
 async function forward(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const backend = process.env.CLAU_BACKEND_URL;
   if (!backend) return error(503, "backend_unavailable", "Backend belum tersambung.");
@@ -27,8 +51,11 @@ async function forward(request: NextRequest, { params }: { params: Promise<{ pat
   }
   let body: ArrayBuffer | undefined;
   if (!["GET", "HEAD"].includes(request.method)) {
-    body = await request.arrayBuffer();
-    if (body.byteLength > MAX_BODY) return error(413, "payload_too_large", "Body request terlalu besar.");
+    // Tolak dari header dulu, lalu baca bertahap dengan batas: body besar tidak pernah ditampung utuh di memori.
+    if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY) return error(413, "payload_too_large", "Body request terlalu besar.");
+    const read = await readCapped(request.body, MAX_BODY);
+    if (!read) return error(413, "payload_too_large", "Body request terlalu besar.");
+    body = read;
   }
 
   let upstream: Response;
@@ -44,6 +71,9 @@ async function forward(request: NextRequest, { params }: { params: Promise<{ pat
   } catch {
     return error(502, "backend_unreachable", "Backend tidak bisa dihubungi.");
   }
+
+  // Backend tidak pernah mengalihkan request API; redirect berarti salah alamat, jangan diteruskan ke browser.
+  if (upstream.status >= 300 && upstream.status < 400) return error(502, "backend_unreachable", "Backend memberi respons tidak terduga.");
 
   const out = new Headers({ "cache-control": "no-store" });
   const type = upstream.headers.get("content-type");

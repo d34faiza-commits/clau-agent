@@ -23,7 +23,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.auth.routes import router as auth_router
 from app.errors import ApiError, db_rule_code, error_body
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 REGISTRY_PATH = Path(__file__).resolve().parents[2] / "agents" / "registry.json"
 

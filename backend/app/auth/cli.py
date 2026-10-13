@@ -2,6 +2,7 @@
 
     python -m app.auth.cli create-owner --email owner@contoh.id --name "Nama Owner"
     python -m app.auth.cli reset-mfa --email user@contoh.id      # HP hilang: 2FA diatur ulang saat login berikut
+    python -m app.auth.cli purge-sessions                        # hapus sesi habis/dicabut > 1 hari (jadwalkan harian)
 
 Password dibaca dari prompt tersembunyi (atau CLAU_BOOTSTRAP_PASSWORD untuk otomasi), tidak pernah dari argumen
 command line (bisa terbaca di riwayat shell / daftar proses).
@@ -14,11 +15,12 @@ import getpass
 import os
 import sys
 
+from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from app.auth import crypto
-from app.auth.routes import audit, find_user, owner_exists, revoke_sessions
-from app.db.models import Membership, User
+from app.auth.routes import audit, find_user, owner_exists, purge_sessions, revoke_sessions
+from app.db.models import Membership, MfaRecoveryCode, User
 
 
 def read_password(email: str) -> str:
@@ -50,6 +52,7 @@ def reset_mfa(db: Session, email: str) -> User:
     if user is None:
         sys.exit("User tidak ditemukan.")
     user.totp_enabled, user.totp_secret_enc, user.totp_last_counter = False, None, None
+    db.execute(delete(MfaRecoveryCode).where(MfaRecoveryCode.user_id == user.id))
     revoke_sessions(db, user.id)
     audit(db, None, "mfa_reset", "user", user.id, via="cli")
     return user
@@ -63,6 +66,7 @@ def main(argv: list[str] | None = None) -> None:
     owner.add_argument("--name", required=True)
     reset = sub.add_parser("reset-mfa", help="nonaktifkan 2FA user (HP hilang); wajib diatur ulang saat login")
     reset.add_argument("--email", required=True)
+    sub.add_parser("purge-sessions", help="hapus sesi yang sudah habis/dicabut lebih dari 1 hari")
     args = parser.parse_args(argv)
 
     from app.db.session import session_factory
@@ -71,9 +75,11 @@ def main(argv: list[str] | None = None) -> None:
         if args.command == "create-owner":
             user = create_owner(db, args.email.strip(), args.name.strip(), read_password(args.email))
             print(f"owner dibuat: {user.email} (2FA wajib diaktifkan saat login pertama)")
-        else:
+        elif args.command == "reset-mfa":
             user = reset_mfa(db, args.email.strip())
-            print(f"2FA direset untuk {user.email}; semua sesinya diputus")
+            print(f"2FA direset untuk {user.email}; kode cadangan dihapus, semua sesinya diputus")
+        else:
+            print(f"sesi dihapus: {purge_sessions(db)}")
 
 
 if __name__ == "__main__":

@@ -2,63 +2,78 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { Card, PageHeader } from "../../components/ui";
-import { api, safeNext, type Me } from "../../lib/auth";
-import { L, useL } from "../../lib/i18n";
+import { api, errorText, safeNext, type Me } from "../../lib/auth";
+import { L, useL, useLang } from "../../lib/i18n";
 
 export default function LoginPage() {
   const tr = useL();
+  const { lang } = useLang();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
-  const [needCode, setNeedCode] = useState(false);
+  const [step, setStep] = useState<"password" | "totp" | "recovery">("password");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [next, setNext] = useState("/");
 
   useEffect(() => {
-    document.title = "Login · CLAU AI";
+    document.title = `${tr("Sign in", "Masuk")} · CLAU AI`;
     setNext(safeNext(new URLSearchParams(window.location.search).get("next")));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError("");
-    const r = await api<Me>("auth/login", { method: "POST", body: { email, password, ...(needCode ? { totp_code: code } : {}) } });
+    const extra = step === "totp" ? { totp_code: code } : step === "recovery" ? { recovery_code: code } : {};
+    const r = await api<Me>("auth/login", { method: "POST", body: { email, password, ...extra } });
     setBusy(false);
     if (r.ok) {
       window.location.assign(r.data.next === "ready" ? next : "/account");
       return;
     }
     if (r.code === "mfa_required") {
-      setNeedCode(true);
+      setStep("totp");
       return;
     }
-    setError(r.message);
+    setError(errorText(r, lang));
   }
+
+  function useRecovery() {
+    setStep(step === "recovery" ? "totp" : "recovery");
+    setCode("");
+    setError("");
+  }
+
+  const codeValid = step === "totp" ? code.length === 6 : step === "recovery" ? code.replace(/[\s-]/g, "").length === 10 : true;
 
   return (
     <>
       <PageHeader title={<L en="Sign in" id="Masuk" />} subtitle={<L en="Agency staff and client approvers. Accounts are created by the owner." id="Staf agency dan approver klien. Akun dibuat oleh owner." />} />
-      <div style={{ maxWidth: 420 }}>
+      <div className="auth-narrow">
         <Card>
           <form onSubmit={submit} className="auth-form" noValidate>
             <div className="field">
               <label htmlFor="email">Email</label>
-              <input id="email" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={needCode} />
+              <input id="email" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={step !== "password"} />
             </div>
             <div className="field">
               <label htmlFor="password">
                 <L en="Password" id="Password" />
               </label>
-              <input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={needCode} />
+              <input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={step !== "password"} />
             </div>
-            {needCode && (
+            {step === "totp" && (
               <div className="field">
-                <label htmlFor="code">
-                  <L en="6-digit code from your authenticator app" id="Kode 6 digit dari aplikasi authenticator" />
-                </label>
-                <input id="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]*" maxLength={6} required autoFocus value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} />
+                <label htmlFor="code">{tr("6-digit code from your authenticator app", "Kode 6 digit dari aplikasi authenticator")}</label>
+                <input id="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} required autoFocus value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} />
+              </div>
+            )}
+            {step === "recovery" && (
+              <div className="field">
+                <label htmlFor="recovery">{tr("Backup code (e.g. abcde-fghij)", "Kode cadangan (mis. abcde-fghij)")}</label>
+                <input id="recovery" autoComplete="off" autoCapitalize="none" spellCheck={false} maxLength={20} required autoFocus value={code} onChange={(e) => setCode(e.target.value)} />
               </div>
             )}
             {error && (
@@ -66,9 +81,14 @@ export default function LoginPage() {
                 {error}
               </p>
             )}
-            <button type="submit" className="btn btn--primary" disabled={busy || !email || !password || (needCode && code.length !== 6)}>
-              {busy ? tr("Checking…", "Memeriksa…") : needCode ? tr("Verify", "Verifikasi") : tr("Sign in", "Masuk")}
+            <button type="submit" className="btn btn--primary" disabled={busy || !email || !password || !codeValid}>
+              {busy ? tr("Checking…", "Memeriksa…") : step === "password" ? tr("Sign in", "Masuk") : tr("Verify", "Verifikasi")}
             </button>
+            {step !== "password" && (
+              <button type="button" className="link-btn" onClick={useRecovery}>
+                {step === "totp" ? tr("Lost your phone? Use a backup code", "HP hilang? Pakai kode cadangan") : tr("Use the authenticator app instead", "Pakai aplikasi authenticator saja")}
+              </button>
+            )}
           </form>
         </Card>
       </div>

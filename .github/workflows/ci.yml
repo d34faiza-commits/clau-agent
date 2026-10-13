@@ -102,6 +102,13 @@ jobs:
             -d '{"email":"owner@contoh.test","password":"ci-sawah-teras-2026"}' http://127.0.0.1:3000/api/auth/login | grep -q '"next":"mfa_setup"'
           grep -q '__Host-clau_session' jar
           test "$(curl -s -o /dev/null -w '%{http_code}' -b jar http://127.0.0.1:3000/api/users)" = 403
+          # Backup terenkripsi + uji restore ke database sementara (keputusan VPS #6).
+          scripts/db-backup.sh
+          backup="$(ls -1 backups/*.dump.enc | tail -1)"
+          scripts/db-restore.sh --verify "$backup" | tee restore.log
+          grep -q "migrasi 0003" restore.log
+          # Backup yang diubah 1 byte harus ditolak (HMAC).
+          printf 'x' >> "$backup" && ! scripts/db-restore.sh --verify "$backup"
           curl -fsS http://127.0.0.1:8000/health
           curl -fsS -o /dev/null http://127.0.0.1:3000/
           curl -fsS -o /dev/null http://127.0.0.1:3000/agents

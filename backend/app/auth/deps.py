@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import crypto
 from app.auth.access import is_owner
-from app.auth.config import CSRF_HEADER, SESSION_COOKIE, AuthSettings, auth_settings
+from app.auth.config import CSRF_HEADER, AuthSettings, auth_settings
 from app.db.models import Membership, User, UserSession
 from app.errors import ApiError
 
@@ -74,7 +74,7 @@ class AuthContext:
 
 
 def load_auth(request: Request, db: Session, settings: AuthSettings) -> AuthContext | None:
-    token = request.cookies.get(SESSION_COOKIE)
+    token = request.cookies.get(settings.cookie_name)
     if not token or len(token) > 128:
         return None
     row = db.get(UserSession, crypto.token_hash(token))

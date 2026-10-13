@@ -1,5 +1,6 @@
 # Secrets
 .env
+backups/
 .env.*
 !.env.example
 
