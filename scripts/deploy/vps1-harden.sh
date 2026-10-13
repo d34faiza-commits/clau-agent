@@ -90,6 +90,8 @@ find "$ROOT" -type d -exec chmod g+s {} +
 as_deploy() { runuser -u clau-deploy -- env HOME="$DEPLOY_HOME" "$@"; }
 as_deploy git -C "$REPO" fetch --quiet origin main
 echo "clau-deploy bisa membaca GitHub dengan deploy key"
+as_deploy git -C "$REPO" ls-remote --exit-code origin refs/heads/release/vps1 >/dev/null \
+  || die "branch release/vps1 belum ada: tunggu job CI 'release-vps1' di main hijau (±5 menit setelah merge), lalu ulangi"
 
 log "5/7 sudo terbatas, unit systemd, alat cek & backup"
 tmp=$(mktemp)

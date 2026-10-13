@@ -38,10 +38,18 @@ grep -qi '^x-powered-by:' <<<"$headers" && gagal "header X-Powered-By masih terk
 
 judul "Deploy"
 live=$(cat /srv/clau/current/.sha 2>/dev/null || echo "")
-remote=$(runuser -u clau-deploy -- env HOME=/var/lib/clau-deploy git -C "$REPO" ls-remote origin refs/heads/main 2>/dev/null | cut -c1-40)
-if [ -z "$remote" ]; then gagal "tidak bisa membaca GitHub dengan deploy key (user clau-deploy)"
-elif [ "$live" = "$remote" ]; then ok "rilis aktif = main terbaru (${live:0:7})"
-else cek "rilis aktif ${live:0:7}, main ${remote:0:7} (normal bila push < 5 menit lalu)"; fi
+refs=$(runuser -u clau-deploy -- env HOME=/var/lib/clau-deploy git -C "$REPO" ls-remote origin refs/heads/main refs/heads/release/vps1 2>/dev/null)
+main_sha=$(awk '$2 == "refs/heads/main" {print $1}' <<<"$refs")
+release=$(awk '$2 == "refs/heads/release/vps1" {print $1}' <<<"$refs")
+branch=$(systemctl show -p Environment --value clau-deploy 2>/dev/null | grep -o 'CLAU_BRANCH=[^ ]*' | cut -d= -f2)
+if [ -z "$main_sha" ]; then gagal "tidak bisa membaca GitHub dengan deploy key (user clau-deploy)"
+else
+  [ "$branch" = release/vps1 ] && ok "deploy hanya dari release/vps1 (commit main yang CI-nya hijau)" || gagal "deploy dari '${branch:-main}', seharusnya release/vps1 (jalankan ulang vps1-harden.sh)"
+  if [ -z "$release" ]; then gagal "branch release/vps1 belum ada (tunggu job CI release-vps1 di main)"
+  elif [ "$live" = "$release" ]; then ok "rilis aktif = release/vps1 terbaru (${live:0:7})"
+  else cek "rilis aktif ${live:0:7}, release/vps1 ${release:0:7} (normal bila < 5 menit lalu)"; fi
+  [ -n "$release" ] && [ "$release" != "$main_sha" ] && cek "main ${main_sha:0:7} belum lolos CI (release/vps1 ${release:0:7}); tayang otomatis setelah CI hijau"
+fi
 if [ -f /srv/clau/.failed-sha ]; then gagal "deploy terakhir gagal untuk $(cut -c1-7 /srv/clau/.failed-sha) (journalctl -u clau-deploy -n 50)"; else ok "tidak ada deploy gagal"; fi
 owner=$(stat -c %U:%G /srv/clau/current/ 2>/dev/null)
 [ "$owner" = clau-deploy:clau-web ] && ok "file rilis milik clau-deploy, hanya dibaca clau-web" || gagal "pemilik file rilis: ${owner:--}"

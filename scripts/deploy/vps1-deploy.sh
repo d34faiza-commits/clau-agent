@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Pull-based deploy of the frontend on VPS 1 (docs/deploy/vps-1-setup.md §9).
-# Run by clau-deploy.timer as user dea. Nothing on GitHub can reach into the server:
-# the server pulls main with a read-only deploy key, builds a new release next to the
-# running one, switches the `current` symlink, and rolls back if the health check fails.
+# Run by clau-deploy.timer as user clau-deploy. Nothing on GitHub can reach into the server:
+# the server fetches the deploy branch with a read-only deploy key, builds a new release next
+# to the running one, switches the `current` symlink, and rolls back if the health check fails.
+# Deploy branch = release/vps1 (set in clau-deploy.service): CI moves it only to main commits
+# whose CI is green, so a red commit never goes live (AI-BOUNDARY 1.3.0).
 set -euo pipefail
 
 ROOT="${CLAU_ROOT:-/srv/clau}"
@@ -21,8 +23,11 @@ log() { echo "[clau-deploy] $*"; }
 exec 9>"$ROOT/.deploy.lock"
 flock -n 9 || { log "another deploy is running"; exit 0; }
 
-git -C "$REPO" pull --quiet --ff-only origin "$BRANCH"
-new=$(git -C "$REPO" rev-parse HEAD)
+# fetch, not pull: build exactly the commit the deploy branch points to, never a newer local main.
+git -C "$REPO" fetch --quiet origin "$BRANCH"
+new=$(git -C "$REPO" rev-parse FETCH_HEAD)
+# Keep the working copy (scripts/deploy/, used by vps1-harden.sh) at the same reviewed commit.
+git -C "$REPO" checkout --quiet --detach "$new"
 old=""
 [ -f "$CURRENT/.sha" ] && old=$(cat "$CURRENT/.sha")
 

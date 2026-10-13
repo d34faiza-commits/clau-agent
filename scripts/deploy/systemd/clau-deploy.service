@@ -11,6 +11,8 @@ Type=oneshot
 User=clau-deploy
 Group=clau-deploy
 Environment=HOME=/var/lib/clau-deploy
+# Hanya commit main yang CI-nya hijau (job release-vps1 di ci.yml) yang tayang.
+Environment=CLAU_BRANCH=release/vps1
 Environment=NEXT_TELEMETRY_DISABLED=1
 ExecStart=/srv/clau/clau-ai-agents/scripts/deploy/vps1-deploy.sh
 TimeoutStartSec=15min

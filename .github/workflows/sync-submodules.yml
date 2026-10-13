@@ -84,7 +84,7 @@ jobs:
           # proteksi di repo private, jadi gh pr merge langsung me-merge: tunggu CI di sini.
           # Check run dibaca pakai GITHUB_TOKEN (checks: read); SUBMODULE_TOKEN tidak punya izin itu.
           # Daftar check sama dengan main-guard.yml dan core/AI-BOUNDARY.md (Disiplin Push).
-          required="backend frontend audit cross-validate"
+          required="backend frontend audit docker cross-validate"
           head="$(git rev-parse HEAD)"
           echo "menunggu check wajib ($required) di $head"
           for _ in $(seq 1 75); do
