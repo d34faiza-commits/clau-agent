@@ -30,7 +30,7 @@
 | `.env.example` | Semua variabel environment + arti & default aman; tanpa secret (dites `backend/tests/test_env.py`) |
 | `docker-compose.yml` · `backend/Dockerfile` · `frontend/Dockerfile` · `.dockerignore` | Container backend + frontend: non-root, read-only, port 127.0.0.1; base image dipin digest; dicek job CI `docker` |
 | `SUBMODULE.md` | Panduan submodule & GitHub Actions |
-| `.github/workflows/` | `ci.yml` (`backend`, `frontend`, `audit`, `docker`), `cross-repo-validate.yml`, `sync-submodules.yml`, `notify-downstream.yml`, `main-guard.yml` |
+| `.github/workflows/` | `ci.yml` (`backend`, `frontend`, `audit`, `docker`, `release-vps1`), `cross-repo-validate.yml`, `sync-submodules.yml`, `notify-downstream.yml`, `main-guard.yml` |
 | `backend/README.md` · `frontend/README.md` | Detail backend (auth, database, backup) · halaman & data frontend |
 | `docs/deploy/vps-1-setup.md` | VPS 1 (pratinjau, tanpa login): setup, auto-deploy, user khusus, `clau-vps1-check` |
 | `docs/security.md` | Audit & aturan keamanan: header, Nginx, sandbox systemd, supply chain; **aturan wajib sebelum login/DB/AI/WhatsApp di VPS 2** (§ 6) |
@@ -58,6 +58,6 @@ Spesifikasi UI/UX (Portal Klien & Studio) dan design tokens ada di repo arsip `C
 - **Jangan** commit data client nyata (brief, fact sheet, caption, harga, foto, data tamu), `.env`, atau credential. Data client nyata ada di Client Workspace (Drive), bukan repo.
 - Label evidence dipakai persis: `DATA FINAL`, `ASSUMPTION`, `CLIENT CONFIRMATION`, `FIELD VERIFICATION`, `RISK`, `NEXT ACTION`.
 - Commit message: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`, `test:`. Jalankan validator sebelum push.
-- `main` wajib lewat PR dengan CI hijau (`backend`, `frontend`, `audit`, `cross-validate`; dijaga `main-guard`). `main` tayang otomatis di VPS 1.
+- `main` wajib lewat PR dengan CI hijau (`backend`, `frontend`, `audit`, `docker`, `cross-validate`; dijaga `main-guard`). VPS 1 menayangkan `release/vps1` = commit `main` yang CI-nya hijau (job `release-vps1`); jangan push manual ke branch itu.
 
 - **Tidak boleh** ada endpoint/tombol publish ke platform sosial. Aturan approval (fakta dikonfirmasi, review independen) wajib dicek di server, bukan hanya di UI.

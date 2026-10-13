@@ -168,7 +168,7 @@ cd frontend && npm ci && npm run build && sudo systemctl restart clau-frontend
 
 ## 6. Bagian 9 — Auto-Deploy dari Repo
 
-Setiap 5 menit VPS 1 mengecek branch `main`. Bila ada perubahan di `frontend/`, `agents/registry.json`, `agents/personas/`, atau `agents/evals/cases/` (jumlah kasus uji tampil di UI), server build rilis baru **di samping** rilis yang sedang jalan, lalu pindah ke rilis baru. Commit yang hanya mengubah dokumen tidak memicu build.
+Setiap 5 menit VPS 1 mengecek branch `release/vps1` (sejak 2026-10-13; sebelumnya `main`). Branch ini dimajukan job CI `release-vps1` hanya ke commit `main` yang semua job CI-nya hijau. Bila ada perubahan di `frontend/`, `agents/registry.json`, `agents/personas/`, atau `agents/evals/cases/` (jumlah kasus uji tampil di UI), server build rilis baru **di samping** rilis yang sedang jalan, lalu pindah ke rilis baru. Commit yang hanya mengubah dokumen tidak memicu build.
 
 | Sifat | Keterangan |
 |---|---|
@@ -270,6 +270,8 @@ sudo bash /srv/clau/clau-ai-agents/scripts/deploy/vps1-harden.sh
 
 Script berhenti dan **mengembalikan semuanya otomatis** bila satu langkah gagal (frontend tetap hidup sebagai `dea`); kirim outputnya ke agent. Hasil akhir = daftar `clau-vps1-check`. Yang wajib OK: Layanan, Aplikasi, Deploy, Keamanan server.
 
+**Gerbang deploy (2026-10-13, AI-BOUNDARY 1.3.0).** Unit `clau-deploy.service` menetapkan `CLAU_BRANCH=release/vps1`. Setelah PR gerbang di-merge dan job CI `release-vps1` hijau sekali (branch dibuat otomatis), jalankan ulang perintah pasang di atas. Script berhenti dengan pesan jelas (dan mengembalikan semuanya) bila `release/vps1` belum ada. Cek: baris "deploy hanya dari release/vps1" = OK. Bila `main` lebih baru dari rilis, `clau-vps1-check` menampilkan "belum lolos CI" (PERLU DICEK, normal beberapa menit setelah merge; bila lama, CI `main` merah).
+
 **Rutin** (mis. tiap Senin, atau setelah ada masalah):
 
 ```bash
@@ -293,5 +295,5 @@ Rollback manual ke rilis sebelumnya: `sudo -u clau-deploy ln -sfn /srv/clau/rele
 
 - Selama belum ada domain + SSL, akses masih **HTTP via IP**. Aman untuk scaffold saat ini (tidak ada login/data), tetapi **jangan** menambahkan login, form, atau data client sebelum Bagian 9 (HTTPS) selesai.
 - `vps1-harden.sh` dijalankan root dari folder repo milik `clau-deploy`. Isinya = `main` di GitHub (ditarik deploy key), jadi kepercayaan sama dengan kode yang tayang; jalankan hanya setelah PR terkait di-merge.
-- Deploy mengambil `main` tanpa menunggu CI di `main` selesai (server tidak punya akses API GitHub). Penjaga saat ini: `main` wajib lewat PR dengan CI hijau. Usulan gerbang `release/vps1` (hanya commit yang CI-nya hijau yang tayang) menunggu persetujuan owner.
-- Push ke `main` tampil di VPS 1 dalam ±5 menit. `main` harus lewat CI hijau (build frontend sudah dicek di CI) dan wajib lewat PR dengan CI hijau (`core/AI-BOUNDARY.md` § Disiplin Push, dijaga `main-guard`) agar perubahan tidak langsung live tanpa dicek.
+- Gerbang deploy (AI-BOUNDARY 1.3.0): VPS 1 hanya menayangkan `release/vps1`, yang dimajukan job CI `release-vps1` ke commit `main` setelah `backend`, `frontend`, `audit`, `docker` hijau. Commit merah tidak tayang; tetap tinggal di `main` sampai diperbaiki.
+- Merge ke `main` tampil di VPS 1 ±5 menit **setelah CI `main` hijau** (±3 menit CI + ≤5 menit timer). `main` tetap wajib lewat PR dengan CI hijau (`core/AI-BOUNDARY.md` § Disiplin Push, dijaga `main-guard`).

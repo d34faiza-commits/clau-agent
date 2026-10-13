@@ -74,3 +74,16 @@ def test_backup_never_includes_secrets():
     paths = re.search(r"paths=\(\n(.*?)\n\)", backup, re.S).group(1).split()
     for p in paths:
         assert not re.search(r"\.env|_deploy$|id_|\.key$|ssh_host", p), p
+
+
+def test_vps1_only_deploys_ci_green_release_branch():
+    # AI-BOUNDARY 1.3.0: VPS 1 menayangkan release/vps1, yang hanya dimajukan job CI setelah semua job hijau.
+    assert "CLAU_BRANCH=release/vps1" in unit("clau-deploy.service")["Environment"]
+    ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+    job = ci.split("\n  release-vps1:\n", 1)[1]
+    needs = set(re.search(r"needs: \[([^\]]+)\]", job).group(1).replace(" ", "").split(","))
+    jobs = set(re.findall(r"^  ([a-z0-9-]+):\n", ci.split("\njobs:\n", 1)[1], re.M)) - {"release-vps1"}
+    assert needs == jobs, "release-vps1 harus menunggu semua job CI"
+    assert "github.ref == 'refs/heads/main'" in job
+    deploy = (DEPLOY / "vps1-deploy.sh").read_text()
+    assert 'fetch --quiet origin "$BRANCH"' in deploy and "FETCH_HEAD" in deploy and not re.search(r"git .*\bpull\b", deploy)

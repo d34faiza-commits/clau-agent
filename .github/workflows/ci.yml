@@ -122,3 +122,35 @@ jobs:
       - name: Stop
         if: always()
         run: docker compose down -v
+
+  # Gerbang deploy VPS 1 (AI-BOUNDARY 1.3.0, persetujuan owner 2026-10-13). VPS 1 menayangkan branch
+  # release/vps1, bukan main. Branch ini hanya dimajukan ke commit main yang semua job CI di atas hijau,
+  # jadi commit merah tidak pernah tayang. GITHUB_TOKEN cukup (repo ini saja); push dari GITHUB_TOKEN
+  # tidak memicu workflow lain. Jangan push manual ke release/vps1.
+  release-vps1:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [backend, frontend, audit, docker]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Majukan release/vps1 ke commit ini
+        run: |
+          set -euo pipefail
+          sha="$(git rev-parse HEAD)"
+          if git fetch --quiet origin release/vps1 2>/dev/null; then
+            live="$(git rev-parse FETCH_HEAD)"
+            # Run CI untuk commit main yang lebih baru sudah selesai duluan: jangan mundurkan.
+            if git merge-base --is-ancestor "$sha" "$live"; then
+              echo "release/vps1 ($live) sudah memuat $sha"
+              exit 0
+            fi
+            git merge-base --is-ancestor "$live" "$sha" \
+              || { echo "::error::release/vps1 ($live) bukan leluhur $sha; periksa manual"; exit 1; }
+          fi
+          git push origin "$sha:refs/heads/release/vps1"
+          echo "release/vps1 -> $sha (tayang di VPS 1 dalam ±5 menit)"

@@ -22,7 +22,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
       SHA: ${{ github.event.after }}
-      REQUIRED_CHECKS: "backend frontend audit cross-validate"
+      REQUIRED_CHECKS: "backend frontend audit docker cross-validate"
     steps:
       - name: Push ke main harus lewat PR dengan CI hijau
         run: |
