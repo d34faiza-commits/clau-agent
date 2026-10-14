@@ -15,11 +15,11 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.auth.access import AGENCY, LEVEL_ORDER, agency_role, can_access_client, max_level_for, visible_client_codes
+from app.auth.access import AGENCY, LEVEL_ORDER, can_access_client, visible_client_codes
 from app.auth.deps import AuthContext, current_user, get_db
 from app.db.models import (
     APPROVAL_DECISIONS,
@@ -28,6 +28,7 @@ from app.db.models import (
     FACT_KEY_RE,
     FACTUAL_CATEGORIES,
     LEVELS,
+    Membership,
     QA_GATES,
     QA_RESULTS,
     REQUEST_STATUSES,
@@ -58,8 +59,29 @@ assert tuple(Level.__args__) == LEVELS
 # --- Body ----------------------------------------------------------------------------------------
 
 
-class RequestIn(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+class Body(BaseModel):
+    """Field lain ditolak; spasi di tepi dibuang (isi kosong = tidak valid); byte NUL ditolak (Postgres tidak menerimanya)."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def no_nul(cls, data: object) -> object:
+        def walk(v: object) -> None:
+            if isinstance(v, str) and "\x00" in v:
+                raise ValueError("teks tidak boleh memuat karakter NUL")
+            if isinstance(v, dict):
+                for item in v.values():
+                    walk(item)
+            elif isinstance(v, list):
+                for item in v:
+                    walk(item)
+
+        walk(data)
+        return data
+
+
+class RequestIn(Body):
     client_code: str = Field(pattern=r"^[A-Z0-9]{2,12}$")
     intent: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
     text: str = Field(min_length=1, max_length=4000)
@@ -68,8 +90,7 @@ class RequestIn(BaseModel):
     risk: int = Field(default=1, ge=0, le=3)
 
 
-class ClaimIn(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+class ClaimIn(Body):
     text: str = Field(min_length=1, max_length=300)
     category: Literal[CLAIM_CATEGORIES]  # type: ignore[valid-type]
     evidence_label: Literal[EVIDENCE_LABELS]  # type: ignore[valid-type]
@@ -79,8 +100,7 @@ class ClaimIn(BaseModel):
     fact_key: str | None = Field(default=None, max_length=64, pattern=FACT_KEY_RE)
 
 
-class DraftIn(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+class DraftIn(Body):
     request_id: int = Field(ge=1)
     brief_id: str | None = Field(default=None, pattern=r"^[A-Z0-9]{2,12}-[0-9]{6}-[0-9]{2}$")
     fact_sheet_id: int | None = Field(default=None, ge=1)
@@ -88,21 +108,20 @@ class DraftIn(BaseModel):
     claims: list[ClaimIn] = Field(default_factory=list, max_length=30)
 
 
-class QAIn(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+class QAIn(Body):
     draft_id: int = Field(ge=1)
     gate: Literal[QA_GATES]  # type: ignore[valid-type]
     result: Literal[QA_RESULTS]  # type: ignore[valid-type]
     independent: bool
 
 
-class ApprovalIn(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+class ApprovalIn(Body):
     draft_id: int = Field(ge=1)
     level: Level
     decision: Literal[APPROVAL_DECISIONS]  # type: ignore[valid-type]
-    # Referensi bukti tertulis (link email/pesan arsip di workspace klien), bukan isi pesannya.
-    channel_ref: str | None = Field(default=None, max_length=500, pattern=r"^[^\x00-\x1f\x7f]*$")
+    # Referensi bukti tertulis klien (link email/pesan arsip), bukan isi pesannya. Hanya skema aman: tidak bisa
+    # menjadi javascript:/data: bila nanti ditampilkan sebagai link.
+    channel_ref: str | None = Field(default=None, max_length=500, pattern=r"^(https://|mailto:|workspace://)[^\s\x00-\x1f\x7f]+$")
 
 
 class Page(BaseModel):
@@ -117,9 +136,15 @@ def page(limit: int = Query(50, ge=1, le=100), offset: int = Query(0, ge=0, le=1
 # --- Akses ---------------------------------------------------------------------------------------
 
 
+def membership_for(ctx: AuthContext, client_code: str) -> Membership | None:
+    """Membership yang berlaku untuk klien ini: agency (semua klien) diutamakan, lalu scope klien itu. Peran dan
+    batas level selalu diambil dari membership yang SAMA."""
+    return next((m for m in ctx.memberships if m.scope == AGENCY), None) or next((m for m in ctx.memberships if m.scope == client_code), None)
+
+
 def role_for(ctx: AuthContext, client_code: str) -> str | None:
-    """Peran user untuk klien ini: peran agency (berlaku untuk semua klien) diutamakan, lalu peran di klien itu."""
-    return agency_role(ctx.memberships) or next((m.role for m in ctx.memberships if m.scope == client_code), None)
+    m = membership_for(ctx, client_code)
+    return m.role if m else None
 
 
 def forbidden(message: str = "Peranmu tidak boleh melakukan ini.") -> ApiError:
@@ -245,9 +270,11 @@ def create_request(body: RequestIn, ctx: AuthContext = Depends(current_user), db
     agent = agent_for_intent(body.intent)
     if agent is None:
         raise ApiError(422, "unknown_intent", f"Intent '{body.intent}' tidak dikenal (core/orchestrator/router.md).")
+    # Risiko 3 (legal, privacy, keselamatan, krisis, review negatif) = L3 (rule 08), apa pun minimum intent-nya.
+    approval_min = "L3" if body.risk == 3 else agent["approval_min"]
     req = Request(
-        client_code=body.client_code, intent=body.intent, pillar=agent["pillar"], approval_min=agent["approval_min"],
-        text=body.text.strip(), deadline=body.deadline, impact=body.impact, risk=body.risk,
+        client_code=body.client_code, intent=body.intent, pillar=agent["pillar"], approval_min=approval_min,
+        text=body.text, deadline=body.deadline, impact=body.impact, risk=body.risk,
         priority=priority_of(urgency(body.deadline, datetime.now(WITA).date()) + body.impact + body.risk, body.risk),
         status="open", requested_by=ctx.user.id, requested_by_role=role,
     )
@@ -409,13 +436,14 @@ def get_qa(record_id: int, ctx: AuthContext = Depends(current_user), db: Session
 @router.post("/approvals", status_code=201)
 def create_approval(body: ApprovalIn, ctx: AuthContext = Depends(current_user), db: Session = Depends(get_db)) -> dict:
     draft, req = visible_draft(db, ctx, body.draft_id)
-    role = role_for(ctx, req.client_code)
+    member = membership_for(ctx, req.client_code)
+    role = member.role if member else None
     if role not in SENIOR and role != "client_approver":
         raise forbidden("Hanya approver klien atau owner/content lead yang mencatat approval.")
-    allowed = max_level_for(ctx.memberships, req.client_code)
-    if allowed is None or LEVEL_ORDER[body.level] > LEVEL_ORDER[allowed]:
+    allowed = member.max_level
+    if LEVEL_ORDER[body.level] > LEVEL_ORDER[allowed]:
         raise ApiError(403, "level_not_allowed", f"Batas approval-mu {allowed or '-'}; level {body.level} butuh approver yang lebih tinggi.")
-    channel_ref = (body.channel_ref or "").strip() or None
+    channel_ref = body.channel_ref or None
     approval = Approval(
         draft_id=draft.id, level=body.level, decision=body.decision, approver_id=ctx.user.id,
         approver_role=role, channel_ref=channel_ref, mode=draft.mode,

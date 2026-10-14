@@ -47,19 +47,24 @@ def world(app_conn):
     author = insert(c, "users", display_name="Penulis Contoh", email="penulis@contoh.test")
     reviewer = insert(c, "users", display_name="Reviewer Contoh", email="reviewer@contoh.test")
     approver = insert(c, "users", display_name="Approver Contoh", email="approver@contoh.test")
+    lead = insert(c, "users", display_name="Lead Contoh", email="lead@contoh.test")
+    # Peran yang tercatat di QA/approval dicek ke memberships (migrasi 0004).
+    for user, scope, role in ((author, "agency", "content_staff"), (reviewer, "agency", "content_lead"), (lead, "agency", "content_lead"),
+                              (approver, "CTH", "client_approver"), (approver, "CTHSIM", "client_approver")):
+        c.execute("INSERT INTO memberships (user_id, scope, role, max_level) VALUES (%s, %s, %s, 'L3')", (user, scope, role))
     request = new_request(c)
     sim_request = new_request(c, client="CTHSIM")
     nyata = insert(c, "drafts", request_id=request, skill="draft-caption", version=1, content="v1", mode="NYATA", created_by=author)
     sim = insert(c, "drafts", request_id=sim_request, skill="draft-caption", version=1, content="v1", mode="SIMULASI", agent_id="caption-writer")
-    return {"author": author, "reviewer": reviewer, "approver": approver, "request": request, "sim_request": sim_request, "nyata": nyata, "sim": sim}
+    return {"author": author, "reviewer": reviewer, "approver": approver, "lead": lead, "request": request, "sim_request": sim_request, "nyata": nyata, "sim": sim}
 
 
 def approve(conn, draft, approver, level="L1", decision="Approved", mode="NYATA", role="client_approver", channel_ref=None):
     return insert(conn, "approvals", draft_id=draft, level=level, decision=decision, approver_id=approver, approver_role=role, mode=mode, channel_ref=channel_ref)
 
 
-def qa(conn, draft, reviewer, independent=True, result="Pass", gate="claim-verification"):
-    return insert(conn, "qa_records", draft_id=draft, gate=gate, result=result, reviewer_id=reviewer, reviewer_role="content_lead", independent=independent)
+def qa(conn, draft, reviewer, independent=True, result="Pass", gate="claim-verification", role="content_lead"):
+    return insert(conn, "qa_records", draft_id=draft, gate=gate, result=result, reviewer_id=reviewer, reviewer_role=role, independent=independent)
 
 
 # --- Skema --------------------------------------------------------------------------------------
@@ -169,7 +174,7 @@ def test_l2_l3_need_independent_claim_verification(app_conn, world, level):
     draft, approver = world["nyata"], world["approver"]
     with violates(app_conn, "approval_needs_independent_review"):
         approve(app_conn, draft, approver, level=level)
-    qa(app_conn, draft, world["author"], independent=False)  # self-review: pre-check saja
+    qa(app_conn, draft, world["author"], independent=False, role="content_staff")  # self-review: pre-check saja
     qa(app_conn, draft, world["reviewer"], result="Fail")
     qa(app_conn, draft, world["reviewer"], gate="content-review")
     with violates(app_conn, "approval_needs_independent_review"):
@@ -183,8 +188,9 @@ def test_l1_does_not_need_independent_review(app_conn, world):
 
 
 def test_reviewer_cannot_review_own_draft(app_conn, world):
+    draft = insert(app_conn, "drafts", request_id=new_request(app_conn), skill="draft-caption", version=1, content="x", mode="NYATA", created_by=world["lead"])
     with violates(app_conn, "qa_reviewer_is_author"):
-        qa(app_conn, world["nyata"], world["author"], independent=True)
+        qa(app_conn, draft, world["lead"], independent=True)
 
 
 def test_agent_review_is_never_independent(app_conn, world):
@@ -193,7 +199,7 @@ def test_agent_review_is_never_independent(app_conn, world):
 
 
 def test_data_final_claim_needs_source_and_date(app_conn, world):
-    base = {"draft_id": world["nyata"], "text": "Kolam renang pribadi", "category": "facility", "evidence_label": "DATA FINAL", "fact_key": "pool.private"}
+    base = {"draft_id": world["nyata"], "text": "Kolam renang pribadi", "category": "facility", "evidence_label": "DATA FINAL", "fact_key": "facility.pool-private"}
     with violates(app_conn, "data_final_sourced"):
         insert(app_conn, "claims", **base)
     with violates(app_conn, "data_final_sourced"):
@@ -231,7 +237,8 @@ def test_evidence_label_is_exact(app_conn, world, label, rule):
     ],
 )
 def test_membership_role_matches_scope(app_conn, world, scope, role, ok):
-    values = {"user_id": world["approver"], "scope": scope, "role": role, "max_level": "L2"}
+    user = insert(app_conn, "users", display_name="Baru", email="baru@contoh.test")
+    values = {"user_id": user, "scope": scope, "role": role, "max_level": "L2"}
     if ok:
         app_conn.execute("INSERT INTO memberships (user_id, scope, role, max_level) VALUES (%(user_id)s, %(scope)s, %(role)s, %(max_level)s)", values)
     else:
@@ -276,7 +283,7 @@ def test_seed_is_simulasi_and_idempotent(database):
 # --- Workflow (migrasi 0004, kontrak core 0.7.0) --------------------------------------------------
 
 
-def fact_sheet(conn, client="CTH", approved=True, confirmed=("pool.private",), confirmer=None):
+def fact_sheet(conn, client="CTH", approved=True, confirmed=("facility.pool-private",), confirmer=None):
     sheet = insert(conn, "fact_sheets", client_code=client, version=1 + conn.execute("SELECT count(*) FROM fact_sheets WHERE client_code = %s", (client,)).fetchone()[0],
                    approved_at="2026-10-14T09:00:00+08:00" if approved else None, document_ref="workspace://fact-sheet")
     for key in confirmed:
@@ -284,7 +291,7 @@ def fact_sheet(conn, client="CTH", approved=True, confirmed=("pool.private",), c
     return sheet
 
 
-def factual_draft(conn, world, sheet=None, key="pool.private"):
+def factual_draft(conn, world, sheet=None, key="facility.pool-private"):
     request = new_request(conn)
     draft = insert(conn, "drafts", request_id=request, skill="draft-caption", version=1, content="kolam pribadi", mode="NYATA", created_by=world["author"], fact_sheet_id=sheet)
     insert(conn, "claims", draft_id=draft, text="Kolam renang pribadi", category="facility", evidence_label="ASSUMPTION", fact_key=key)
@@ -297,24 +304,40 @@ def test_factual_claim_needs_fact_key(app_conn, world):
         insert(app_conn, "claims", **base)
     with violates(app_conn, "fact_key_format"):
         insert(app_conn, "claims", **base, fact_key="Pool Private")
-    insert(app_conn, "claims", **base, fact_key="pool.private")
+    with violates(app_conn, "fact_key_required"):  # kunci kategori lain tidak bisa dipinjam
+        insert(app_conn, "claims", **{**base, "category": "price"}, fact_key="facility.pool-private")
+    insert(app_conn, "claims", **base, fact_key="facility.pool-private")
     insert(app_conn, "claims", **{**base, "category": "experience"})  # kesan/pengalaman: tanpa fact_key
 
 
-def test_facts_unconfirmed_blocks_every_level(app_conn, world):
-    """Approved (termasuk L1) ditolak sampai setiap fact_key klaim dikonfirmasi di fact sheet yang disetujui."""
+def test_facts_unconfirmed_blocks_approval(app_conn, world):
+    """Approved ditolak sampai setiap fact_key klaim dikonfirmasi di fact sheet yang disetujui."""
+
+    def approve_l2(draft):
+        qa(app_conn, draft, world["reviewer"])
+        approve(app_conn, draft, world["approver"], level="L2")
+
     with violates(app_conn, "facts_unconfirmed"):  # draft tanpa fact sheet
-        approve(app_conn, factual_draft(app_conn, world), world["approver"])
+        approve_l2(factual_draft(app_conn, world))
     unapproved = fact_sheet(app_conn, approved=False, confirmer=world["approver"])
     with violates(app_conn, "facts_unconfirmed"):
-        approve(app_conn, factual_draft(app_conn, world, unapproved), world["approver"])
-    sheet = fact_sheet(app_conn, confirmed=("pool.heated",), confirmer=world["approver"])
-    with violates(app_conn, "facts_unconfirmed"):  # fakta lain dikonfirmasi, pool.private belum
-        approve(app_conn, factual_draft(app_conn, world, sheet), world["approver"])
+        approve_l2(factual_draft(app_conn, world, unapproved))
+    sheet = fact_sheet(app_conn, confirmed=("facility.pool-heated",), confirmer=world["approver"])
+    with violates(app_conn, "facts_unconfirmed"):  # fakta lain dikonfirmasi, pool-private belum
+        approve_l2(factual_draft(app_conn, world, sheet))
     good = fact_sheet(app_conn, confirmer=world["approver"])
     draft = factual_draft(app_conn, world, good)
-    approve(app_conn, draft, world["approver"], decision="Revise")  # Revise/Rejected tidak butuh fakta
-    approve(app_conn, draft, world["approver"])
+    approve(app_conn, draft, world["approver"], level="L2", decision="Revise")  # Revise/Rejected tidak butuh fakta
+    approve_l2(draft)
+
+
+def test_factual_claim_raises_minimum_level_to_l2(app_conn, world):
+    """Rule 08: L1 = konten rutin tanpa klaim baru; klaim fakta (harga, fasilitas, …) minimal L2."""
+    draft = factual_draft(app_conn, world, fact_sheet(app_conn, confirmer=world["approver"]))
+    with violates(app_conn, "approval_level_too_low"):
+        approve(app_conn, draft, world["approver"], level="L1")
+    with violates(app_conn, "approval_level_too_low"):  # juga untuk Revise/Rejected
+        approve(app_conn, draft, world["approver"], level="L1", decision="Rejected")
 
 
 def test_draft_cannot_use_other_clients_fact_sheet_or_brief(app_conn, world):
@@ -352,18 +375,79 @@ def test_approval_level_cannot_be_below_intent_minimum(app_conn, world):
     approve(app_conn, draft, world["approver"], level="L2")
 
 
-def test_author_cannot_approve_own_draft(app_conn, world):
+@pytest.mark.parametrize("decision", ["Approved", "Revise", "Rejected"])
+def test_author_cannot_decide_on_own_draft(app_conn, world, decision):
+    draft = insert(app_conn, "drafts", request_id=new_request(app_conn), skill="draft-caption", version=1, content="x", mode="NYATA", created_by=world["lead"])
     with violates(app_conn, "approval_by_author"):
-        approve(app_conn, world["nyata"], world["author"])
+        approve(app_conn, draft, world["lead"], decision=decision, role="content_lead", channel_ref="https://mail.contoh.test/arsip/1")
 
 
-@pytest.mark.parametrize("role", ["owner", "content_lead"])
-def test_agency_l2_approval_needs_written_client_evidence(app_conn, world, role):
+@pytest.mark.parametrize("level", ["L1", "L2"])
+def test_agency_approval_needs_written_client_evidence(app_conn, world, level):
+    """Rule 08: persetujuan selalu dari klien; agency hanya mencatat persetujuan tertulis klien, di level apa pun."""
     qa(app_conn, world["nyata"], world["reviewer"])
     with violates(app_conn, "approval_needs_written_evidence"):
-        approve(app_conn, world["nyata"], world["approver"], level="L2", role=role, channel_ref="  ")
-    approve(app_conn, world["nyata"], world["approver"], level="L1", role=role)  # L1: agency boleh tanpa bukti
-    approve(app_conn, world["nyata"], world["approver"], level="L2", role=role, channel_ref="email://arsip/2026-10-14/approval-cth")
+        approve(app_conn, world["nyata"], world["lead"], level=level, role="content_lead", channel_ref="  ")
+    approve(app_conn, world["nyata"], world["lead"], level=level, role="content_lead", decision="Revise")  # Revise: tanpa bukti
+    approve(app_conn, world["nyata"], world["lead"], level=level, role="content_lead", channel_ref="https://mail.contoh.test/arsip/approval-cth")
+
+
+def test_recorded_role_must_be_real_membership(app_conn, world):
+    with violates(app_conn, "approval_role_mismatch"):  # content_lead mengaku approver klien
+        approve(app_conn, world["nyata"], world["lead"], role="client_approver")
+    with violates(app_conn, "approval_role_mismatch"):  # approver klien CTH mengaku owner
+        approve(app_conn, world["nyata"], world["approver"], role="owner", channel_ref="https://x.test/1")
+    lead_draft = insert(app_conn, "drafts", request_id=new_request(app_conn), skill="draft-caption", version=1, content="x", mode="NYATA", created_by=world["lead"])
+    with violates(app_conn, "qa_role_mismatch"):  # approver klien bukan staf agency
+        qa(app_conn, lead_draft, world["approver"], role="content_lead", independent=False)
+    with violates(app_conn, "independent_review_not_allowed"):  # content_staff: pre-check saja
+        qa(app_conn, lead_draft, world["author"], role="content_staff", independent=True)
+
+
+def test_latest_independent_claim_verification_counts(app_conn, world):
+    qa(app_conn, world["nyata"], world["reviewer"], result="Pass")
+    qa(app_conn, world["nyata"], world["lead"], result="Fail")  # Fail terbaru membatalkan Pass sebelumnya
+    with violates(app_conn, "approval_needs_independent_review"):
+        approve(app_conn, world["nyata"], world["approver"], level="L2")
+    qa(app_conn, world["nyata"], world["reviewer"], result="Pass")
+    approve(app_conn, world["nyata"], world["approver"], level="L2")
+
+
+def test_finished_request_accepts_no_new_draft_or_decision(app_conn, world):
+    approve(app_conn, world["nyata"], world["approver"])
+    app_conn.execute("UPDATE requests SET status = 'approved' WHERE id = %s", (world["request"],))
+    with violates(app_conn, "request_closed"):
+        insert(app_conn, "drafts", request_id=world["request"], skill="draft-caption", version=2, content="x", mode="NYATA", created_by=world["author"])
+    with violates(app_conn, "request_closed"):
+        approve(app_conn, world["nyata"], world["approver"], decision="Rejected")
+
+
+def test_publication_needs_latest_decision_approved_on_latest_version(app_conn, world):
+    def publish(draft):
+        insert(app_conn, "publications", draft_id=draft, channel="instagram", published_at="2026-10-14T10:00:00+08:00", published_by_role="content_lead")
+
+    approve(app_conn, world["nyata"], world["approver"])
+    approve(app_conn, world["nyata"], world["approver"], decision="Revise")  # keputusan terakhir bukan Approved
+    with violates(app_conn, "publication_without_approval"):
+        publish(world["nyata"])
+    v2 = insert(app_conn, "drafts", request_id=world["request"], skill="draft-caption", version=2, content="v2", mode="NYATA", created_by=world["author"])
+    approve(app_conn, v2, world["approver"])
+    publish(v2)
+    with violates(app_conn, "publication_without_approval"):  # v1 sudah digantikan v2
+        publish(world["nyata"])
+
+
+def test_fact_evidence_is_frozen(app_conn, world):
+    sheet = fact_sheet(app_conn, confirmer=world["approver"])
+    confirmation = app_conn.execute("SELECT id FROM fact_confirmations WHERE fact_sheet_id = %s", (sheet,)).fetchone()[0]
+    with violates(app_conn, "decision_record_append_only"):
+        app_conn.execute("UPDATE fact_confirmations SET decision = 'corrected' WHERE id = %s", (confirmation,))
+    with violates(app_conn, "decision_record_append_only"):
+        app_conn.execute("DELETE FROM fact_confirmations WHERE id = %s", (confirmation,))
+    with violates(app_conn, "decision_record_append_only"):
+        app_conn.execute("UPDATE fact_sheets SET document_ref = 'lain' WHERE id = %s", (sheet,))
+    draft_sheet = fact_sheet(app_conn, approved=False, confirmer=world["approver"])
+    app_conn.execute("UPDATE fact_sheets SET approved_at = now() WHERE id = %s", (draft_sheet,))  # belum disetujui: boleh
 
 
 def test_decision_records_and_claims_are_append_only(app_conn, world):
@@ -434,6 +518,7 @@ def world_committed(database):
         insert(c, "clients", client_code=f"RC{tag}", vertical="accommodation", business_type="villa", approver_role="owner")
         author = insert(c, "users", display_name="Penulis", email=f"p{tag}@contoh.test")
         approver = insert(c, "users", display_name="Approver", email=f"a{tag}@contoh.test")
+        c.execute("INSERT INTO memberships (user_id, scope, role, max_level) VALUES (%s, %s, 'client_approver', 'L3')", (approver, f"RC{tag}"))
         request = new_request(c, client=f"RC{tag}")
         draft = insert(c, "drafts", request_id=request, skill="draft-caption", version=1, content="v1", mode="NYATA", created_by=author)
         c.commit()
@@ -454,20 +539,22 @@ def test_upgrade_0003_to_0004_keeps_existing_data(database):
     try:
         db.alembic("upgrade", "0003")
         with psycopg.connect(db.app_conninfo) as c:
-            insert(c, "clients", client_code="CTHOLD", vertical="accommodation", business_type="villa", approver_role="owner")
-            req = insert(c, "requests", client_code="CTHOLD", intent="caption", pillar=1, requested_by_role="seed-simulasi")
+            insert(c, "clients", client_code="CTHVILLA", vertical="accommodation", business_type="villa", approver_role="owner")
+            insert(c, "clients", client_code="CTHNYATA", vertical="accommodation", business_type="villa", approver_role="owner")
+            req = insert(c, "requests", client_code="CTHVILLA", intent="caption", pillar=1, requested_by_role="seed-simulasi")
             draft = insert(c, "drafts", request_id=req, skill="draft-caption", version=1, content="lama", mode="SIMULASI", agent_id="caption-writer")
             insert(c, "claims", draft_id=draft, text="Kolam pribadi", category="facility", evidence_label="ASSUMPTION")
             insert(c, "claims", draft_id=draft, text="Suasana tenang", category="experience", evidence_label="ASSUMPTION")
             c.commit()
         db.alembic("upgrade", "head")
         with psycopg.connect(db.app_conninfo) as c:
-            assert c.execute("SELECT simulation FROM clients WHERE client_code = 'CTHOLD'").fetchone() == (True,)
+            # Hanya kode seed eksplisit yang ditandai SIMULASI; klien lain berawalan CTH tetap nyata.
+            assert dict(c.execute("SELECT client_code, simulation FROM clients").fetchall()) == {"CTHVILLA": True, "CTHNYATA": False}
             assert c.execute("SELECT approval_min, text, status FROM requests WHERE id = %s", (req,)).fetchone() == ("L3", "", "open")
             keys = sorted(r[0] or "-" for r in c.execute("SELECT fact_key FROM claims WHERE draft_id = %s", (draft,)))
-            assert keys[0] == "-" and keys[1].startswith("legacy.")
+            assert keys[0] == "-" and keys[1].startswith("facility.legacy-")
             # Kolom tanpa default: baris baru wajib diisi server.
             with violates(c, "null value"):
-                c.execute("INSERT INTO requests (client_code, intent, pillar, requested_by_role) VALUES ('CTHOLD', 'caption', 1, 'x')")
+                c.execute("INSERT INTO requests (client_code, intent, pillar, requested_by_role) VALUES ('CTHNYATA', 'caption', 1, 'x')")
     finally:
         db.drop()

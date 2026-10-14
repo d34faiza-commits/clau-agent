@@ -13,11 +13,11 @@
 | Clickjacking | Tertutup | `X-Frame-Options: DENY` + CSP `frame-ancestors 'none'` |
 | Path traversal | Tertutup | Id agent divalidasi sebelum membaca file persona/eval; route dinamis hanya id dari registry (`dynamicParams = false`) |
 | Host header injection / DNS rebinding | Tertutup (backend) | `TrustedHostMiddleware` (`CLAU_ALLOWED_HOSTS`) |
-| DoS ringan (flood, slowloris, body besar) | Dibatasi | Nginx: rate limit, batas koneksi, body 16 KB, timeout pendek. Backend: body ≤ 32 KB (draft terbesar), wajib `Content-Length` |
+| DoS ringan (flood, slowloris, body besar) | Dibatasi | Nginx: rate limit, batas koneksi, body 16 KB, timeout pendek. Backend: body ≤ 64 KB (draft terbesar), wajib `Content-Length`. VPS 2: `client_max_body_size` untuk `/api/` harus ≥ 64k, selain itu draft panjang ditolak Nginx |
 | Kebocoran informasi | Tertutup | Tanpa `X-Powered-By`/versi Nginx; error tanpa stack trace; `/docs` & `/openapi.json` mati di produksi |
 | Mass assignment | Tertutup | Semua body menolak field lain (`extra="forbid"`); peran, id user, mode, versi, pilar, prioritas hanya dari server (0.7.0) |
 | IDOR / akses lintas klien | Tertutup (0.7.0) | Setiap query workflow difilter `memberships`; detail klien lain = 404, list = 403; dites per endpoint (`tests/test_workflow.py`) |
-| Self-approve / lewati review | Tertutup (0.7.0) | Database menolak: pembuat menyetujui sendiri, level < minimum intent, versi lama, fakta belum dikonfirmasi, L2/L3 agency tanpa bukti tertulis; QA & approval append-only |
+| Self-approve / lewati review | Tertutup (0.7.0) | Database menolak: pembuat memutuskan drafnya sendiri (Approved/Revise/Rejected), level < minimum draft, versi lama, fakta belum dikonfirmasi, Approved oleh agency tanpa bukti tertulis, peran yang tidak ada di membership, request yang sudah selesai; QA, approval, konfirmasi fakta append-only; fact sheet approved dibekukan |
 | Supply chain (npm/pip/Actions) | Dikurangi | `npm ci --ignore-scripts` di CI & server; `npm audit` + `pip-audit` di CI; Dependabot; GitHub Actions dipin ke SHA |
 | Credential ter-commit | Dicek | Pemindai pola secret di CI; deploy key read-only; tidak ada secret server di GitHub |
 | Eskalasi dari proses web | Dikurung | Unit systemd `clau-frontend` dengan sandbox (§ 4) |

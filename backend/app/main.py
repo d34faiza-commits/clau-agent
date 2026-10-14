@@ -14,7 +14,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DataError, IntegrityError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.auth.routes import router as auth_router
@@ -31,8 +31,8 @@ CLAU_ENV = os.environ.get("CLAU_ENV") or "development"
 DOCS_ENABLED = (os.environ.get("CLAU_ENABLE_DOCS") or ("1" if CLAU_ENV == "development" else "0")) == "1"
 # Hanya Host yang dikenal (cegah Host header injection / DNS rebinding). Di VPS 2 isi dengan domain API.
 ALLOWED_HOSTS = [h.strip() for h in (os.environ.get("CLAU_ALLOWED_HOSTS") or "127.0.0.1,localhost,testserver").split(",") if h.strip()]
-# Body request maksimum: JSON kecil; terbesar = draft (konten ≤ 10.000 karakter + ≤ 30 klaim).
-MAX_BODY_BYTES = 32 * 1024
+# Body request maksimum: JSON kecil; terbesar = draft (konten ≤ 10.000 karakter UTF-8 + ≤ 30 klaim).
+MAX_BODY_BYTES = 64 * 1024
 
 SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
@@ -94,6 +94,12 @@ async def integrity_error_handler(_: Request, exc: IntegrityError) -> JSONRespon
     diag = getattr(exc.orig, "diag", None)
     code = db_rule_code(str(exc.orig), getattr(diag, "constraint_name", None))
     return JSONResponse(status_code=409, content=error_body(code, "Data ditolak aturan sistem."))
+
+
+@app.exception_handler(DataError)
+async def data_error_handler(_: Request, __: DataError) -> JSONResponse:
+    # Nilai yang ditolak tipe data Postgres (lolos validasi body): 422, bukan 500.
+    return JSONResponse(status_code=422, content=error_body("invalid_input", "Isi request tidak bisa disimpan."))
 
 
 @app.exception_handler(Exception)

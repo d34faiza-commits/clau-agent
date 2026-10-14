@@ -27,7 +27,7 @@ pytest                                  # test API + konsistensi registry ↔ co
 
 ## Keamanan
 
-Input dibatasi, body ≤ 32 KB, Host divalidasi, header keamanan di setiap respons, tanpa CORS, error tanpa detail internal, `/docs` mati bila `CLAU_ENV=production`. Detail dan cara menjalankan di produksi: [`../docs/security.md`](../docs/security.md) § 3; tes: `tests/test_security.py`.
+Input dibatasi, body ≤ 64 KB, Host divalidasi, header keamanan di setiap respons, tanpa CORS, error tanpa detail internal, `/docs` mati bila `CLAU_ENV=production`. Detail dan cara menjalankan di produksi: [`../docs/security.md`](../docs/security.md) § 3; tes: `tests/test_security.py`.
 
 ## Database
 
@@ -37,7 +37,7 @@ PostgreSQL 16 (SQLAlchemy 2 + Alembic + psycopg 3). Skema mengikuti kontrak [`co
 |---|---|
 | Mode SIMULASI tidak pernah `Approved` | CHECK `ck_approvals_simulasi_not_approved` |
 | Mode approval = mode draft | trigger `clau_approval_rules` |
-| Approval L2/L3 butuh claim verification **independen** yang `Pass`/`Conditional` | trigger `clau_approval_rules` |
+| Approval L2/L3 butuh claim verification **independen terakhir** yang `Pass`/`Conditional` (Fail yang lebih baru membatalkan) | trigger `clau_approval_rules` |
 | Tidak ada catatan tayang tanpa approval `Approved` untuk versi draft yang sama | trigger `clau_publication_requires_approval` |
 | `DATA FINAL` wajib sumber + tanggal sumber | CHECK `ck_claims_data_final_sourced` |
 | Reviewer independen ≠ pembuat draft; agent tidak pernah independen | trigger `clau_qa_reviewer_not_author` + CHECK `ck_qa_records_independent_is_human` |
@@ -105,7 +105,7 @@ Request → draft (ditulis manusia) → QA → approval, sesuai kontrak `core/sh
 | Request | `pillar` & `approval_min` dari registry (router), `priority` dari priority engine (urgensi dari `deadline` WITA + `impact` + `risk`). Intent pilar planned boleh dicatat, draft-nya ditolak `intent_not_active` |
 | Draft | Ditulis staf agency; versi = berikutnya (request dikunci), `mode` dari `clients.simulation`, `skill` dari registry. Klaim fakta wajib `fact_key`; brief/fact sheet harus milik klien yang sama. Revisi = draft versi baru |
 | QA | `independent = true` hanya owner/content lead dan bukan pembuat draft; content staff = pre-check |
-| Approval | L1: owner/content lead/approver klien. L2/L3: approver klien, atau owner/content lead dengan `channel_ref` (bukti tertulis klien). Database menolak: versi lama, level < minimum intent, pembuat menyetujui sendiri, fakta belum dikonfirmasi, SIMULASI Approved |
+| Approval | Approver klien (sampai `max_level`), atau owner/content lead yang mencatat persetujuan tertulis klien (`channel_ref` `https://`/`mailto:`/`workspace://` wajib untuk Approved, semua level). Database menolak (semua keputusan): peran tidak sesuai membership, pembuat memutuskan sendiri, level < minimum draft (risk 3 = L3; klaim fakta = min. L2), request sudah selesai; dan untuk Approved: versi lama, fakta belum dikonfirmasi, SIMULASI |
 | Isolasi klien | Approver/viewer klien hanya melihat kliennya; detail klien lain = 404, list `client_code` klien lain = 403. Peran, id user, mode, versi, pilar, prioritas tidak pernah dari body (`extra = forbid`) |
 | Jejak | Setiap POST menulis `audit_log` (tanpa isi konten); klaim, QA, dan approval append-only |
 

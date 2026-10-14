@@ -23,6 +23,10 @@ DB_RULES = {
     "draft_mode_mismatch",
     "draft_version_sequence",
     "decision_record_append_only",
+    "request_closed",
+    "approval_role_mismatch",
+    "qa_role_mismatch",
+    "independent_review_not_allowed",
 }
 
 

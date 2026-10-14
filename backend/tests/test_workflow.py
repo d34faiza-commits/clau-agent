@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
 from app.auth import crypto  # noqa: E402
 from app.auth.deps import get_db  # noqa: E402
 from app.auth.routes import throttle  # noqa: E402
-from app.db.models import AuditLog, Client, FactConfirmation, FactSheet, Membership, Request, User  # noqa: E402
+from app.db.models import AuditLog, Brief, Client, FactConfirmation, FactSheet, Membership, Request, User  # noqa: E402
 from app.main import app  # noqa: E402
 from tests.conftest import TempDatabase, admin_url_or_skip, sqlalchemy_url  # noqa: E402
 
@@ -106,7 +106,7 @@ def team(factory):
     }
 
 
-def fact_sheet(factory, client="CTH", keys=("pool.private",), approved=True, confirmer=None) -> int:
+def fact_sheet(factory, client="CTH", keys=("facility.pool-private",), approved=True, confirmer=None) -> int:
     with factory() as s, s.begin():
         version = (s.scalar(select(func.max(FactSheet.version)).where(FactSheet.client_code == client)) or 0) + 1
         sheet = FactSheet(client_code=client, version=version, document_ref="workspace://fact-sheet", approved_at=func.now() if approved else None)
@@ -129,7 +129,9 @@ def new_draft(actor: Actor, request_id: int, claims=(), **extra) -> dict:
     return r.json()
 
 
-POOL = {"text": "Kolam renang pribadi", "category": "facility", "evidence_label": "CLIENT CONFIRMATION", "fact_key": "pool.private"}
+POOL = {"text": "Kolam renang pribadi", "category": "facility", "evidence_label": "CLIENT CONFIRMATION", "fact_key": "facility.pool-private"}
+# Bukti tertulis klien yang dicatat agency (rule 08): link ke email/pesan yang diarsipkan.
+EVIDENCE = {"channel_ref": "https://mail.contoh.test/arsip/approval-cth"}
 
 
 def code(r) -> str:
@@ -147,7 +149,7 @@ def test_full_l2_flow_with_confirmed_facts(factory, team):
 
     draft = new_draft(team["staff"], req["id"], claims=[POOL], fact_sheet_id=sheet)
     assert (draft["version"], draft["mode"], draft["skill"], draft["created_by"], draft["latest"]) == (1, "NYATA", "draft-reel-script", team["staff"].id, True)
-    assert draft["claims"][0]["fact_key"] == "pool.private"
+    assert draft["claims"][0]["fact_key"] == "facility.pool-private"
 
     qa = team["lead"].post("/qa-records", {"draft_id": draft["id"], "gate": "claim-verification", "result": "Pass", "independent": True})
     assert qa.status_code == 201 and qa.json()["reviewer_role"] == "content_lead" and qa.json()["reviewer_id"] == team["lead"].id
@@ -251,10 +253,18 @@ def test_who_can_record_qa(team, who, independent, status):
         assert code(r) == "independent_review_not_allowed"
 
 
-@pytest.mark.parametrize(("who", "status"), [("owner", 201), ("lead2", 201), ("approver", 201), ("approver_l1", 201), ("staff", 403), ("viewer", 403), ("other", 404)])
-def test_who_can_approve_l1(team, who, status):
+@pytest.mark.parametrize(
+    ("who", "evidence", "status"),
+    [("owner", True, 201), ("lead2", True, 201), ("owner", False, 409), ("lead2", False, 409), ("approver", False, 201),
+     ("approver_l1", False, 201), ("staff", True, 403), ("viewer", True, 403), ("other", True, 404)],
+)
+def test_who_can_approve_l1(team, who, evidence, status):
+    """Rule 08: persetujuan dari klien. Agency hanya mencatat persetujuan tertulis klien (bukti wajib), juga untuk L1."""
     draft = new_draft(team["lead"], new_request(team["lead"])["id"])
-    assert team[who].post("/approvals", {"draft_id": draft["id"], "level": "L1", "decision": "Approved"}).status_code == status
+    r = team[who].post("/approvals", {"draft_id": draft["id"], "level": "L1", "decision": "Approved", **(EVIDENCE if evidence else {})})
+    assert r.status_code == status, r.text
+    if status == 409:
+        assert code(r) == "approval_needs_written_evidence"
 
 
 def test_level_above_max_level_is_refused(team):
@@ -273,6 +283,7 @@ def test_reviewer_cannot_independently_review_own_draft(team):
 
 
 def test_other_client_cannot_see_or_touch_cth_data(team):
+    new_request(team["other"], client="CTHB")  # data milik CTHB sendiri, agar list tidak kosong
     req = new_request(team["staff"])
     draft = new_draft(team["staff"], req["id"])
     qa = team["lead"].post("/qa-records", {"draft_id": draft["id"], "gate": "content-review", "result": "Pass", "independent": True}).json()
@@ -283,8 +294,9 @@ def test_other_client_cannot_see_or_touch_cth_data(team):
         assert r.status_code == 404 and code(r) == "not_found", path
     assert other.get("/requests", client_code="CTH").status_code == 403
     assert other.get("/drafts", client_code="CTH").status_code == 403
-    for path, key in (("/requests", "client_code"), ("/drafts", "client_code")):
-        assert all(item[key] == "CTHB" for item in other.get(path).json()["items"])
+    items = other.get("/requests").json()["items"]
+    assert items and {item["client_code"] for item in items} == {"CTHB"}
+    assert all(item["client_code"] == "CTHB" for item in other.get("/drafts").json()["items"])
     assert other.get("/qa-records", draft_id=draft["id"]).json()["items"] == []
     assert other.get("/approvals", draft_id=draft["id"]).json()["items"] == []
     # Viewer klien CTH boleh membaca, tidak boleh menulis.
@@ -292,7 +304,10 @@ def test_other_client_cannot_see_or_touch_cth_data(team):
 
 
 def test_draft_cannot_use_other_clients_fact_sheet(factory, team):
-    other_sheet = fact_sheet(factory, client="CTHB", confirmer=team["other"].id)
+    other_sheet = fact_sheet(factory, client="CTHB", keys=(), confirmer=team["other"].id)
+    with factory() as s, s.begin():
+        if s.get(Brief, "CTHB-202610-01") is None:
+            s.add(Brief(brief_id="CTHB-202610-01", client_code="CTHB", schema_version="1.4", payload={"x": 1}))
     req = new_request(team["staff"])
     r = team["staff"].post("/drafts", {"request_id": req["id"], "content": "x", "fact_sheet_id": other_sheet})
     assert r.status_code == 409 and code(r) == "draft_client_mismatch"
@@ -314,9 +329,13 @@ def test_claim_rules(team):
 
 
 def test_unconfirmed_facts_block_approval(factory, team):
-    sheet = fact_sheet(factory, keys=("pool.heated",), confirmer=team["approver"].id)
+    sheet = fact_sheet(factory, keys=("facility.pool-heated",), confirmer=team["approver"].id)
     draft = new_draft(team["staff"], new_request(team["staff"])["id"], claims=[POOL], fact_sheet_id=sheet)
+    # Klaim fakta menaikkan level minimum caption (L1) ke L2 (rule 08).
     r = team["approver"].post("/approvals", {"draft_id": draft["id"], "level": "L1", "decision": "Approved"})
+    assert r.status_code == 409 and code(r) == "approval_level_too_low"
+    assert team["lead"].post("/qa-records", {"draft_id": draft["id"], "gate": "claim-verification", "result": "Pass", "independent": True}).status_code == 201
+    r = team["approver"].post("/approvals", {"draft_id": draft["id"], "level": "L2", "decision": "Approved"})
     assert r.status_code == 409 and code(r) == "facts_unconfirmed"
 
 
@@ -329,8 +348,9 @@ def test_only_latest_version_and_not_by_author(team):
     r = team["approver"].post("/approvals", {"draft_id": v1["id"], "level": "L1", "decision": "Approved"})
     assert r.status_code == 409 and code(r) == "approval_version_mismatch"
     v3 = new_draft(team["lead"], req["id"])
-    r = team["lead"].post("/approvals", {"draft_id": v3["id"], "level": "L1", "decision": "Approved"})
-    assert r.status_code == 409 and code(r) == "approval_by_author"
+    for decision in ("Approved", "Revise", "Rejected"):  # pembuat tidak memutuskan apa pun atas drafnya
+        r = team["lead"].post("/approvals", {"draft_id": v3["id"], "level": "L1", "decision": decision, **EVIDENCE})
+        assert r.status_code == 409 and code(r) == "approval_by_author"
 
 
 def test_agency_l2_needs_written_client_evidence_and_minimum_level(team):
@@ -338,10 +358,13 @@ def test_agency_l2_needs_written_client_evidence_and_minimum_level(team):
     r = team["approver"].post("/approvals", {"draft_id": draft["id"], "level": "L1", "decision": "Approved"})
     assert r.status_code == 409 and code(r) == "approval_level_too_low"
     assert team["lead"].post("/qa-records", {"draft_id": draft["id"], "gate": "claim-verification", "result": "Pass", "independent": True}).status_code == 201
-    r = team["lead"].post("/approvals", {"draft_id": draft["id"], "level": "L2", "decision": "Approved", "channel_ref": "   "})
+    r = team["lead2"].post("/approvals", {"draft_id": draft["id"], "level": "L2", "decision": "Approved"})
     assert r.status_code == 409 and code(r) == "approval_needs_written_evidence"
-    r = team["lead"].post("/approvals", {"draft_id": draft["id"], "level": "L2", "decision": "Approved", "channel_ref": "email://arsip/approval-cth-2026-10-14"})
-    assert r.status_code == 201 and r.json()["channel_ref"] == "email://arsip/approval-cth-2026-10-14"
+    for bad in ("   ", "javascript:alert(1)", "data:text/html,x", "email://arsip/1", "https://a b"):
+        r = team["lead2"].post("/approvals", {"draft_id": draft["id"], "level": "L2", "decision": "Approved", "channel_ref": bad})
+        assert r.status_code == 422, bad
+    r = team["lead2"].post("/approvals", {"draft_id": draft["id"], "level": "L2", "decision": "Approved", **EVIDENCE})
+    assert r.status_code == 201 and r.json()["channel_ref"] == EVIDENCE["channel_ref"]
 
 
 def test_simulation_client_is_never_approved(factory, team):
@@ -398,3 +421,68 @@ def test_request_text_is_not_written_to_audit_log(factory, team):
         meta = s.scalar(select(AuditLog.meta).where(AuditLog.action == "request.create", AuditLog.object_id == str(req["id"])))
         stored = s.get(Request, req["id"])
     assert "999" not in str(meta) and stored.requested_by_role == "content_staff"
+
+
+# --- Temuan audit 2026-10-14 ----------------------------------------------------------------------
+
+
+def test_risk_3_means_l3(team):
+    """Risiko 3 (krisis, legal, review negatif) = L3 (rule 08), walau minimum intent lebih rendah."""
+    req = new_request(team["staff"], risk=3)
+    assert (req["approval_min"], req["priority"]) == ("L3", "Urgent")
+    draft = new_draft(team["staff"], req["id"])
+    r = team["approver"].post("/approvals", {"draft_id": draft["id"], "level": "L2", "decision": "Approved"})
+    assert r.status_code == 409 and code(r) == "approval_level_too_low"
+
+
+def test_lower_level_approver_cannot_reject_higher_level_content(team):
+    draft = new_draft(team["staff"], new_request(team["staff"], intent="reel-script")["id"])
+    r = team["approver_l1"].post("/approvals", {"draft_id": draft["id"], "level": "L2", "decision": "Rejected"})
+    assert r.status_code == 403 and code(r) == "level_not_allowed"
+    r = team["approver_l1"].post("/approvals", {"draft_id": draft["id"], "level": "L1", "decision": "Rejected"})
+    assert r.status_code == 409 and code(r) == "approval_level_too_low"
+
+
+def test_finished_request_accepts_no_new_draft_or_decision(team):
+    req = new_request(team["staff"])
+    draft = new_draft(team["staff"], req["id"])
+    assert team["approver"].post("/approvals", {"draft_id": draft["id"], "level": "L1", "decision": "Approved"}).status_code == 201
+    r = team["staff"].post("/drafts", {"request_id": req["id"], "content": "revisi setelah approved"})
+    assert r.status_code == 409 and code(r) == "request_closed"
+    r = team["approver"].post("/approvals", {"draft_id": draft["id"], "level": "L1", "decision": "Rejected"})
+    assert r.status_code == 409 and code(r) == "request_closed"
+    assert team["staff"].get(f"/requests/{req['id']}").json()["status"] == "approved"
+
+
+def test_newer_failed_independent_review_blocks_l2(team):
+    draft = new_draft(team["staff"], new_request(team["staff"], intent="reel-script")["id"])
+    for who, result in (("lead", "Pass"), ("owner", "Fail")):
+        r = team[who].post("/qa-records", {"draft_id": draft["id"], "gate": "claim-verification", "result": result, "independent": True})
+        assert r.status_code == 201, r.text
+    r = team["approver"].post("/approvals", {"draft_id": draft["id"], "level": "L2", "decision": "Approved"})
+    assert r.status_code == 409 and code(r) == "approval_needs_independent_review"
+
+
+@pytest.mark.parametrize("text", ["   ", "a\\u0000b"])
+def test_blank_or_nul_text_is_rejected(team, text):
+    body = '{"client_code": "CTH", "intent": "caption", "text": "%s"}' % text
+    r = team["staff"].http.post("/requests", content=body, headers={**team["staff"].csrf, "content-type": "application/json"})
+    assert r.status_code == 422 and code(r) == "validation_error", r.text
+
+
+def test_large_unicode_draft_fits_body_limit(team):
+    req = new_request(team["staff"])
+    r = team["staff"].post("/drafts", {"request_id": req["id"], "content": "\U0001F334" * 10_000})
+    assert r.status_code == 201, r.text
+
+
+def test_role_and_level_come_from_the_same_membership(factory, team):
+    """Content lead agency yang juga viewer L1 di CTH: approval memakai peran & level dari satu membership yang sama."""
+    lead = Actor(factory, "content_lead")
+    with factory() as s, s.begin():
+        s.add(Membership(user_id=lead.id, scope="CTH", role="viewer", max_level="L1"))
+    draft = new_draft(team["staff"], new_request(team["staff"], intent="reel-script")["id"])
+    assert team["lead"].post("/qa-records", {"draft_id": draft["id"], "gate": "claim-verification", "result": "Pass", "independent": True}).status_code == 201
+    r = lead.post("/approvals", {"draft_id": draft["id"], "level": "L2", "decision": "Approved", **EVIDENCE})
+    assert r.status_code == 201, r.text
+    assert r.json()["approver_role"] == "content_lead"

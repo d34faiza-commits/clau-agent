@@ -19,9 +19,9 @@ SEED_ROLE = "seed-simulasi"
 
 CLIENTS = [
     ("CTHVILLA", "accommodation", "villa", "Ubud (fiktif)", "caption", "draft-caption", "caption-writer",
-     "SIMULASI — Pagi tenang di Villa Contoh: kolam pribadi menghadap sawah.", ("Kolam renang pribadi", "facility", "pool.private")),
+     "SIMULASI — Pagi tenang di Villa Contoh: kolam pribadi menghadap sawah.", ("Kolam renang pribadi", "facility", "facility.pool-private")),
     ("CTHCAFE", "food-beverage", "cafe", "Canggu (fiktif)", "caption", "draft-caption", "caption-writer",
-     "SIMULASI — Kopi Contoh: menu sarapan baru setiap Senin.", ("Menu sarapan berganti tiap Senin", "food-beverage", "menu.breakfast-rotation")),
+     "SIMULASI — Kopi Contoh: menu sarapan baru setiap Senin.", ("Menu sarapan berganti tiap Senin", "food-beverage", "food-beverage.breakfast-rotation")),
     ("CTHWED", "wedding-event", "wedding venue", "Uluwatu (fiktif)", "caption", "draft-caption", "caption-writer",
      "SIMULASI — Venue Contoh: upacara di tepi tebing saat matahari terbenam.", ("Kapasitas 120 tamu", "capacity", "capacity.guests")),
     ("CTHTRIP", "travel-tour", "tour operator", "Labuan Bajo (fiktif)", "caption", "draft-caption", "caption-writer",

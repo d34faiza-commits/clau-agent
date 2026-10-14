@@ -293,8 +293,12 @@ class Claim(Base):
     fact_key: Mapped[str | None] = mapped_column(Text)
     __table_args__ = (
         CheckConstraint(f"fact_key IS NULL OR (fact_key ~ '{FACT_KEY_RE}' AND char_length(fact_key) <= 64)", name="fact_key_format"),
-        # Fakta tentang bisnis klien harus bisa ditelusuri ke fact sheet (facts_unconfirmed di trigger approval).
-        CheckConstraint(f"fact_key IS NOT NULL OR NOT ({one_of('category', FACTUAL_CATEGORIES)})", name="fact_key_required"),
+        # Fakta tentang bisnis klien harus bisa ditelusuri ke fact sheet (facts_unconfirmed di trigger approval), dan
+        # kuncinya berawalan kategori klaim (price.*, facility.*): konfirmasi fakta lain tidak bisa "dipinjam".
+        CheckConstraint(
+            f"NOT ({one_of('category', FACTUAL_CATEGORIES)}) OR (fact_key IS NOT NULL AND split_part(fact_key, '.', 1) = category)",
+            name="fact_key_required",
+        ),
         CheckConstraint(one_of("category", CLAIM_CATEGORIES), name="category"),
         CheckConstraint(one_of("evidence_label", EVIDENCE_LABELS), name="evidence_label"),
         # Constraint Wajib: DATA FINAL wajib punya sumber dan tanggal sumber.

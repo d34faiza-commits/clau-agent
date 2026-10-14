@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 // Hanya awalan endpoint yang memang untuk browser (core/shared/api-contracts.md).
 const ALLOWED = /^(auth|users|agents|pillars|route|health|requests|drafts|qa-records|approvals)(\/[A-Za-z0-9_\-/]*)?$/;
 const FORWARD_REQUEST = ["content-type", "cookie", "x-csrf-token", "origin", "sec-fetch-site", "accept", "user-agent"];
-const MAX_BODY = 32 * 1024; // sama dengan batas backend (MAX_BODY_BYTES)
+const MAX_BODY = 64 * 1024; // sama dengan batas backend (MAX_BODY_BYTES)
 
 function error(status: number, code: string, message: string) {
   return Response.json({ error: { code, message } }, { status, headers: { "cache-control": "no-store" } });
