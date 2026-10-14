@@ -98,10 +98,10 @@ const MESSAGES: Record<string, [en: string, id: string]> = {
   draft_client_mismatch: ["That brief or fact sheet doesn't belong to this client.", "Brief atau fact sheet itu bukan milik klien ini."],
   independent_review_not_allowed: ["Only the owner or a content lead can do an independent review.", "Review independen hanya oleh owner atau content lead."],
   level_not_allowed: ["This approval level is above your limit.", "Level approval ini di atas batasmu."],
-  facts_unconfirmed: ["Some facts in this draft aren't confirmed in an approved fact sheet yet.", "Ada fakta di draft ini yang belum dikonfirmasi di fact sheet yang disetujui."],
+  facts_unconfirmed: ["Some facts aren't confirmed by the client in an approved fact sheet yet.", "Ada fakta yang belum dikonfirmasi klien di fact sheet yang disetujui."],
   approval_version_mismatch: ["A newer version of this draft exists. Review the latest version.", "Sudah ada versi draft yang lebih baru. Review versi terbaru."],
   approval_level_too_low: ["This content needs a higher approval level.", "Konten ini butuh level approval yang lebih tinggi."],
-  approval_by_author: ["You can't decide on your own draft.", "Kamu tidak bisa memutuskan approval drafmu sendiri."],
+  approval_by_author: ["You can't decide on something you prepared yourself.", "Kamu tidak bisa memutuskan sesuatu yang kamu susun sendiri."],
   request_closed: ["This request is already finished. Create a new request for changes.", "Request ini sudah selesai. Buat request baru untuk perubahan."],
   approval_role_mismatch: ["Your role doesn't allow approving for this client.", "Peranmu tidak boleh memberi approval untuk klien ini."],
   qa_role_mismatch: ["Your role doesn't allow recording QA.", "Peranmu tidak boleh mencatat QA."],
@@ -110,6 +110,18 @@ const MESSAGES: Record<string, [en: string, id: string]> = {
   approval_needs_independent_review: ["L2/L3 needs a passed independent claim verification first.", "L2/L3 butuh claim verification independen yang lulus dulu."],
   qa_reviewer_is_author: ["The draft's author can't be its independent reviewer.", "Pembuat draft tidak bisa menjadi reviewer independennya."],
   simulasi_not_approved: ["Simulation content can never be approved.", "Konten SIMULASI tidak pernah bisa disetujui."],
+  draft_version_immutable: ["A saved version can't be changed. Save a new version instead.", "Versi yang tersimpan tidak bisa diubah. Simpan sebagai versi baru."],
+  decision_record_append_only: ["Recorded decisions and answers can't be changed. Record a new one.", "Keputusan dan jawaban yang tercatat tidak bisa diubah. Catat yang baru."],
+  publication_without_approval: ["This draft has no valid approval to mark as published.", "Draft ini belum punya approval yang berlaku untuk ditandai tayang."],
+  // Klien & fact sheet (API 0.8.0).
+  client_exists: ["That client code is already used.", "Kode klien itu sudah dipakai."],
+  fact_sheet_frozen: ["This fact sheet is approved and frozen. Create a new version.", "Fact sheet ini sudah disetujui dan dibekukan. Buat versi baru."],
+  fact_not_in_sheet: ["That fact isn't in this version.", "Fakta itu tidak ada di versi ini."],
+  fact_value_required: ["A correction needs the right value.", "Koreksi wajib berisi nilai yang benar."],
+  fact_sheet_empty: ["A fact sheet needs at least one fact.", "Fact sheet butuh minimal satu fakta."],
+  fact_sheet_approval_flow: ["Fact sheets can only be approved, not edited. Create a new version.", "Fact sheet hanya bisa disetujui, tidak diubah. Buat versi baru."],
+  fact_sheet_version_sequence: ["Someone just saved a version. Reload and try again.", "Baru saja ada versi tersimpan. Muat ulang lalu coba lagi."],
+  validation_error: ["Some fields are missing or invalid.", "Ada isian yang kosong atau tidak valid."],
 };
 
 /** Pesan error sesuai bahasa aktif. weak_password memakai alasan dari server (bahasa Indonesia). */

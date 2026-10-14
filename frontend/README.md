@@ -1,6 +1,6 @@
 # Frontend (Next.js) — UI v2 Enterprise
 
-Platform **CLAU AI** (modul aktif: Content Studio; tampilan v2) mengikuti [`docs/design/2026-10-07-enterprise-ui-brief.txt`](../docs/design/2026-10-07-enterprise-ui-brief.txt). Login (`/login`, `/account`, `/users`) aktif bila `CLAU_AUTH_ENABLED=1` dan `CLAU_BACKEND_URL` terisi (docker compose / VPS 2); di VPS 1 (tanpa backend) halaman itu menampilkan "login belum aktif" dan data tetap contoh SIMULASI. Belum ada koneksi ke AI model.
+Platform **CLAU AI** (modul aktif: Content Studio; tampilan v2) mengikuti [`docs/design/2026-10-07-enterprise-ui-brief.txt`](../docs/design/2026-10-07-enterprise-ui-brief.txt). Login (`/login`, `/account`, `/users`, `/requests`, `/fact-sheets`) aktif bila `CLAU_AUTH_ENABLED=1` dan `CLAU_BACKEND_URL` terisi (docker compose / VPS 2); di VPS 1 (tanpa backend) halaman itu menampilkan "login belum aktif" dan data tetap contoh SIMULASI. Belum ada koneksi ke AI model.
 
 ## Versi UI
 
@@ -53,7 +53,9 @@ Platform **CLAU AI** (modul aktif: Content Studio; tampilan v2) mengikuti [`docs
 | `/settings` | Workspace & integrasi (read-only) |
 | `/login` | Masuk: password → kode 2FA atau kode cadangan |
 | `/account` | Akun: ganti password, aktifkan 2FA (QR), kode cadangan, sesi aktif & keluar semua perangkat |
-| `/users` | Owner: buat user, ubah peran/klien, nonaktifkan/aktifkan |
+| `/users` | Owner: buat user, ubah peran/klien, nonaktifkan/aktifkan; tambah klien |
+| `/requests` · `/requests/[id]` | Permintaan konten: buat permintaan, tulis draft per versi (klaim + fact key), catat review QA, catat keputusan klien (bukti tertulis bila dicatat agency). Tidak ada tombol publish |
+| `/fact-sheets` · `/fact-sheets/[id]` | Fact sheet per klien: susun versi + daftar fakta, klien menjawab *Benar* / *Perbaiki* per fakta, lalu menyetujui versi itu |
 
 ## Data
 

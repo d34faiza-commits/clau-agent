@@ -1,6 +1,6 @@
 # Keamanan Platform CLAU AI
 
-> Status per 2026-10-13: VPS 1 = pratinjau frontend (HTTP via IP, tanpa backend, tanpa login, data SIMULASI). Backend 0.7.0 (PostgreSQL 16, login + 2FA, `/users`, backup terenkripsi, workflow request → approval) sudah dibangun dan dites lokal/CI, **belum di-deploy** (menunggu VPS 2 + domain/HTTPS). Belum ada pemanggilan model AI. Dokumen ini mencatat ancaman yang sudah ditangani, cara memasang perlindungan di server, dan **aturan wajib** sebelum fitur berisiko (login, data client, AI, WhatsApp) dibangun di VPS 2.
+> Status per 2026-10-13: VPS 1 = pratinjau frontend (HTTP via IP, tanpa backend, tanpa login, data SIMULASI). Backend 0.8.0 (PostgreSQL 16, login + 2FA, `/users`, backup terenkripsi, workflow request → approval, fact sheet + Konfirmasi Fakta) sudah dibangun dan dites lokal/CI, **belum di-deploy** (menunggu VPS 2 + domain/HTTPS). Belum ada pemanggilan model AI. Dokumen ini mencatat ancaman yang sudah ditangani, cara memasang perlindungan di server, dan **aturan wajib** sebelum fitur berisiko (login, data client, AI, WhatsApp) dibangun di VPS 2.
 
 ## 1. Ringkasan Audit 2026-10-09
 
@@ -16,7 +16,8 @@
 | DoS ringan (flood, slowloris, body besar) | Dibatasi | Nginx: rate limit, batas koneksi, body 16 KB, timeout pendek. Backend: body ≤ 64 KB (draft terbesar), wajib `Content-Length`. VPS 2: `client_max_body_size` untuk `/api/` harus ≥ 64k, selain itu draft panjang ditolak Nginx |
 | Kebocoran informasi | Tertutup | Tanpa `X-Powered-By`/versi Nginx; error tanpa stack trace; `/docs` & `/openapi.json` mati di produksi |
 | Mass assignment | Tertutup | Semua body menolak field lain (`extra="forbid"`); peran, id user, mode, versi, pilar, prioritas hanya dari server (0.7.0) |
-| IDOR / akses lintas klien | Tertutup (0.7.0) | Setiap query workflow difilter `memberships`; detail klien lain = 404, list = 403; dites per endpoint (`tests/test_workflow.py`) |
+| IDOR / akses lintas klien | Tertutup (0.7.0–0.8.0) | Setiap query workflow & fact sheet difilter `memberships`; detail klien lain = 404, list = 403; dites per endpoint (`tests/test_workflow.py`, `tests/test_facts.py`) |
+| Fakta palsu / jawaban atas nama klien | Tertutup (0.8.0) | Database: jawaban & persetujuan fact sheet hanya approver klien, atau agency dengan bukti tertulis; bukan penyusun fact sheet; fakta & jawaban append-only, fact sheet disetujui beku. Nilai fakta tidak masuk `audit_log` |
 | Self-approve / lewati review | Tertutup (0.7.0) | Database menolak: pembuat memutuskan drafnya sendiri (Approved/Revise/Rejected), level < minimum draft, versi lama, fakta belum dikonfirmasi, Approved oleh agency tanpa bukti tertulis, peran yang tidak ada di membership, request yang sudah selesai; QA, approval, konfirmasi fakta append-only; fact sheet approved dibekukan |
 | Supply chain (npm/pip/Actions) | Dikurangi | `npm ci --ignore-scripts` di CI & server; `npm audit` + `pip-audit` di CI; Dependabot; GitHub Actions dipin ke SHA |
 | Credential ter-commit | Dicek | Pemindai pola secret di CI; deploy key read-only; tidak ada secret server di GitHub |

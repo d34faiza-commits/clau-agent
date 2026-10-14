@@ -116,7 +116,10 @@ export default function UsersPage() {
             </table>
           </div>
         </Card>
-        <CreateUser clients={data.clients} onCreated={load} />
+        <div className="stack">
+          <CreateUser clients={data.clients} onCreated={load} />
+          <CreateClient onCreated={load} />
+        </div>
       </div>
     </>
   );
@@ -281,6 +284,74 @@ function CreateUser({ clients, onCreated }: { clients: string[]; onCreated: () =
         <button type="submit" className="btn btn--primary" disabled={!name || !email || password.length < 12 || !m.scope}>
           {tr("Create account", "Buat akun")}
         </button>
+      </form>
+    </Card>
+  );
+}
+
+const VERTICAL_LABEL: Record<string, [string, string]> = {
+  accommodation: ["Accommodation (villa, hotel)", "Akomodasi (villa, hotel)"],
+  "food-beverage": ["Restaurant / cafe", "Restoran / kafe"],
+  "spa-wellness": ["Spa & wellness", "Spa & wellness"],
+  experience: ["Experience / activity", "Pengalaman / aktivitas"],
+  "wedding-event": ["Wedding & event", "Wedding & event"],
+  "travel-tour": ["Travel & tour", "Travel & tour"],
+};
+
+function CreateClient({ onCreated }: { onCreated: () => void }) {
+  const tr = useL();
+  const { lang } = useLang();
+  const [code, setCode] = useState("");
+  const [vertical, setVertical] = useState("accommodation");
+  const [business, setBusiness] = useState("");
+  const [area, setArea] = useState("");
+  const [approverRole, setApproverRole] = useState("owner");
+  const [simulation, setSimulation] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    const r = await api("clients", { method: "POST", body: { client_code: code, vertical, business_type: business, location_area: area || null, approver_role: approverRole, simulation } });
+    if (r.ok) {
+      setMsg({ ok: true, text: tr(`Client ${code} added. Now add their approver as a user.`, `Klien ${code} ditambahkan. Sekarang tambahkan approver-nya sebagai pengguna.`) });
+      setCode("");
+      setBusiness("");
+      setArea("");
+      onCreated();
+    } else setMsg({ ok: false, text: errorText(r, lang) });
+  }
+
+  return (
+    <Card title={<L en="Add a client" id="Tambah klien" />}>
+      <form onSubmit={submit} className="auth-form">
+        <div className="field">
+          <label htmlFor="cl-code">{tr("Client code (A–Z, 0–9)", "Kode klien (A–Z, 0–9)")}</label>
+          <input id="cl-code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))} required minLength={2} maxLength={12} autoComplete="off" />
+        </div>
+        <div className="field">
+          <label htmlFor="cl-vertical">{tr("Business", "Bisnis")}</label>
+          <select id="cl-vertical" value={vertical} onChange={(e) => setVertical(e.target.value)}>
+            {Object.entries(VERTICAL_LABEL).map(([v, label]) => <option key={v} value={v}>{label[lang === "id" ? 1 : 0]}</option>)}
+          </select>
+        </div>
+        <div className="field">
+          <label htmlFor="cl-type">{tr("Type (e.g. villa, cafe)", "Jenis (mis. villa, kafe)")}</label>
+          <input id="cl-type" value={business} onChange={(e) => setBusiness(e.target.value)} required maxLength={60} />
+        </div>
+        <div className="field">
+          <label htmlFor="cl-area">{tr("Area (optional)", "Area (opsional)")}</label>
+          <input id="cl-area" value={area} onChange={(e) => setArea(e.target.value)} maxLength={120} />
+        </div>
+        <div className="field">
+          <label htmlFor="cl-approver">{tr("Who approves at the client (job title)", "Yang menyetujui di klien (jabatan)")}</label>
+          <input id="cl-approver" value={approverRole} onChange={(e) => setApproverRole(e.target.value)} required maxLength={60} />
+        </div>
+        <label className="wf-check">
+          <input type="checkbox" checked={simulation} onChange={(e) => setSimulation(e.target.checked)} />
+          {tr("Fictional client for practice (SIMULATION, never approved)", "Klien fiktif untuk latihan (SIMULASI, tidak pernah disetujui)")}
+        </label>
+        {msg && <p className={msg.ok ? "auth-ok" : "auth-error"} role={msg.ok ? "status" : "alert"}>{msg.text}</p>}
+        <button type="submit" className="btn btn--primary" disabled={code.length < 2 || !business.trim() || !approverRole.trim()}>{tr("Add client", "Tambah klien")}</button>
       </form>
     </Card>
   );

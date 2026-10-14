@@ -1,6 +1,6 @@
 # CLAUDE.md — clau-ai-agents
 
-> Peta repo untuk AI agent. Baca file ini dulu sebelum menjelajah repo. Last updated: 2026-10-13
+> Peta repo untuk AI agent. Baca file ini dulu sebelum menjelajah repo. Last updated: 2026-10-14
 
 > 🔔 **Sesi baru: baca [status & handoff CLAU AI](https://github.com/d34faiza-commits/CLAU-AI-CONTENT/blob/main/docs/status.md) dulu** (otoritas, keputusan yang sudah diambil, status, pekerjaan terbuka). Repo Jerco milik Pak Indra: jangan disentuh tanpa persetujuan beliau.
 
@@ -11,7 +11,7 @@
 | Repo | `d34faiza-commits/clau-ai-agents` (private) |
 | Peran | Platform: registry agent, backend FastAPI, frontend Next.js |
 | Submodule | `core/` → clau-ai-core |
-| Status | Backend v0.7.0: API registry + login & hak akses (sesi cookie, CSRF, 2FA wajib owner dengan QR & kode cadangan, `/users` owner) + workflow request → draft → QA → approval (`app/workflow.py`, matriks izin Rule 08, aturan di database) di atas PostgreSQL 16 (migrasi 0001–0004), backup terenkripsi. Belum: UI workflow, kelola fact sheet, pemanggilan AI model |
+| Status | Backend v0.8.0: API registry + login & hak akses (sesi cookie, CSRF, 2FA wajib owner dengan QR & kode cadangan, `/users` owner) + workflow request → draft → QA → approval (`app/workflow.py`) + klien, fact sheet & Konfirmasi Fakta (`app/facts.py`), matriks izin Rule 08 dengan aturan di database, di atas PostgreSQL 16 (migrasi 0001–0005), backup terenkripsi. UI: `/requests`, `/fact-sheets`, tambah klien di `/users`. Belum: pemanggilan AI model |
 
 ## 2. Peta File
 
@@ -21,11 +21,11 @@
 | `agents/avatars/` | Master avatar 3D per agent + README (aturan, status gambar); crop UI di `frontend/public/agents/`; dijaga `backend/tests/test_avatars.py` |
 | `agents/personas/` | Kartu persona per agent (gaya bahasa, etika, batas & eskalasi, contoh) |
 | `agents/evals/` | Kasus uji per agent + `run_evals.py` + rubrik "seperti manusia ahli" |
-| `backend/app/main.py` · `backend/app/workflow.py` | `GET /health`, `GET /agents`, `GET /pillars`, `POST /route` · `/requests`, `/drafts`, `/qa-records`, `/approvals` (peran & isolasi klien di sini, aturan data di migrasi 0004); tanpa endpoint publish. Inventaris endpoint dikunci `tests/test_security.py` |
+| `backend/app/main.py` · `backend/app/workflow.py` · `backend/app/facts.py` | `GET /health`, `GET /agents`, `GET /pillars`, `POST /route` · `/requests`, `/drafts`, `/qa-records`, `/approvals` (aturan data migrasi 0004) · `/clients`, `/fact-sheets` (aturan data migrasi 0005); peran & isolasi klien di API; tanpa endpoint publish. Inventaris endpoint & jembatan frontend dikunci `tests/test_security.py` |
 | `backend/app/auth/` | Login, sesi, CSRF, 2FA TOTP + kode cadangan, hak akses dari `memberships` (`access.py`), `/users` (owner), CLI `create-owner` / `reset-mfa` / `purge-sessions` |
-| `backend/app/db/` · `backend/migrations/` | Model SQLAlchemy (17 tabel `core/shared/database-schema.md`), bootstrap role (migrasi vs aplikasi), seed SIMULASI; migrasi Alembic + trigger Constraint Wajib. Ubah skema = migrasi baru |
-| `backend/tests/` | Test API, konsistensi registry ↔ `core/orchestrator/router.md` & tabel pilar `core/README.md`, persona & eval, `test_db.py` (Constraint Wajib ke PostgreSQL sungguhan; butuh `CLAU_TEST_DB_ADMIN_URL`), `test_workflow.py` (matriks izin, IDOR, aturan approval lewat API) |
-| `frontend/` | Next.js App Router; halaman registry agent, `/login`, `/account`, `/users` (owner); `app/api/[...path]` = jembatan ke backend; `proxy.ts` = penjaga halaman bila `CLAU_AUTH_ENABLED=1` |
+| `backend/app/db/` · `backend/migrations/` | Model SQLAlchemy (18 tabel `core/shared/database-schema.md`), bootstrap role (migrasi vs aplikasi), seed SIMULASI; migrasi Alembic + trigger Constraint Wajib. Ubah skema = migrasi baru |
+| `backend/tests/` | Test API, konsistensi registry ↔ `core/orchestrator/router.md` & tabel pilar `core/README.md`, persona & eval, `test_db.py` (Constraint Wajib ke PostgreSQL sungguhan; butuh `CLAU_TEST_DB_ADMIN_URL`), `test_workflow.py` (matriks izin, IDOR, aturan approval lewat API), `test_facts.py` (fact sheet & Konfirmasi Fakta) |
+| `frontend/` | Next.js App Router; halaman registry agent, `/login`, `/account`, `/users` (owner, juga tambah klien), `/requests` & `/requests/[id]` (draft, QA, keputusan), `/fact-sheets` & `/fact-sheets/[id]` (Konfirmasi Fakta); `app/api/[...path]` = jembatan ke backend; `proxy.ts` = penjaga halaman bila `CLAU_AUTH_ENABLED=1` |
 | `scripts/` | `init-env.sh`, `db-backup.sh` / `db-restore.sh` (backup terenkripsi + uji restore), `sync-submodules.sh`, `check-core-pins.sh`, `deploy/` (VPS 1) |
 | `.env.example` | Semua variabel environment + arti & default aman; tanpa secret (dites `backend/tests/test_env.py`) |
 | `docker-compose.yml` · `backend/Dockerfile` · `frontend/Dockerfile` · `.dockerignore` | Container backend + frontend: non-root, read-only, port 127.0.0.1; base image dipin digest; dicek job CI `docker` |
