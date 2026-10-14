@@ -283,11 +283,31 @@ def test_seed_is_simulasi_and_idempotent(database):
 # --- Workflow (migrasi 0004, kontrak core 0.7.0) --------------------------------------------------
 
 
-def fact_sheet(conn, client="CTH", approved=True, confirmed=("facility.pool-private",), confirmer=None):
-    sheet = insert(conn, "fact_sheets", client_code=client, version=1 + conn.execute("SELECT count(*) FROM fact_sheets WHERE client_code = %s", (client,)).fetchone()[0],
-                   approved_at="2026-10-14T09:00:00+08:00" if approved else None, document_ref="workspace://fact-sheet")
+def next_sheet_version(conn, client: str) -> int:
+    return 1 + conn.execute("SELECT count(*) FROM fact_sheets WHERE client_code = %s", (client,)).fetchone()[0]
+
+
+def add_fact(conn, sheet, key, value="ya"):
+    return insert(conn, "facts", fact_sheet_id=sheet, fact_key=key, category=key.split(".", 1)[0], label=key, value=value)
+
+
+def answer(conn, sheet, key, by, role="client_approver", decision="confirmed", value_after=None, channel_ref=None):
+    return insert(conn, "fact_confirmations", fact_sheet_id=sheet, fact_key=key, decision=decision, value_after=value_after,
+                  confirmed_by=by, confirmed_by_role=role, channel_ref=channel_ref)
+
+
+def approve_sheet(conn, sheet, by, role="client_approver", ref=None):
+    conn.execute("UPDATE fact_sheets SET approved_at = now(), approved_by = %s, approved_by_role = %s, approval_ref = %s WHERE id = %s", (by, role, ref, sheet))
+
+
+def fact_sheet(conn, client="CTH", approved=True, confirmed=("facility.pool-private",), confirmer=None, created_by=None):
+    """Alur migrasi 0005: versi baru (belum disetujui) → fakta → jawaban klien → disetujui klien."""
+    sheet = insert(conn, "fact_sheets", client_code=client, version=next_sheet_version(conn, client), document_ref="workspace://fact-sheet", created_by=created_by)
     for key in confirmed:
-        insert(conn, "fact_confirmations", fact_sheet_id=sheet, fact_key=key, decision="confirmed", confirmed_by=confirmer)
+        add_fact(conn, sheet, key)
+        answer(conn, sheet, key, confirmer)
+    if approved:
+        approve_sheet(conn, sheet, confirmer)
     return sheet
 
 
@@ -446,8 +466,114 @@ def test_fact_evidence_is_frozen(app_conn, world):
         app_conn.execute("DELETE FROM fact_confirmations WHERE id = %s", (confirmation,))
     with violates(app_conn, "decision_record_append_only"):
         app_conn.execute("UPDATE fact_sheets SET document_ref = 'lain' WHERE id = %s", (sheet,))
+    with violates(app_conn, "decision_record_append_only"):
+        app_conn.execute("UPDATE fact_sheets SET approved_at = now() WHERE id = %s", (sheet,))
+    with violates(app_conn, "decision_record_append_only"):
+        app_conn.execute("UPDATE facts SET value = 'tidak' WHERE fact_sheet_id = %s", (sheet,))
+    with violates(app_conn, "fact_sheet_frozen"):
+        add_fact(app_conn, sheet, "facility.spa")
+    with violates(app_conn, "fact_sheet_frozen"):
+        answer(app_conn, sheet, "facility.pool-private", world["approver"])
     draft_sheet = fact_sheet(app_conn, approved=False, confirmer=world["approver"])
-    app_conn.execute("UPDATE fact_sheets SET approved_at = now() WHERE id = %s", (draft_sheet,))  # belum disetujui: boleh
+    approve_sheet(app_conn, draft_sheet, world["approver"])  # belum disetujui: boleh disetujui sekali
+
+
+# --- Fact sheet & konfirmasi fakta (migrasi 0005, kontrak core 0.8.0) -----------------------------
+
+
+def test_new_fact_sheet_starts_unapproved_in_version_order(app_conn, world):
+    with violates(app_conn, "fact_sheet_approval_flow"):
+        insert(app_conn, "fact_sheets", client_code="CTH", version=1, document_ref="workspace://x", approved_at="2026-10-14T09:00:00+08:00")
+    with violates(app_conn, "fact_sheet_version_sequence"):
+        insert(app_conn, "fact_sheets", client_code="CTH", version=2, document_ref="workspace://x")
+    assert insert(app_conn, "fact_sheets", client_code="CTH", version=1, document_ref="workspace://x")
+    with violates(app_conn, "fact_sheet_version_sequence"):
+        insert(app_conn, "fact_sheets", client_code="CTH", version=1, document_ref="workspace://x")
+    with violates(app_conn, "ck_fact_sheets_refs"):
+        insert(app_conn, "fact_sheets", client_code="CTH", version=2, document_ref="x" * 501)
+
+
+def test_facts_follow_key_rules(app_conn, world):
+    sheet = fact_sheet(app_conn, approved=False, confirmed=())
+    with violates(app_conn, "fact_key_format"):  # kunci kategori lain
+        insert(app_conn, "facts", fact_sheet_id=sheet, fact_key="facility.harga", category="price", label="Harga", value="1")
+    with violates(app_conn, "ck_facts_category"):  # kesan bukan fakta
+        insert(app_conn, "facts", fact_sheet_id=sheet, fact_key="experience.tenang", category="experience", label="x", value="y")
+    with violates(app_conn, "ck_facts_text"):
+        insert(app_conn, "facts", fact_sheet_id=sheet, fact_key="facility.spa", category="facility", label="  ", value="ada")
+    add_fact(app_conn, sheet, "facility.spa")
+    with violates(app_conn, "uq_facts_fact_sheet_id_fact_key"):
+        add_fact(app_conn, sheet, "facility.spa")
+    with violates(app_conn, "decision_record_append_only"):
+        app_conn.execute("DELETE FROM facts WHERE fact_sheet_id = %s", (sheet,))
+    with violates(app_conn, "decision_record_append_only"):  # fact sheet tidak pernah dihapus
+        app_conn.execute("DELETE FROM fact_sheets WHERE id = %s", (sheet,))
+
+
+def test_answers_come_from_the_client(app_conn, world):
+    sheet = fact_sheet(app_conn, approved=False, confirmed=(), created_by=world["lead"])
+    add_fact(app_conn, sheet, "price.weekday", value="Rp 2.500.000")
+    with violates(app_conn, "fact_not_in_sheet"):
+        answer(app_conn, sheet, "price.weekend", world["approver"])
+    with violates(app_conn, "approval_role_mismatch"):  # staf agency bukan approver klien
+        answer(app_conn, sheet, "price.weekday", world["author"])
+    with violates(app_conn, "approval_role_mismatch"):  # peran wajib dicatat
+        answer(app_conn, sheet, "price.weekday", world["approver"], role=None)
+    with violates(app_conn, "approval_role_mismatch"):  # approver CTH bukan agency
+        answer(app_conn, sheet, "price.weekday", world["approver"], role="content_lead", channel_ref="https://mail.contoh.test/1")
+    with violates(app_conn, "approval_needs_written_evidence"):
+        answer(app_conn, sheet, "price.weekday", world["reviewer"], role="content_lead")
+    with violates(app_conn, "approval_by_author"):  # pembuat fact sheet tidak menjawab faktanya
+        answer(app_conn, sheet, "price.weekday", world["lead"], role="content_lead", channel_ref="https://mail.contoh.test/1")
+    with violates(app_conn, "fact_value_required"):
+        answer(app_conn, sheet, "price.weekday", world["approver"], decision="corrected", value_after=" ")
+    with violates(app_conn, "ck_fact_confirmations_channel_ref"):
+        answer(app_conn, sheet, "price.weekday", world["reviewer"], role="content_lead", channel_ref="javascript:alert(1)")
+    first = answer(app_conn, sheet, "price.weekday", world["approver"], value_after="diabaikan")
+    second = answer(app_conn, sheet, "price.weekday", world["reviewer"], role="content_lead", decision="corrected",
+                    value_after="Rp 2.750.000", channel_ref="https://mail.contoh.test/koreksi")
+    rows = app_conn.execute("SELECT id, value_before, value_after FROM fact_confirmations WHERE id IN (%s, %s) ORDER BY id", (first, second)).fetchall()
+    # value_before diisi database dari nilai fakta; konfirmasi "benar" tidak menyimpan nilai lain.
+    assert rows == [(first, "Rp 2.500.000", None), (second, "Rp 2.500.000", "Rp 2.750.000")]
+
+
+def test_fact_sheet_approval_rules(app_conn, world):
+    empty = fact_sheet(app_conn, approved=False, confirmed=())
+    with violates(app_conn, "fact_sheet_empty"):
+        approve_sheet(app_conn, empty, world["approver"])
+    sheet = fact_sheet(app_conn, approved=False, confirmed=("facility.pool-private",), confirmer=world["approver"], created_by=world["lead"])
+    add_fact(app_conn, sheet, "capacity.guests", value="4")
+    with violates(app_conn, "facts_unconfirmed"):
+        approve_sheet(app_conn, sheet, world["approver"])
+    answer(app_conn, sheet, "capacity.guests", world["approver"], decision="corrected", value_after="6")
+    with violates(app_conn, "approval_role_mismatch"):
+        approve_sheet(app_conn, sheet, world["author"], role="content_staff")
+    with violates(app_conn, "approval_role_mismatch"):
+        approve_sheet(app_conn, sheet, world["author"], role="client_approver")
+    with violates(app_conn, "approval_needs_written_evidence"):
+        approve_sheet(app_conn, sheet, world["reviewer"], role="content_lead")
+    with violates(app_conn, "approval_by_author"):
+        approve_sheet(app_conn, sheet, world["lead"], role="content_lead", ref="https://mail.contoh.test/ok")
+    with violates(app_conn, "fact_sheet_approval_flow"):  # isi lain tidak bisa diubah, termasuk saat menyetujui
+        app_conn.execute("UPDATE fact_sheets SET document_ref = 'workspace://lain', approved_at = now(), approved_by = %s, approved_by_role = 'client_approver' WHERE id = %s",
+                         (world["approver"], sheet))
+    with violates(app_conn, "fact_sheet_approval_flow"):
+        app_conn.execute("UPDATE fact_sheets SET document_ref = 'workspace://lain' WHERE id = %s", (sheet,))
+    with violates(app_conn, "fact_sheet_approval_flow"):  # mengubah tanpa menyetujui (mis. menyisipkan bukti) ditolak
+        app_conn.execute("UPDATE fact_sheets SET approval_ref = 'https://mail.contoh.test/x' WHERE id = %s", (sheet,))
+    approve_sheet(app_conn, sheet, world["reviewer"], role="content_lead", ref="https://mail.contoh.test/ok")
+    assert app_conn.execute("SELECT approved_by_role, approval_ref FROM fact_sheets WHERE id = %s", (sheet,)).fetchone() == ("content_lead", "https://mail.contoh.test/ok")
+
+
+def test_draft_approval_uses_client_answers(app_conn, world):
+    """Rantai utuh di database: fakta dikoreksi klien → fact sheet disetujui → draft dengan klaim itu boleh L2."""
+    sheet = fact_sheet(app_conn, confirmed=(), approved=False)
+    add_fact(app_conn, sheet, "facility.pool-private")
+    answer(app_conn, sheet, "facility.pool-private", world["approver"], decision="corrected", value_after="Kolam bersama")
+    approve_sheet(app_conn, sheet, world["approver"])
+    draft = factual_draft(app_conn, world, sheet)
+    qa(app_conn, draft, world["reviewer"])
+    assert approve(app_conn, draft, world["approver"], level="L2")
 
 
 def test_decision_records_and_claims_are_append_only(app_conn, world):
@@ -556,5 +682,33 @@ def test_upgrade_0003_to_0004_keeps_existing_data(database):
             # Kolom tanpa default: baris baru wajib diisi server.
             with violates(c, "null value"):
                 c.execute("INSERT INTO requests (client_code, intent, pillar, requested_by_role) VALUES ('CTHNYATA', 'caption', 1, 'x')")
+    finally:
+        db.drop()
+
+
+def test_upgrade_0004_to_0005_keeps_existing_fact_sheets(database):
+    """Fact sheet versi 0004 (tanpa daftar fakta) tetap apa adanya; versi berikutnya mengikuti alur baru."""
+    from tests.conftest import TempDatabase
+
+    db = TempDatabase(database.admin_url)
+    try:
+        db.alembic("upgrade", "0004")
+        with psycopg.connect(db.app_conninfo) as c:
+            insert(c, "clients", client_code="CTHLAMA", vertical="accommodation", business_type="villa", approver_role="owner")
+            approver = insert(c, "users", display_name="Approver", email="approver@contoh.test")
+            c.execute("INSERT INTO memberships (user_id, scope, role, max_level) VALUES (%s, 'CTHLAMA', 'client_approver', 'L3')", (approver,))
+            old = insert(c, "fact_sheets", client_code="CTHLAMA", version=1, document_ref="workspace://lama", approved_at="2026-10-01T09:00:00+08:00")
+            insert(c, "fact_confirmations", fact_sheet_id=old, fact_key="facility.pool-private", decision="confirmed", confirmed_by=approver)
+            c.commit()
+        db.alembic("upgrade", "head")
+        with psycopg.connect(db.app_conninfo) as c:
+            row = c.execute("SELECT approved_at IS NOT NULL, approved_by, created_by FROM fact_sheets WHERE id = %s", (old,)).fetchone()
+            assert row == (True, None, None)
+            with violates(c, "decision_record_append_only"):  # tetap beku
+                c.execute("UPDATE fact_sheets SET document_ref = 'workspace://baru' WHERE id = %s", (old,))
+            new = insert(c, "fact_sheets", client_code="CTHLAMA", version=2, document_ref="workspace://baru")
+            add_fact(c, new, "facility.pool-private")
+            answer(c, new, "facility.pool-private", approver)
+            approve_sheet(c, new, approver)
     finally:
         db.drop()

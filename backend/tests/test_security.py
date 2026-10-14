@@ -107,6 +107,10 @@ ENDPOINTS = {
     ("POST", "/drafts"), ("GET", "/drafts"), ("GET", "/drafts/{draft_id}"),
     ("POST", "/qa-records"), ("GET", "/qa-records"), ("GET", "/qa-records/{record_id}"),
     ("POST", "/approvals"), ("GET", "/approvals"), ("GET", "/approvals/{approval_id}"),
+    # Klien & fact sheet (Tahap 1 PR 3b): konfirmasi fakta oleh klien; tidak ada publish/kirim.
+    ("GET", "/clients"), ("POST", "/clients"),
+    ("POST", "/fact-sheets"), ("GET", "/fact-sheets"), ("GET", "/fact-sheets/{sheet_id}"),
+    ("POST", "/fact-sheets/{sheet_id}/confirmations"), ("POST", "/fact-sheets/{sheet_id}/approve"),
 }
 
 

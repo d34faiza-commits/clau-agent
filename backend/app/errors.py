@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-# Kode aturan dari trigger database (migrasi 0001 & 0004) yang boleh diteruskan ke klien apa adanya.
+# Kode aturan dari trigger database (migrasi 0001, 0004, 0005) yang boleh diteruskan ke klien apa adanya.
 DB_RULE_RE = re.compile(r"\b([a-z]+(?:_[a-z]+)+): ")
 DB_RULES = {
     "qa_reviewer_is_author",
@@ -27,6 +27,13 @@ DB_RULES = {
     "approval_role_mismatch",
     "qa_role_mismatch",
     "independent_review_not_allowed",
+    # Migrasi 0005 (fact sheet & konfirmasi fakta, kontrak core 0.8.0).
+    "fact_sheet_approval_flow",
+    "fact_sheet_version_sequence",
+    "fact_sheet_empty",
+    "fact_sheet_frozen",
+    "fact_not_in_sheet",
+    "fact_value_required",
 }
 
 

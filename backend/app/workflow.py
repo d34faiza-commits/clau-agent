@@ -31,6 +31,7 @@ from app.db.models import (
     Membership,
     QA_GATES,
     QA_RESULTS,
+    REF_RE,
     REQUEST_STATUSES,
     Approval,
     AuditLog,
@@ -121,7 +122,7 @@ class ApprovalIn(Body):
     decision: Literal[APPROVAL_DECISIONS]  # type: ignore[valid-type]
     # Referensi bukti tertulis klien (link email/pesan arsip), bukan isi pesannya. Hanya skema aman: tidak bisa
     # menjadi javascript:/data: bila nanti ditampilkan sebagai link.
-    channel_ref: str | None = Field(default=None, max_length=500, pattern=r"^(https://|mailto:|workspace://)[^\s\x00-\x1f\x7f]+$")
+    channel_ref: str | None = Field(default=None, max_length=500, pattern=REF_RE)
 
 
 class Page(BaseModel):
@@ -179,7 +180,7 @@ def visible_draft(db: Session, ctx: AuthContext, draft_id: int) -> tuple[Draft, 
     return row[0], row[1]
 
 
-def audit(db: Session, ctx: AuthContext, action: str, object_type: str, object_id: int, **meta: object) -> None:
+def audit(db: Session, ctx: AuthContext, action: str, object_type: str, object_id: int | str, **meta: object) -> None:
     # Tanpa isi konten/klaim (bisa memuat data klien): cukup id dan keputusan.
     db.add(AuditLog(actor_id=ctx.user.id, action=action, object_type=object_type, object_id=str(object_id), meta=meta))
 

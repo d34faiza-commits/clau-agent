@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
 from app.auth import crypto  # noqa: E402
 from app.auth.deps import get_db  # noqa: E402
 from app.auth.routes import throttle  # noqa: E402
-from app.db.models import AuditLog, Brief, Client, FactConfirmation, FactSheet, Membership, Request, User  # noqa: E402
+from app.db.models import AuditLog, Brief, Client, Fact, FactConfirmation, FactSheet, Membership, Request, User  # noqa: E402
 from app.main import app  # noqa: E402
 from tests.conftest import TempDatabase, admin_url_or_skip, sqlalchemy_url  # noqa: E402
 
@@ -107,13 +107,19 @@ def team(factory):
 
 
 def fact_sheet(factory, client="CTH", keys=("facility.pool-private",), approved=True, confirmer=None) -> int:
+    """Fact sheet lewat alur migrasi 0005 (langsung ke database): fakta → jawaban approver klien → disetujui."""
     with factory() as s, s.begin():
         version = (s.scalar(select(func.max(FactSheet.version)).where(FactSheet.client_code == client)) or 0) + 1
-        sheet = FactSheet(client_code=client, version=version, document_ref="workspace://fact-sheet", approved_at=func.now() if approved else None)
+        sheet = FactSheet(client_code=client, version=version, document_ref="workspace://fact-sheet")
         s.add(sheet)
         s.flush()
         for key in keys:
-            s.add(FactConfirmation(fact_sheet_id=sheet.id, fact_key=key, decision="confirmed", confirmed_by=confirmer))
+            s.add(Fact(fact_sheet_id=sheet.id, fact_key=key, category=key.split(".", 1)[0], label=key, value="ya"))
+            s.flush()
+            s.add(FactConfirmation(fact_sheet_id=sheet.id, fact_key=key, decision="confirmed", confirmed_by=confirmer, confirmed_by_role="client_approver"))
+            s.flush()
+        if approved:
+            sheet.approved_at, sheet.approved_by, sheet.approved_by_role = func.now(), confirmer, "client_approver"
         return sheet.id
 
 
@@ -304,7 +310,7 @@ def test_other_client_cannot_see_or_touch_cth_data(team):
 
 
 def test_draft_cannot_use_other_clients_fact_sheet(factory, team):
-    other_sheet = fact_sheet(factory, client="CTHB", keys=(), confirmer=team["other"].id)
+    other_sheet = fact_sheet(factory, client="CTHB", keys=(), approved=False, confirmer=team["other"].id)
     with factory() as s, s.begin():
         if s.get(Brief, "CTHB-202610-01") is None:
             s.add(Brief(brief_id="CTHB-202610-01", client_code="CTHB", schema_version="1.4", payload={"x": 1}))
