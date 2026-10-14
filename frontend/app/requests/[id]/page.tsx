@@ -10,7 +10,7 @@ import { L, useL, useLang } from "../../../lib/i18n";
 import {
   AGENCY_WRITERS, CLAIM_CATEGORIES, DECISIONS, EVIDENCE_LABELS, FACTUAL, LEVELS, QA_GATES, QA_RESULTS, REF_RE, SENIOR,
   formatDate, memberFor, roleFor, useSession,
-  type Approval, type Claim, type Draft, type DraftSummary, type FactSheet, type FactSheetDetail, type Page, type QARecord, type WfRequest,
+  type Approval, type Claim, type Draft, type DraftSummary, type Fact, type FactSheet, type FactSheetDetail, type Page, type QARecord, type WfRequest,
 } from "../../../lib/workflow";
 
 type Msg = { ok: boolean; text: string } | null;
@@ -28,6 +28,9 @@ export default function RequestDetail() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [qa, setQa] = useState<QARecord[]>([]);
   const [approvals, setApprovals] = useState<Approval[]>([]);
+  const [latestDraft, setLatestDraft] = useState<Draft | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [saved, setSaved] = useState<Msg>(null);
   const [error, setError] = useState("");
 
   const loadDraft = useCallback(async (draftId: number) => {
@@ -50,6 +53,10 @@ export default function RequestDetail() {
     if (!d.ok) return setError(errorText(d, lang));
     const list = [...d.data.items].sort((x, y) => y.version - x.version);
     setDrafts(list);
+    // Versi baru selalu disusun dari versi TERBARU (bukan versi yang sedang dilihat).
+    const newest = list[0] ? await api<Draft>(`drafts/${list[0].id}`) : null;
+    setLatestDraft(newest && newest.ok ? newest.data : null);
+    setLoaded(true);
     const target = focusLatest || selected === null ? list[0]?.id : selected;
     if (target) await loadDraft(target);
   }, [id, lang, loadDraft, selected]);
@@ -82,7 +89,10 @@ export default function RequestDetail() {
         <dl className="kv wf-kv">
           <div><dt>{tr("Priority", "Prioritas")}</dt><dd>{req.priority} ({req.priority_score})</dd></div>
           <div><dt>{tr("Deadline", "Tenggat")}</dt><dd>{formatDate(req.deadline, lang)}</dd></div>
-          <div><dt>{tr("Min. approval", "Approval min.")}</dt><dd>{req.approval_min}</dd></div>
+          <div>
+            <dt>{tr("Min. approval", "Approval min.")}</dt>
+            <dd>{req.approval_min}{req.approval_min === "L1" && <span className="muted"> · {tr("L2 if the draft has factual claims", "L2 bila draft memuat klaim fakta")}</span>}</dd>
+          </div>
           <div><dt>Agent</dt><dd>{req.agent ?? "—"}</dd></div>
         </dl>
         {!open && <p className="muted wf-hint">{tr("This request is finished. Changes need a new request.", "Permintaan ini sudah selesai. Perubahan perlu permintaan baru.")}</p>}
@@ -124,7 +134,11 @@ export default function RequestDetail() {
         <div className="stack">
           {open && draft && draft.id === latest?.id && <DecisionForm me={me} req={req} draft={draft} onDone={() => load(true)} />}
           {open && draft && AGENCY_WRITERS.has(role) && <QAForm me={me} role={role} draft={draft} onDone={() => loadDraft(draft.id)} />}
-          {open && AGENCY_WRITERS.has(role) && <DraftForm req={req} previous={latest ? draft : null} onDone={() => load(true)} />}
+          {/* Pesan di luar form: form dipasang ulang dari versi terbaru setelah tersimpan. */}
+          <Notice msg={saved} />
+          {open && loaded && AGENCY_WRITERS.has(role) && (
+            <DraftForm key={latestDraft?.id ?? "new"} req={req} previous={latestDraft} onDone={(v) => { setSaved({ ok: true, text: tr(`Saved as version ${v}.`, `Tersimpan sebagai versi ${v}.`) }); load(true); }} />
+          )}
           <p className="muted wf-hint">
             <L en="CLAU never publishes. After final approval, your team publishes in the official apps." id="CLAU tidak pernah mempublish. Setelah disetujui, tim kamu mempublish di aplikasi resmi." />
           </p>
@@ -136,6 +150,20 @@ export default function RequestDetail() {
 
 function DraftView({ draft, lang }: { draft: Draft; lang: string }) {
   const tr = useL();
+  // Nilai fakta yang dijawab klien, berdampingan dengan klaim: reviewer & approver membandingkan teks klaim dengan
+  // nilai yang benar (termasuk koreksi klien), bukan hanya fact key.
+  const [facts, setFacts] = useState<Record<string, Fact>>({});
+  const [sheet, setSheet] = useState<FactSheetDetail | null>(null);
+  useEffect(() => {
+    setFacts({});
+    setSheet(null);
+    if (!draft.fact_sheet_id) return;
+    api<FactSheetDetail>(`fact-sheets/${draft.fact_sheet_id}`).then((r) => {
+      if (!r.ok) return;
+      setSheet(r.data);
+      setFacts(Object.fromEntries(r.data.facts.map((f) => [f.fact_key, f])));
+    });
+  }, [draft.fact_sheet_id]);
   return (
     <>
       <div className="wf-meta">
@@ -148,14 +176,36 @@ function DraftView({ draft, lang }: { draft: Draft; lang: string }) {
       {draft.claims.length > 0 && (
         <div className="table-wrap">
           <table className="table">
-            <thead><tr><th>{tr("Claim", "Klaim")}</th><th>{tr("Category", "Kategori")}</th><th>{tr("Evidence", "Bukti")}</th><th>Fact key</th></tr></thead>
+            <thead><tr><th>{tr("Claim", "Klaim")}</th><th>{tr("Category", "Kategori")}</th><th>{tr("Evidence", "Bukti")}</th><th>{tr("Client's answer", "Jawaban klien")}</th></tr></thead>
             <tbody>
-              {draft.claims.map((c) => (
-                <tr key={c.id}><td>{c.text}</td><td>{c.category}</td><td>{c.evidence_label}</td><td>{c.fact_key ? <code>{c.fact_key}</code> : "—"}</td></tr>
-              ))}
+              {draft.claims.map((c) => {
+                const f = c.fact_key ? facts[c.fact_key] : undefined;
+                return (
+                  <tr key={c.id}>
+                    <td>{c.text}</td>
+                    <td>{c.category}</td>
+                    <td>{c.evidence_label}</td>
+                    <td>
+                      {!c.fact_key ? "—" : (
+                        <>
+                          <code>{c.fact_key}</code>
+                          {f ? (
+                            <div className="wf-hint"><strong>{f.current_value}</strong> <StatusPill status={f.status} /></div>
+                          ) : (
+                            <div className="wf-hint auth-error">{tr("Not in the cited fact sheet", "Tidak ada di fact sheet yang dirujuk")}</div>
+                          )}
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
+      )}
+      {sheet && sheet.status !== "approved" && (
+        <p className="wf-hint auth-error">{tr("The cited fact sheet isn't approved by the client yet.", "Fact sheet yang dirujuk belum disetujui klien.")}</p>
       )}
     </>
   );
@@ -285,21 +335,23 @@ function QAForm({ me, role, draft, onDone }: { me: Me; role: string; draft: Draf
 
 const EMPTY_CLAIM: Claim = { text: "", category: "experience", evidence_label: "ASSUMPTION", fact_key: "" };
 
-function DraftForm({ req, previous, onDone }: { req: WfRequest; previous: Draft | null; onDone: () => void }) {
+function DraftForm({ req, previous, onDone }: { req: WfRequest; previous: Draft | null; onDone: (version: number) => void }) {
   const tr = useL();
   const { lang } = useLang();
   const [content, setContent] = useState(previous?.content ?? "");
   const [claims, setClaims] = useState<Claim[]>(previous?.claims.map(({ id: _id, ...c }) => ({ ...c, fact_key: c.fact_key ?? "" })) ?? []);
   const [sheets, setSheets] = useState<FactSheet[]>([]);
-  const [sheetId, setSheetId] = useState<string>(previous?.fact_sheet_id ? String(previous.fact_sheet_id) : "");
+  const [sheetId, setSheetId] = useState<string>("");
   const [keys, setKeys] = useState<string[]>([]);
   const [msg, setMsg] = useState<Msg>(null);
 
   useEffect(() => {
     api<Page<FactSheet>>(`fact-sheets?client_code=${req.client_code}&approved=true&limit=100`).then((r) => {
       if (!r.ok) return;
-      setSheets(r.data.items);
-      if (!sheetId && r.data.items[0]) setSheetId(String(r.data.items[0].id));
+      // Default = versi disetujui terbaru (versi lama yang sudah digantikan tidak bisa di-approve).
+      const list = [...r.data.items].sort((a, b) => b.version - a.version);
+      setSheets(list);
+      if (list[0]) setSheetId(String(list[0].id));
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [req.client_code]);
@@ -325,10 +377,8 @@ function DraftForm({ req, previous, onDone }: { req: WfRequest; previous: Draft 
       })),
     };
     const r = await api<Draft>("drafts", { method: "POST", body });
-    if (r.ok) {
-      setMsg({ ok: true, text: tr(`Saved as version ${r.data.version}.`, `Tersimpan sebagai versi ${r.data.version}.`) });
-      onDone();
-    } else setMsg({ ok: false, text: errorText(r, lang) });
+    if (r.ok) onDone(r.data.version);
+    else setMsg({ ok: false, text: errorText(r, lang) });
   }
 
   return (

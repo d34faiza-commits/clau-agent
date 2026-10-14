@@ -124,7 +124,7 @@ Alur `design/user-flow/client-portal-flow.md` § Konfirmasi Fakta; kode `app/fac
 | Ke draft | Draft dengan klaim ber-`fact_key` + `fact_sheet_id` fact sheet yang disetujui bisa di-approve (aturan `facts_unconfirmed` 0.7.0) |
 | Jejak | `audit_log` mencatat id, kunci fakta, dan keputusan; **tanpa** nilai fakta (data klien) |
 
-Test: `tests/test_facts.py` (alur utuh sampai approval L2, siapa boleh apa, isolasi klien, validasi, audit tanpa nilai) dan `tests/test_db.py` (aturan migrasi 0005, upgrade dari 0004 dengan fact sheet lama). Uji mutasi: 29 pengaman dirusak satu per satu, semua tertangkap.
+Test: `tests/test_facts.py` (alur utuh sampai approval L2, siapa boleh apa, isolasi klien, validasi, audit tanpa nilai) dan `tests/test_db.py` (aturan migrasi 0005, upgrade dari 0004 dengan fact sheet lama). Uji mutasi: 35 pengaman dirusak satu per satu, 34 tertangkap; satu lolos karena pengaman lapis kedua yang sudah dicakup aturan lain (persetujuan lewat alur klien).
 
 ## Belum Ada (Planned)
 

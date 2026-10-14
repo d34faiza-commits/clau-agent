@@ -32,7 +32,10 @@ depends_on = None
 FACTUAL = ("facility", "location", "price", "rating", "certification", "halal-dietary", "food-beverage",
            "treatment", "capacity", "safety", "license", "itinerary")
 FACTUAL_SQL = ", ".join(f"'{c}'" for c in FACTUAL)
-REF_RE = "^(https://|mailto:|workspace://)[^[:space:][:cntrl:]]+$"
+# Tanpa spasi, karakter kontrol (termasuk C1), dan karakter format tak terlihat (zero-width, bidi override) yang
+# bisa memalsukan tampilan link bukti.
+INVISIBLE = "\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff"
+REF_RE = f"^(https://|mailto:|workspace://)[^[:space:][:cntrl:]\u0080-\u009f{INVISIBLE}]+$"
 
 RULES_SQL = r"""
 -- Peran pencatat jawaban klien: approver klien itu sendiri, atau owner/content lead agency yang mencatat
@@ -46,7 +49,7 @@ $$;
 CREATE FUNCTION clau_fact_sheet_insert_rules() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE next_version integer;
 BEGIN
-  PERFORM 1 FROM clients WHERE client_code = NEW.client_code FOR UPDATE;
+  PERFORM 1 FROM clients WHERE client_code = NEW.client_code FOR NO KEY UPDATE;
   IF NEW.approved_at IS NOT NULL OR NEW.approved_by IS NOT NULL THEN
     RAISE EXCEPTION 'fact_sheet_approval_flow: fact sheet baru belum disetujui; setujui setelah semua fakta dikonfirmasi'
       USING ERRCODE = 'check_violation';
@@ -102,12 +105,15 @@ END $$;
 
 -- Fakta hanya ditambah selama fact sheet belum disetujui; isinya append-only (koreksi = jawaban klien, bukan edit).
 CREATE FUNCTION clau_facts_rules() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE approved timestamptz;
 BEGIN
   IF TG_OP <> 'INSERT' THEN
     RAISE EXCEPTION 'decision_record_append_only: fakta tidak bisa diubah atau dihapus; buat versi fact sheet baru'
       USING ERRCODE = 'check_violation';
   END IF;
-  IF EXISTS (SELECT 1 FROM fact_sheets WHERE id = NEW.fact_sheet_id AND approved_at IS NOT NULL FOR SHARE) THEN
+  -- Kunci baris fact sheet (juga yang belum disetujui) agar tidak balapan dengan persetujuannya.
+  SELECT approved_at INTO approved FROM fact_sheets WHERE id = NEW.fact_sheet_id FOR SHARE;
+  IF approved IS NOT NULL THEN
     RAISE EXCEPTION 'fact_sheet_frozen: fact sheet sudah disetujui; buat versi baru' USING ERRCODE = 'check_violation';
   END IF;
   RETURN NEW;
@@ -144,6 +150,10 @@ BEGIN
   IF NEW.decision = 'corrected' AND coalesce(btrim(NEW.value_after), '') = '' THEN
     RAISE EXCEPTION 'fact_value_required: koreksi wajib berisi nilai yang benar' USING ERRCODE = 'check_violation';
   END IF;
+  IF NEW.decision = 'corrected' AND btrim(NEW.value_after) = btrim(fact_value) THEN
+    RAISE EXCEPTION 'fact_value_unchanged: koreksi sama dengan nilai awal; pilih "benar" bila nilainya sudah tepat'
+      USING ERRCODE = 'check_violation';
+  END IF;
   IF NEW.decision = 'confirmed' THEN
     NEW.value_after := NULL;
   END IF;
@@ -152,9 +162,45 @@ BEGIN
 END $$;
 CREATE TRIGGER trg_fact_confirmations_rules BEFORE INSERT ON fact_confirmations
   FOR EACH ROW EXECUTE FUNCTION clau_fact_confirmation_rules();
+
+-- Approved untuk draft berklaim fakta (melengkapi facts_unconfirmed 0004): fact sheet draft harus disetujui lewat
+-- alur jawaban klien (bukan data 0004 tanpa penyetuju), setiap kunci ada di daftar faktanya, dan fact sheet itu
+-- versi disetujui TERBARU klien (versi lama yang sudah dikoreksi tidak bisa dipakai lagi).
+-- Nama trigger diurutkan setelah trg_approvals_rules (0004): pelanggaran level/peran dilaporkan lebih dulu.
+CREATE FUNCTION clau_approval_fact_sheet_rules() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE d drafts%ROWTYPE; sheet fact_sheets%ROWTYPE; missing text;
+BEGIN
+  IF NEW.decision <> 'Approved' THEN
+    RETURN NEW;
+  END IF;
+  SELECT * INTO d FROM drafts WHERE id = NEW.draft_id;
+  IF NOT EXISTS (SELECT 1 FROM claims WHERE draft_id = d.id AND fact_key IS NOT NULL) THEN
+    RETURN NEW;
+  END IF;
+  SELECT * INTO sheet FROM fact_sheets WHERE id = d.fact_sheet_id;
+  IF sheet.id IS NULL OR sheet.approved_by IS NULL THEN
+    RAISE EXCEPTION 'facts_unconfirmed: draft berklaim fakta butuh fact sheet yang disetujui klien'
+      USING ERRCODE = 'check_violation';
+  END IF;
+  SELECT string_agg(DISTINCT c.fact_key, ', ') INTO missing FROM claims c
+   WHERE c.draft_id = d.id AND c.fact_key IS NOT NULL
+     AND NOT EXISTS (SELECT 1 FROM facts f WHERE f.fact_sheet_id = sheet.id AND f.fact_key = c.fact_key);
+  IF missing IS NOT NULL THEN
+    RAISE EXCEPTION 'facts_unconfirmed: fakta tidak ada di fact sheet draft: %', missing USING ERRCODE = 'check_violation';
+  END IF;
+  IF EXISTS (SELECT 1 FROM fact_sheets n WHERE n.client_code = sheet.client_code AND n.approved_at IS NOT NULL AND n.version > sheet.version) THEN
+    RAISE EXCEPTION 'fact_sheet_superseded: fact sheet v% sudah digantikan versi yang lebih baru; buat draft baru dengan versi terbaru', sheet.version
+      USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER trg_approvals_rules_fact_sheet BEFORE INSERT ON approvals
+  FOR EACH ROW EXECUTE FUNCTION clau_approval_fact_sheet_rules();
 """
 
 DOWN_SQL = """
+DROP TRIGGER IF EXISTS trg_approvals_rules_fact_sheet ON approvals;
+DROP FUNCTION IF EXISTS clau_approval_fact_sheet_rules();
 DROP TRIGGER IF EXISTS trg_fact_confirmations_rules ON fact_confirmations;
 DROP TRIGGER IF EXISTS trg_facts_rules ON facts;
 DROP TRIGGER IF EXISTS trg_fact_sheets_insert_rules ON fact_sheets;
@@ -199,7 +245,7 @@ def upgrade() -> None:
         sa.Column('value', sa.Text(), nullable=False),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.CheckConstraint(f"category IN ({FACTUAL_SQL})", name=op.f('ck_facts_category')),
-        sa.CheckConstraint("fact_key ~ '^[a-z0-9]+([._-][a-z0-9]+)*$' AND char_length(fact_key) <= 64 AND split_part(fact_key, '.', 1) = category",
+        sa.CheckConstraint("fact_key ~ '^[a-z0-9]+([._-][a-z0-9]+)*$' AND char_length(fact_key) <= 64 AND split_part(fact_key, '.', 1) = category AND strpos(fact_key, '.') > 0",
                            name=op.f('ck_facts_fact_key_format')),
         sa.CheckConstraint("btrim(label) <> '' AND char_length(label) <= 200 AND btrim(value) <> '' AND char_length(value) <= 1000",
                            name=op.f('ck_facts_text')),

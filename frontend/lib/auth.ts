@@ -118,6 +118,8 @@ const MESSAGES: Record<string, [en: string, id: string]> = {
   fact_sheet_frozen: ["This fact sheet is approved and frozen. Create a new version.", "Fact sheet ini sudah disetujui dan dibekukan. Buat versi baru."],
   fact_not_in_sheet: ["That fact isn't in this version.", "Fakta itu tidak ada di versi ini."],
   fact_value_required: ["A correction needs the right value.", "Koreksi wajib berisi nilai yang benar."],
+  fact_value_unchanged: ["The correction is the same as the current value. Choose “Correct” instead.", "Koreksi sama dengan nilai sekarang. Pilih “Benar” saja."],
+  fact_sheet_superseded: ["This draft uses an older fact sheet. Save a new version with the latest approved fact sheet.", "Draft ini memakai fact sheet versi lama. Simpan versi baru dengan fact sheet terbaru yang disetujui."],
   fact_sheet_empty: ["A fact sheet needs at least one fact.", "Fact sheet butuh minimal satu fakta."],
   fact_sheet_approval_flow: ["Fact sheets can only be approved, not edited. Create a new version.", "Fact sheet hanya bisa disetujui, tidak diubah. Buat versi baru."],
   fact_sheet_version_sequence: ["Someone just saved a version. Reload and try again.", "Baru saja ada versi tersimpan. Muat ulang lalu coba lagi."],

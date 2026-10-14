@@ -13,6 +13,7 @@ Nilai fakta adalah data klien: tidak pernah ditulis ke audit_log, hanya id dan k
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from typing import Literal
 
@@ -34,6 +35,7 @@ from app.db.models import (
     Fact,
     FactConfirmation,
     FactSheet,
+    INVISIBLE,
 )
 from app.errors import ApiError
 from app.workflow import (
@@ -54,6 +56,13 @@ from app.workflow import (
 router = APIRouter()
 
 ANSWERERS = SENIOR | {"client_approver"}  # menjawab/menyetujui atas nama klien (agency: dengan bukti tertulis)
+BLANK_RE = re.compile(f"[\\s{INVISIBLE}]+")
+
+
+def visible_text(value: str | None, field: str) -> None:
+    """Teks yang hanya berisi spasi/karakter tak terlihat (zero-width, bidi) dianggap kosong."""
+    if value is not None and not BLANK_RE.sub("", value):
+        raise ValueError(f"{field} tidak boleh kosong")
 
 
 # --- Body ----------------------------------------------------------------------------------------
@@ -76,8 +85,10 @@ class FactIn(Body):
 
     @model_validator(mode="after")
     def key_matches_category(self) -> FactIn:
-        if self.fact_key.split(".", 1)[0] != self.category:
-            raise ValueError(f"fact_key harus berawalan kategorinya ({self.category}.)")
+        if not self.fact_key.startswith(f"{self.category}."):
+            raise ValueError(f"fact_key harus berbentuk {self.category}.<nama>")
+        visible_text(self.label, "label")
+        visible_text(self.value, "value")
         return self
 
 
@@ -104,6 +115,7 @@ class ConfirmationIn(Body):
     def correction_has_value(self) -> ConfirmationIn:
         if self.decision == "corrected" and not self.value_after:
             raise ValueError("koreksi wajib berisi nilai yang benar (value_after)")
+        visible_text(self.value_after, "value_after")
         if self.decision == "confirmed":
             self.value_after = None
         return self
@@ -168,11 +180,13 @@ def counts_subquery():
 
 
 def visible_sheet(db: Session, ctx: AuthContext, sheet_id: int, lock: bool = False) -> FactSheet:
-    stmt = select(FactSheet).where(FactSheet.id == sheet_id)
-    sheet = db.scalar(stmt.with_for_update() if lock else stmt)
+    # Akses dicek dulu: user klien lain tidak pernah sempat mengunci fact sheet yang bukan miliknya.
+    sheet = db.get(FactSheet, sheet_id)
     visible = visible_client_codes(ctx.memberships)
     if sheet is None or (visible is not None and sheet.client_code not in visible):
         raise not_found()
+    if lock:
+        db.refresh(sheet, with_for_update=True)
     return sheet
 
 
@@ -208,7 +222,7 @@ def create_fact_sheet(body: FactSheetIn, ctx: AuthContext = Depends(current_user
     if role_for(ctx, body.client_code) not in AGENCY_WRITERS:
         raise forbidden("Hanya staf agency yang menyusun fact sheet.")
     # Klien dikunci: versi berikutnya tidak bisa balapan (trigger juga mengunci).
-    if db.scalar(select(Client).where(Client.client_code == body.client_code).with_for_update()) is None:
+    if db.scalar(select(Client).where(Client.client_code == body.client_code).with_for_update(key_share=True)) is None:
         raise ApiError(404, "client_not_found", "Klien tidak dikenal.")
     version = (db.scalar(select(func.max(FactSheet.version)).where(FactSheet.client_code == body.client_code)) or 0) + 1
     sheet = FactSheet(client_code=body.client_code, version=version, document_ref=body.document_ref, created_by=ctx.user.id)

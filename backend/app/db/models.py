@@ -66,8 +66,11 @@ FACT_KEY_RE = "^[a-z0-9]+([._-][a-z0-9]+)*$"
 # Peran yang boleh mencatat jawaban klien (konfirmasi fakta, persetujuan fact sheet); agency wajib bukti tertulis.
 ANSWER_ROLES = ("owner", "content_lead", "client_approver")
 # Referensi bukti/dokumen: hanya skema aman (tidak bisa menjadi javascript:/data: saat ditampilkan sebagai link).
-REF_RE = r"^(https://|mailto:|workspace://)[^\s\x00-\x1f\x7f]+$"
-REF_SQL_RE = "^(https://|mailto:|workspace://)[^[:space:][:cntrl:]]+$"
+# Juga tanpa karakter kontrol C1 dan karakter format tak terlihat (zero-width, bidi override) yang bisa memalsukan
+# tampilan link bukti. Sama dengan CHECK di migrasi 0005.
+INVISIBLE = "\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff"
+REF_RE = f"^(https://|mailto:|workspace://)[^\\s\\x00-\\x1f\\x7f-\\x9f{INVISIBLE}]+$"
+REF_SQL_RE = f"^(https://|mailto:|workspace://)[^[:space:][:cntrl:]\u0080-\u009f{INVISIBLE}]+$"
 
 CLIENT_CODE_RE = "^[A-Z0-9]{2,12}$"
 SLUG_RE = "^[a-z0-9]+(-[a-z0-9]+)*$"
@@ -230,7 +233,8 @@ class Fact(Base):
         UniqueConstraint("fact_sheet_id", "fact_key"),
         CheckConstraint(one_of("category", FACTUAL_CATEGORIES), name="category"),
         CheckConstraint(
-            f"fact_key ~ '{FACT_KEY_RE}' AND char_length(fact_key) <= 64 AND split_part(fact_key, '.', 1) = category", name="fact_key_format"
+            f"fact_key ~ '{FACT_KEY_RE}' AND char_length(fact_key) <= 64 AND split_part(fact_key, '.', 1) = category AND strpos(fact_key, '.') > 0",
+            name="fact_key_format",
         ),
         CheckConstraint("btrim(label) <> '' AND char_length(label) <= 200 AND btrim(value) <> '' AND char_length(value) <= 1000", name="text"),
     )

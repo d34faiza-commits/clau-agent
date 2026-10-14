@@ -125,7 +125,7 @@ function FactCard({ fact, sheetId, canAnswer, agency, me, onDone }: { fact: Fact
         </p>
       )}
       {canAnswer && (
-        <form className="wf-fact__actions" onSubmit={(e) => send("corrected", e)}>
+        <form className="wf-fact__actions" onSubmit={(e) => (correcting ? send("corrected", e) : e.preventDefault())}>
           {agency && (
             <Field id={`ref-${fact.fact_key}`} label={tr("Client's written answer (link)", "Jawaban tertulis klien (link)")}>
               <input id={`ref-${fact.fact_key}`} value={ref} onChange={(e) => setRef(e.target.value)} maxLength={500} placeholder="https://" />

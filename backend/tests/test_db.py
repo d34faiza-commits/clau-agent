@@ -712,3 +712,77 @@ def test_upgrade_0004_to_0005_keeps_existing_fact_sheets(database):
             approve_sheet(c, new, approver)
     finally:
         db.drop()
+
+
+# --- Temuan audit PR 3b ---------------------------------------------------------------------------
+
+
+def test_draft_must_cite_latest_client_approved_fact_sheet(app_conn, world):
+    old = fact_sheet(app_conn, confirmer=world["approver"])
+    draft_old = factual_draft(app_conn, world, old)
+    qa(app_conn, draft_old, world["reviewer"])
+    newer = fact_sheet(app_conn, approved=False, confirmed=(), confirmer=world["approver"])
+    add_fact(app_conn, newer, "facility.pool-private", value="Kolam bersama")
+    answer(app_conn, newer, "facility.pool-private", world["approver"], decision="corrected", value_after="Tidak ada kolam")
+    approve_sheet(app_conn, newer, world["approver"])
+    with violates(app_conn, "fact_sheet_superseded"):  # versi lama sudah dikoreksi klien di versi baru
+        approve(app_conn, draft_old, world["approver"], level="L2")
+    approve(app_conn, draft_old, world["approver"], level="L2", decision="Revise")  # keputusan lain tetap boleh
+
+
+def test_legacy_or_partial_fact_sheet_cannot_back_an_approval(app_conn, world):
+    legacy = insert(app_conn, "fact_sheets", client_code="CTH", version=next_sheet_version(app_conn, "CTH"), document_ref="workspace://lama")
+    add_fact(app_conn, legacy, "facility.spa")
+    answer(app_conn, legacy, "facility.spa", world["approver"])
+    approve_sheet(app_conn, legacy, world["approver"])
+    draft = factual_draft(app_conn, world, legacy)  # klaim facility.pool-private tidak ada di daftar fakta
+    qa(app_conn, draft, world["reviewer"])
+    with violates(app_conn, "facts_unconfirmed"):
+        approve(app_conn, draft, world["approver"], level="L2")
+
+
+def test_correction_must_change_the_value(app_conn, world):
+    sheet = fact_sheet(app_conn, approved=False, confirmed=())
+    add_fact(app_conn, sheet, "capacity.guests", value="4")
+    with violates(app_conn, "fact_value_unchanged"):
+        answer(app_conn, sheet, "capacity.guests", world["approver"], decision="corrected", value_after=" 4 ")
+    with violates(app_conn, "ck_facts_fact_key_format"):  # kunci wajib <kategori>.<nama>
+        insert(app_conn, "facts", fact_sheet_id=sheet, fact_key="capacity", category="capacity", label="Kapasitas", value="4")
+    with violates(app_conn, "ck_fact_confirmations_channel_ref"):  # karakter bidi memalsukan tampilan link
+        answer(app_conn, sheet, "capacity.guests", world["reviewer"], role="content_lead", channel_ref="https://evil.example/‮moc.elgoog")
+
+
+def test_upgrade_0004_legacy_confirmations_never_back_an_approval(database):
+    """Konfirmasi lama (0004, tanpa daftar fakta / tanpa penyetuju) tidak bisa dipakai untuk meng-approve draft."""
+    from tests.conftest import TempDatabase
+
+    db = TempDatabase(database.admin_url)
+    try:
+        db.alembic("upgrade", "0004")
+        with psycopg.connect(db.app_conninfo) as c:
+            insert(c, "clients", client_code="CTHLAMA", vertical="accommodation", business_type="villa", approver_role="owner")
+            author = insert(c, "users", display_name="Penulis", email="p@contoh.test")
+            lead = insert(c, "users", display_name="Lead", email="l@contoh.test")
+            approver = insert(c, "users", display_name="Approver", email="a@contoh.test")
+            for user, scope, role in ((author, "agency", "content_staff"), (lead, "agency", "content_lead"), (approver, "CTHLAMA", "client_approver")):
+                c.execute("INSERT INTO memberships (user_id, scope, role, max_level) VALUES (%s, %s, %s, 'L3')", (user, scope, role))
+            approved_old = insert(c, "fact_sheets", client_code="CTHLAMA", version=1, document_ref="workspace://v1", approved_at="2026-10-01T09:00:00+08:00")
+            pending_old = insert(c, "fact_sheets", client_code="CTHLAMA", version=2, document_ref="workspace://v2")
+            for sheet in (approved_old, pending_old):
+                insert(c, "fact_confirmations", fact_sheet_id=sheet, fact_key="facility.pool-private", decision="confirmed", confirmed_by=approver)
+            c.commit()
+        db.alembic("upgrade", "head")
+        with psycopg.connect(db.app_conninfo) as c:
+            # Versi 2 (belum disetujui) diselesaikan lewat alur baru dengan fakta lain; konfirmasi lama tetap ada.
+            add_fact(c, pending_old, "capacity.guests")
+            answer(c, pending_old, "capacity.guests", approver)
+            approve_sheet(c, pending_old, approver)
+            for sheet, rule in ((approved_old, "facts_unconfirmed"), (pending_old, "facts_unconfirmed")):
+                req = new_request(c, client="CTHLAMA")
+                draft = insert(c, "drafts", request_id=req, skill="draft-caption", version=1, content="kolam", mode="NYATA", created_by=author, fact_sheet_id=sheet)
+                insert(c, "claims", draft_id=draft, text="Kolam pribadi", category="facility", evidence_label="ASSUMPTION", fact_key="facility.pool-private")
+                qa(c, draft, lead)
+                with violates(c, rule):
+                    approve(c, draft, approver, level="L2")
+    finally:
+        db.drop()

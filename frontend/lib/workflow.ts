@@ -44,7 +44,8 @@ export const DECISIONS = ["Approved", "Revise", "Rejected"] as const;
 export const VERTICALS = ["accommodation", "food-beverage", "spa-wellness", "experience", "wedding-event", "travel-tour"] as const;
 export const FACT_KEY_RE = /^[a-z0-9]+([._-][a-z0-9]+)*$/;
 // Referensi bukti/dokumen yang diterima backend (skema aman).
-export const REF_RE = /^(https:\/\/|mailto:|workspace:\/\/)[^\s\x00-\x1f\x7f]+$/;
+// Tanpa spasi, karakter kontrol, dan karakter tak terlihat (zero-width, bidi) yang memalsukan tampilan link.
+export const REF_RE = /^(https:\/\/|mailto:|workspace:\/\/)[^\s\x00-\x1f\x7f-\x9f\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]+$/;
 
 export const AGENCY_WRITERS = new Set(["owner", "content_lead", "content_staff"]);
 export const SENIOR = new Set(["owner", "content_lead"]);

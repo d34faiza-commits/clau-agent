@@ -34,6 +34,8 @@ DB_RULES = {
     "fact_sheet_frozen",
     "fact_not_in_sheet",
     "fact_value_required",
+    "fact_value_unchanged",
+    "fact_sheet_superseded",
 }
 
 

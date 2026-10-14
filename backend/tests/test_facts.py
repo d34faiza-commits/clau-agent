@@ -212,3 +212,26 @@ def test_audit_log_has_no_fact_values(factory, team):
     assert {r.action for r in rows} == {"fact_sheet.create", "fact.answer"}
     dumped = repr([r.meta for r in rows])
     assert "2.500.000" not in dumped and "9.999.999" not in dumped and "Kolam" not in dumped
+
+
+# --- Temuan audit PR 3b ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"facts": [{**FACTS[0], "value": "​​"}]},  # hanya karakter tak terlihat
+        {"facts": [{**FACTS[0], "fact_key": "facility", "category": "facility"}]},  # kunci tanpa nama
+        {"document_ref": "https://evil.example/‮moc.elgoog"},  # bidi override
+        {"document_ref": "https://a\u0080b"},  # kontrol C1
+    ],
+)
+def test_invisible_or_spoofing_text_is_rejected(team, change):
+    r = team["lead"].post("/fact-sheets", {**SHEET, **change})
+    assert r.status_code == 422 and code(r) == "validation_error", r.text
+
+
+def test_correction_without_change_is_rejected(team):
+    sid = new_sheet(team["lead"])["id"]
+    r = team["approver"].post(f"/fact-sheets/{sid}/confirmations", {"fact_key": "price.weekday", "decision": "corrected", "value_after": "Rp 2.500.000"})
+    assert r.status_code == 409 and code(r) == "fact_value_unchanged"
