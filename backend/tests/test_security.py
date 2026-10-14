@@ -2,6 +2,8 @@
 error tanpa detail internal, docs mati di produksi, tidak ada CORS dan tidak ada endpoint tulis/publish."""
 
 import importlib
+import re
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -107,6 +109,10 @@ ENDPOINTS = {
     ("POST", "/drafts"), ("GET", "/drafts"), ("GET", "/drafts/{draft_id}"),
     ("POST", "/qa-records"), ("GET", "/qa-records"), ("GET", "/qa-records/{record_id}"),
     ("POST", "/approvals"), ("GET", "/approvals"), ("GET", "/approvals/{approval_id}"),
+    # Klien & fact sheet (Tahap 1 PR 3b): konfirmasi fakta oleh klien; tidak ada publish/kirim.
+    ("GET", "/clients"), ("POST", "/clients"),
+    ("POST", "/fact-sheets"), ("GET", "/fact-sheets"), ("GET", "/fact-sheets/{sheet_id}"),
+    ("POST", "/fact-sheets/{sheet_id}/confirmations"), ("POST", "/fact-sheets/{sheet_id}/approve"),
 }
 
 
@@ -129,3 +135,24 @@ def test_docs_disabled_in_production(monkeypatch):
     finally:
         monkeypatch.delenv("CLAU_ENV")
         importlib.reload(main)
+
+
+FRONTEND = Path(__file__).resolve().parents[2] / "frontend"
+
+
+def test_frontend_bridge_covers_every_browser_endpoint():
+    """Jembatan /api frontend (route.ts) harus meneruskan semua awalan endpoint browser, tidak lebih."""
+    route = (FRONTEND / "app" / "api" / "[...path]" / "route.ts").read_text(encoding="utf-8")
+    allowed = set(re.search(r"const ALLOWED = /\^\(([^)]+)\)", route).group(1).split("|"))
+    prefixes = {path.strip("/").split("/")[0] for _, path in ENDPOINTS}
+    assert allowed == prefixes
+
+
+def test_frontend_explains_every_rule_code():
+    """Setiap kode aturan database punya pesan dua bahasa di UI (frontend/lib/auth.ts), bukan teks teknis server."""
+    from app.errors import DB_CHECKS, DB_RULES
+
+    messages = (FRONTEND / "lib" / "auth.ts").read_text(encoding="utf-8")
+    internal = {"draft_version_sequence", "fact_sheet_version_sequence", "audit_log_append_only", "approval_mode_mismatch", "draft_mode_mismatch"}
+    missing = sorted(c for c in (DB_RULES | set(DB_CHECKS.values())) - internal if not re.search(rf"^\s+{c}: \[", messages, re.M))
+    assert missing == [], f"pesan UI belum ada untuk: {missing}"

@@ -1,6 +1,6 @@
 # Backend (FastAPI)
 
-API registry agent, router statis, login & kelola user (`/auth/*`, `/users`), dan workflow request → draft → QA → approval (`/requests`, `/drafts`, `/qa-records`, `/approvals`, 0.7.0). **Tidak ada** endpoint yang publish konten, mengirim pesan ke tamu, atau mengubah sistem client (`core/AI-CONSTITUTION.md` §4). Kontrak: `core/shared/api-contracts.md`.
+API registry agent, router statis, login & kelola user (`/auth/*`, `/users`), workflow request → draft → QA → approval (`/requests`, `/drafts`, `/qa-records`, `/approvals`, 0.7.0), serta klien, fact sheet & Konfirmasi Fakta (`/clients`, `/fact-sheets`, 0.8.0). **Tidak ada** endpoint yang publish konten, mengirim pesan ke tamu, atau mengubah sistem client (`core/AI-CONSTITUTION.md` §4). Kontrak: `core/shared/api-contracts.md`.
 
 ## Jalankan
 
@@ -31,7 +31,7 @@ Input dibatasi, body ≤ 64 KB, Host divalidasi, header keamanan di setiap respo
 
 ## Database
 
-PostgreSQL 16 (SQLAlchemy 2 + Alembic + psycopg 3). Skema mengikuti kontrak [`core/shared/database-schema.md`](../core/shared/database-schema.md): 17 tabel di `app/db/models.py`, migrasi di `migrations/versions/`.
+PostgreSQL 16 (SQLAlchemy 2 + Alembic + psycopg 3). Skema mengikuti kontrak [`core/shared/database-schema.md`](../core/shared/database-schema.md): 18 tabel di `app/db/models.py`, migrasi di `migrations/versions/`.
 
 | Aturan (Constraint Wajib kontrak) | Ditegakkan oleh |
 |---|---|
@@ -109,8 +109,23 @@ Request → draft (ditulis manusia) → QA → approval, sesuai kontrak `core/sh
 | Isolasi klien | Approver/viewer klien hanya melihat kliennya; detail klien lain = 404, list `client_code` klien lain = 403. Peran, id user, mode, versi, pilar, prioritas tidak pernah dari body (`extra = forbid`) |
 | Jejak | Setiap POST menulis `audit_log` (tanpa isi konten); klaim, QA, dan approval append-only |
 
-Test: `tests/test_workflow.py` (alur utuh, matriks izin per peran, IDOR, aturan sampai ke pengguna, race versi draft) dan `tests/test_db.py` (setiap aturan di database, race approval vs draft baru, upgrade dari 0003 dengan data lama). Uji mutasi: 18 pengaman dirusak satu per satu, semua tertangkap.
+Test: `tests/test_workflow.py` (alur utuh, matriks izin per peran, IDOR, aturan sampai ke pengguna, race versi draft) dan `tests/test_db.py` (setiap aturan di database, race approval vs draft baru, upgrade dari 0003 dengan data lama). Uji mutasi: 28 pengaman dirusak satu per satu, semua tertangkap.
+
+## Fact Sheet & Konfirmasi Fakta (0.8.0, Tahap 1 PR 3b)
+
+Alur `design/user-flow/client-portal-flow.md` § Konfirmasi Fakta; kode `app/facts.py`, aturan data di migrasi `0005`.
+
+| Hal | Cara |
+|---|---|
+| Klien | `GET /clients` (hanya klien yang boleh dilihat), `POST /clients` khusus owner (`simulation = true` = klien fiktif, drafnya selalu SIMULASI) |
+| Fact sheet | Disusun staf agency: versi = berikutnya per klien (klien dikunci) + daftar fakta (`facts`, kategori faktual, `fact_key` berawalan kategori, unik per versi). Belum disetujui saat dibuat |
+| Jawaban fakta | `confirmed` atau `corrected` + nilai yang benar, oleh approver klien itu, atau owner/content lead yang mencatat jawaban tertulis klien (`channel_ref` wajib). Pembuat fact sheet tidak menjawab faktanya. Append-only; yang berlaku jawaban terakhir. `value_before` diisi database |
+| Persetujuan | Setelah semua fakta dijawab; oleh peran yang sama (agency wajib `approval_ref`, bukan pembuatnya). Sesudah itu fact sheet, fakta, dan jawabannya beku: perubahan = versi baru |
+| Ke draft | Draft dengan klaim ber-`fact_key` + `fact_sheet_id` fact sheet yang disetujui bisa di-approve (aturan `facts_unconfirmed` 0.7.0) |
+| Jejak | `audit_log` mencatat id, kunci fakta, dan keputusan; **tanpa** nilai fakta (data klien) |
+
+Test: `tests/test_facts.py` (alur utuh sampai approval L2, siapa boleh apa, isolasi klien, validasi, audit tanpa nilai) dan `tests/test_db.py` (aturan migrasi 0005, upgrade dari 0004 dengan fact sheet lama). Uji mutasi: 35 pengaman dirusak satu per satu, 34 tertangkap; satu lolos karena pengaman lapis kedua yang sudah dicakup aturan lain (persetujuan lewat alur klien).
 
 ## Belum Ada (Planned)
 
-Endpoint kelola klien, fact sheet & Konfirmasi Fakta (sampai ada, approval untuk klaim fakta tetap terkunci: fail closed), UI workflow di frontend, pemanggilan AI model (Tahap 2, VPS 2).
+Pemanggilan AI model untuk menulis draft (Tahap 2, VPS 2), notifikasi ke klien, Portal Klien terpisah.

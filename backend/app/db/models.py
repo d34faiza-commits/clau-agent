@@ -63,6 +63,14 @@ REQUEST_STATUSES = ("open", "in_progress", "approved", "rejected", "closed")
 # Kategori klaim yang menyatakan fakta tentang bisnis klien: wajib bisa ditelusuri ke fact sheet (migrasi 0004).
 FACTUAL_CATEGORIES = tuple(c for c in CLAIM_CATEGORIES if c not in ("experience", "other"))
 FACT_KEY_RE = "^[a-z0-9]+([._-][a-z0-9]+)*$"
+# Peran yang boleh mencatat jawaban klien (konfirmasi fakta, persetujuan fact sheet); agency wajib bukti tertulis.
+ANSWER_ROLES = ("owner", "content_lead", "client_approver")
+# Referensi bukti/dokumen: hanya skema aman (tidak bisa menjadi javascript:/data: saat ditampilkan sebagai link).
+# Juga tanpa karakter kontrol C1 dan karakter format tak terlihat (zero-width, bidi override) yang bisa memalsukan
+# tampilan link bukti. Sama dengan CHECK di migrasi 0005.
+INVISIBLE = "\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff"
+REF_RE = f"^(https://|mailto:|workspace://)[^\\s\\x00-\\x1f\\x7f-\\x9f{INVISIBLE}]+$"
+REF_SQL_RE = f"^(https://|mailto:|workspace://)[^[:space:][:cntrl:]\u0080-\u009f{INVISIBLE}]+$"
 
 CLIENT_CODE_RE = "^[A-Z0-9]{2,12}$"
 SLUG_RE = "^[a-z0-9]+(-[a-z0-9]+)*$"
@@ -185,15 +193,50 @@ class Membership(Base):
 
 
 class FactSheet(Base):
+    """Satu versi fact sheet klien. Disetujui sekali (approved_*), setelah itu beku (migrasi 0005)."""
+
     __tablename__ = "fact_sheets"
     id: Mapped[int] = pk()
     client_code: Mapped[str] = mapped_column(ForeignKey("clients.client_code"), nullable=False, index=True)
     version: Mapped[int] = mapped_column(Integer, nullable=False)
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     document_ref: Mapped[str] = mapped_column(Text, nullable=False)  # referensi opaque ke workspace client
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = created_at()
+    approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    approved_by_role: Mapped[str | None] = mapped_column(Text)
+    approval_ref: Mapped[str | None] = mapped_column(Text)  # bukti tertulis klien bila dicatat agency
     __table_args__ = (
         UniqueConstraint("client_code", "version"),
         CheckConstraint("version >= 1", name="version_positive"),
+        CheckConstraint(f"approved_by_role IS NULL OR {one_of('approved_by_role', ANSWER_ROLES)}", name="approved_by_role"),
+        CheckConstraint("approved_by IS NULL OR (approved_at IS NOT NULL AND approved_by_role IS NOT NULL)", name="approval_complete"),
+        CheckConstraint(
+            f"char_length(document_ref) <= 500 AND (approval_ref IS NULL OR (approval_ref ~ '{REF_SQL_RE}' AND char_length(approval_ref) <= 500))",
+            name="refs",
+        ),
+    )
+
+
+class Fact(Base):
+    """Satu fakta di versi fact sheet (append-only; koreksi = jawaban klien di fact_confirmations)."""
+
+    __tablename__ = "facts"
+    id: Mapped[int] = pk()
+    fact_sheet_id: Mapped[int] = mapped_column(ForeignKey("fact_sheets.id"), nullable=False)
+    fact_key: Mapped[str] = mapped_column(Text, nullable=False)
+    category: Mapped[str] = mapped_column(Text, nullable=False)
+    label: Mapped[str] = mapped_column(Text, nullable=False)
+    value: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = created_at()
+    __table_args__ = (
+        UniqueConstraint("fact_sheet_id", "fact_key"),
+        CheckConstraint(one_of("category", FACTUAL_CATEGORIES), name="category"),
+        CheckConstraint(
+            f"fact_key ~ '{FACT_KEY_RE}' AND char_length(fact_key) <= 64 AND split_part(fact_key, '.', 1) = category AND strpos(fact_key, '.') > 0",
+            name="fact_key_format",
+        ),
+        CheckConstraint("btrim(label) <> '' AND char_length(label) <= 200 AND btrim(value) <> '' AND char_length(value) <= 1000", name="text"),
     )
 
 
@@ -207,8 +250,13 @@ class FactConfirmation(Base):
     decision: Mapped[str] = mapped_column(Text, nullable=False)
     confirmed_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     confirmed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    confirmed_by_role: Mapped[str | None] = mapped_column(Text)
+    channel_ref: Mapped[str | None] = mapped_column(Text)  # bukti tertulis klien bila dicatat agency
     __table_args__ = (
         CheckConstraint(one_of("decision", FACT_DECISIONS), name="decision"),
+        CheckConstraint(f"confirmed_by_role IS NULL OR {one_of('confirmed_by_role', ANSWER_ROLES)}", name="confirmed_by_role"),
+        CheckConstraint(f"channel_ref IS NULL OR (channel_ref ~ '{REF_SQL_RE}' AND char_length(channel_ref) <= 500)", name="channel_ref"),
+        CheckConstraint("char_length(coalesce(value_before, '')) <= 1000 AND char_length(coalesce(value_after, '')) <= 1000", name="value_length"),
         # Cek facts_unconfirmed (trigger approval) mencari per (fact_sheet_id, fact_key).
         Index("ix_fact_confirmations_sheet_key", "fact_sheet_id", "fact_key"),
     )
