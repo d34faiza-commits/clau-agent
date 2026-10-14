@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-# Kode aturan dari trigger database (migrasi 0001) yang boleh diteruskan ke klien apa adanya.
+# Kode aturan dari trigger database (migrasi 0001 & 0004) yang boleh diteruskan ke klien apa adanya.
 DB_RULE_RE = re.compile(r"\b([a-z]+(?:_[a-z]+)+): ")
 DB_RULES = {
     "qa_reviewer_is_author",
@@ -13,6 +13,16 @@ DB_RULES = {
     "publication_without_approval",
     "draft_version_immutable",
     "audit_log_append_only",
+    # Migrasi 0004 (workflow, kontrak core 0.7.0).
+    "facts_unconfirmed",
+    "approval_version_mismatch",
+    "approval_level_too_low",
+    "approval_by_author",
+    "approval_needs_written_evidence",
+    "draft_client_mismatch",
+    "draft_mode_mismatch",
+    "draft_version_sequence",
+    "decision_record_append_only",
 }
 
 
@@ -26,7 +36,17 @@ def error_body(code: str, message: str) -> dict:
     return {"error": {"code": code, "message": message}}
 
 
-def db_rule_code(message: str) -> str:
+# CHECK constraint yang punya arti bagi pengguna (nama constraint dari models.py) -> kode kontrak.
+DB_CHECKS = {
+    "ck_approvals_simulasi_not_approved": "simulasi_not_approved",
+    "ck_claims_fact_key_required": "claim_fact_key_required",
+    "ck_claims_data_final_sourced": "claim_source_required",
+}
+
+
+def db_rule_code(message: str, constraint: str | None = None) -> str:
     """Pelanggaran aturan database -> kode aman untuk klien (tanpa nama tabel/kolom/nilai)."""
+    if constraint in DB_CHECKS:
+        return DB_CHECKS[constraint]
     m = DB_RULE_RE.search(message)
     return m.group(1) if m and m.group(1) in DB_RULES else "constraint_violation"

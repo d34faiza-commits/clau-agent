@@ -1,6 +1,6 @@
 # Backend (FastAPI)
 
-API registry agent, router statis, login & kelola user (`/auth/*`, `/users`). **Tidak ada** endpoint yang publish konten, mengirim pesan ke tamu, atau mengubah sistem client (`core/AI-CONSTITUTION.md` §4). Kontrak: `core/shared/api-contracts.md`.
+API registry agent, router statis, login & kelola user (`/auth/*`, `/users`), dan workflow request → draft → QA → approval (`/requests`, `/drafts`, `/qa-records`, `/approvals`, 0.7.0). **Tidak ada** endpoint yang publish konten, mengirim pesan ke tamu, atau mengubah sistem client (`core/AI-CONSTITUTION.md` §4). Kontrak: `core/shared/api-contracts.md`.
 
 ## Jalankan
 
@@ -22,10 +22,12 @@ pytest                                  # test API + konsistensi registry ↔ co
 | `GET /agents` | Daftar agent dari `../agents/registry.json` + forbidden actions |
 | `GET /pillars` | 5 pilar dari `../agents/registry.json` (nama, status, repo) + id agent per pilar |
 | `POST /route` | `{"intent": "caption"}` → agent, pilar, skill, repo, approval minimum, otonomi maksimum (`autonomy_max`), status |
+| `/auth/*`, `/users` | Login, akun, 2FA, kelola user (owner); § Login & Hak Akses |
+| `/requests`, `/drafts`, `/qa-records`, `/approvals` | Workflow (POST + GET list/detail); § Workflow |
 
 ## Keamanan
 
-Input dibatasi, body ≤ 16 KB, Host divalidasi, header keamanan di setiap respons, tanpa CORS, error tanpa detail internal, `/docs` mati bila `CLAU_ENV=production`. Detail dan cara menjalankan di produksi: [`../docs/security.md`](../docs/security.md) § 3; tes: `tests/test_security.py`.
+Input dibatasi, body ≤ 32 KB, Host divalidasi, header keamanan di setiap respons, tanpa CORS, error tanpa detail internal, `/docs` mati bila `CLAU_ENV=production`. Detail dan cara menjalankan di produksi: [`../docs/security.md`](../docs/security.md) § 3; tes: `tests/test_security.py`.
 
 ## Database
 
@@ -94,6 +96,21 @@ scripts/db-restore.sh --yes    backups/clau-….dump.enc # ganti isi database (b
 
 `pg_dump` → AES-256 (PBKDF2 600.000 iterasi) dengan `CLAU_BACKUP_PASSPHRASE`, HMAC-SHA256 dicek sebelum restore (file diubah = ditolak). Passphrase disimpan owner terpisah dari backup; salin backup ke luar server (Backblaze B2). Dites di CI job `docker`.
 
+## Workflow (0.7.0, Tahap 1 PR 3)
+
+Request → draft (ditulis manusia) → QA → approval, sesuai kontrak `core/shared/api-contracts.md` § Matriks Izin Workflow dan `clau-ai-marketing/rules/08`. Kode: `app/workflow.py`; aturan data di migrasi `0004`.
+
+| Hal | Cara |
+|---|---|
+| Request | `pillar` & `approval_min` dari registry (router), `priority` dari priority engine (urgensi dari `deadline` WITA + `impact` + `risk`). Intent pilar planned boleh dicatat, draft-nya ditolak `intent_not_active` |
+| Draft | Ditulis staf agency; versi = berikutnya (request dikunci), `mode` dari `clients.simulation`, `skill` dari registry. Klaim fakta wajib `fact_key`; brief/fact sheet harus milik klien yang sama. Revisi = draft versi baru |
+| QA | `independent = true` hanya owner/content lead dan bukan pembuat draft; content staff = pre-check |
+| Approval | L1: owner/content lead/approver klien. L2/L3: approver klien, atau owner/content lead dengan `channel_ref` (bukti tertulis klien). Database menolak: versi lama, level < minimum intent, pembuat menyetujui sendiri, fakta belum dikonfirmasi, SIMULASI Approved |
+| Isolasi klien | Approver/viewer klien hanya melihat kliennya; detail klien lain = 404, list `client_code` klien lain = 403. Peran, id user, mode, versi, pilar, prioritas tidak pernah dari body (`extra = forbid`) |
+| Jejak | Setiap POST menulis `audit_log` (tanpa isi konten); klaim, QA, dan approval append-only |
+
+Test: `tests/test_workflow.py` (alur utuh, matriks izin per peran, IDOR, aturan sampai ke pengguna, race versi draft) dan `tests/test_db.py` (setiap aturan di database, race approval vs draft baru, upgrade dari 0003 dengan data lama). Uji mutasi: 18 pengaman dirusak satu per satu, semua tertangkap.
+
 ## Belum Ada (Planned)
 
-Endpoint requests/drafts/qa-records/approvals (Tahap 1 PR 3), pemanggilan AI model (Tahap 2, VPS 2).
+Endpoint kelola klien, fact sheet & Konfirmasi Fakta (sampai ada, approval untuk klaim fakta tetap terkunci: fail closed), UI workflow di frontend, pemanggilan AI model (Tahap 2, VPS 2).

@@ -1,16 +1,13 @@
-"""CLAU AI agents backend (scaffold).
+"""CLAU AI agents backend.
 
-Read-only API over the agent registry and the static router from clau-ai-core.
-There are intentionally no endpoints that publish content, message guests, or
-change client systems (core/AI-CONSTITUTION.md §4).
+Registry & router statis dari clau-ai-core, login & user (app/auth), dan workflow request → draft → QA →
+approval (app/workflow). Sengaja tidak ada endpoint yang mem-publish konten, mengirim pesan ke tamu, atau
+mengubah sistem client (core/AI-CONSTITUTION.md §4).
 """
 
 from __future__ import annotations
 
-import json
 import os
-from functools import lru_cache
-from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -22,10 +19,10 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.auth.routes import router as auth_router
 from app.errors import ApiError, db_rule_code, error_body
+from app.registry import load_registry
+from app.workflow import router as workflow_router
 
-__version__ = "0.6.0"
-
-REGISTRY_PATH = Path(__file__).resolve().parents[2] / "agents" / "registry.json"
+__version__ = "0.7.0"
 
 # Pengamanan (docs/security.md §3). Semua bisa diatur lewat environment di server, tanpa ubah kode.
 CLAU_ENV = os.environ.get("CLAU_ENV") or "development"
@@ -34,8 +31,8 @@ CLAU_ENV = os.environ.get("CLAU_ENV") or "development"
 DOCS_ENABLED = (os.environ.get("CLAU_ENABLE_DOCS") or ("1" if CLAU_ENV == "development" else "0")) == "1"
 # Hanya Host yang dikenal (cegah Host header injection / DNS rebinding). Di VPS 2 isi dengan domain API.
 ALLOWED_HOSTS = [h.strip() for h in (os.environ.get("CLAU_ALLOWED_HOSTS") or "127.0.0.1,localhost,testserver").split(",") if h.strip()]
-# Body request maksimum: API ini hanya menerima JSON kecil ({"intent": "..."}).
-MAX_BODY_BYTES = 16 * 1024
+# Body request maksimum: JSON kecil; terbesar = draft (konten ≤ 10.000 karakter + ≤ 30 klaim).
+MAX_BODY_BYTES = 32 * 1024
 
 SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
@@ -94,7 +91,8 @@ async def http_error_handler(_: Request, exc: StarletteHTTPException) -> JSONRes
 @app.exception_handler(IntegrityError)
 async def integrity_error_handler(_: Request, exc: IntegrityError) -> JSONResponse:
     # Aturan yang ditolak database (CHECK/trigger, migrasi 0001): kode aturan saja, tanpa detail SQL.
-    code = db_rule_code(str(exc.orig))
+    diag = getattr(exc.orig, "diag", None)
+    code = db_rule_code(str(exc.orig), getattr(diag, "constraint_name", None))
     return JSONResponse(status_code=409, content=error_body(code, "Data ditolak aturan sistem."))
 
 
@@ -108,11 +106,6 @@ async def internal_error_handler(_: Request, __: Exception) -> JSONResponse:
 async def validation_error_handler(_: Request, exc: RequestValidationError) -> JSONResponse:
     fields = ", ".join(".".join(str(p) for p in err["loc"][1:]) or "body" for err in exc.errors())
     return JSONResponse(status_code=422, content=error_body("validation_error", f"Request tidak valid: {fields}"))
-
-
-@lru_cache(maxsize=1)
-def load_registry() -> dict:
-    return json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
 
 
 class RouteRequest(BaseModel):
@@ -166,3 +159,4 @@ def route(request: RouteRequest) -> dict:
 
 
 app.include_router(auth_router)
+app.include_router(workflow_router)

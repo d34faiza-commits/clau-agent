@@ -59,6 +59,10 @@ LOCALES = ("id", "en")
 TIMEZONES = ("Asia/Jakarta", "Asia/Makassar", "Asia/Jayapura")
 NOTIFICATION_CHANNELS = ("in_app", "email", "whatsapp")
 FACT_DECISIONS = ("confirmed", "corrected")
+REQUEST_STATUSES = ("open", "in_progress", "approved", "rejected", "closed")
+# Kategori klaim yang menyatakan fakta tentang bisnis klien: wajib bisa ditelusuri ke fact sheet (migrasi 0004).
+FACTUAL_CATEGORIES = tuple(c for c in CLAIM_CATEGORIES if c not in ("experience", "other"))
+FACT_KEY_RE = "^[a-z0-9]+([._-][a-z0-9]+)*$"
 
 CLIENT_CODE_RE = "^[A-Z0-9]{2,12}$"
 SLUG_RE = "^[a-z0-9]+(-[a-z0-9]+)*$"
@@ -88,6 +92,8 @@ class Client(Base):
     business_type: Mapped[str] = mapped_column(Text, nullable=False)
     location_area: Mapped[str | None] = mapped_column(Text)
     approver_role: Mapped[str] = mapped_column(Text, nullable=False)
+    # Klien fiktif (pilot SIMULASI): semua draft-nya otomatis mode SIMULASI, tidak pernah bisa Approved.
+    simulation: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     created_at: Mapped[datetime] = created_at()
     __table_args__ = (
         CheckConstraint(f"client_code ~ '{CLIENT_CODE_RE}'", name="client_code_format"),
@@ -201,7 +207,11 @@ class FactConfirmation(Base):
     decision: Mapped[str] = mapped_column(Text, nullable=False)
     confirmed_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     confirmed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    __table_args__ = (CheckConstraint(one_of("decision", FACT_DECISIONS), name="decision"),)
+    __table_args__ = (
+        CheckConstraint(one_of("decision", FACT_DECISIONS), name="decision"),
+        # Cek facts_unconfirmed (trigger approval) mencari per (fact_sheet_id, fact_key).
+        Index("ix_fact_confirmations_sheet_key", "fact_sheet_id", "fact_key"),
+    )
 
 
 class Brief(Base):
@@ -225,14 +235,26 @@ class Request(Base):
     client_code: Mapped[str] = mapped_column(ForeignKey("clients.client_code"), nullable=False, index=True)
     intent: Mapped[str] = mapped_column(Text, nullable=False)
     pillar: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    # Level approval minimum intent ini (router/registry); approval di bawahnya ditolak trigger (migrasi 0004).
+    approval_min: Mapped[str] = mapped_column(Text, nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    deadline: Mapped[date | None] = mapped_column(Date)
+    impact: Mapped[int] = mapped_column(SmallInteger, nullable=False, server_default="1")
+    risk: Mapped[int] = mapped_column(SmallInteger, nullable=False, server_default="1")
     priority: Mapped[str] = mapped_column(Text, nullable=False, server_default="Normal")
     status: Mapped[str] = mapped_column(Text, nullable=False, server_default="open")
+    requested_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), index=True)  # null = sistem/seed
     requested_by_role: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = created_at()
     __table_args__ = (
         CheckConstraint(f"intent ~ '{SLUG_RE}'", name="intent_format"),
         CheckConstraint("pillar BETWEEN 1 AND 5", name="pillar_range"),
         CheckConstraint(one_of("priority", PRIORITIES), name="priority"),
+        CheckConstraint(one_of("approval_min", LEVELS), name="approval_min"),
+        CheckConstraint(one_of("status", REQUEST_STATUSES), name="status"),
+        CheckConstraint("impact BETWEEN 0 AND 3 AND risk BETWEEN 0 AND 3", name="impact_risk_range"),
+        CheckConstraint("char_length(text) <= 4000", name="text_length"),
+        Index("ix_requests_created_at", "created_at"),
     )
 
 
@@ -241,6 +263,7 @@ class Draft(Base):
     id: Mapped[int] = pk()
     request_id: Mapped[int] = mapped_column(ForeignKey("requests.id"), nullable=False, index=True)
     brief_id: Mapped[str | None] = mapped_column(ForeignKey("briefs.brief_id"), index=True)
+    fact_sheet_id: Mapped[int | None] = mapped_column(ForeignKey("fact_sheets.id"), index=True)
     skill: Mapped[str] = mapped_column(Text, nullable=False)
     version: Mapped[int] = mapped_column(Integer, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
@@ -267,7 +290,11 @@ class Claim(Base):
     source: Mapped[str | None] = mapped_column(Text)
     source_date: Mapped[date | None] = mapped_column(Date)
     implied: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    fact_key: Mapped[str | None] = mapped_column(Text)
     __table_args__ = (
+        CheckConstraint(f"fact_key IS NULL OR (fact_key ~ '{FACT_KEY_RE}' AND char_length(fact_key) <= 64)", name="fact_key_format"),
+        # Fakta tentang bisnis klien harus bisa ditelusuri ke fact sheet (facts_unconfirmed di trigger approval).
+        CheckConstraint(f"fact_key IS NOT NULL OR NOT ({one_of('category', FACTUAL_CATEGORIES)})", name="fact_key_required"),
         CheckConstraint(one_of("category", CLAIM_CATEGORIES), name="category"),
         CheckConstraint(one_of("evidence_label", EVIDENCE_LABELS), name="evidence_label"),
         # Constraint Wajib: DATA FINAL wajib punya sumber dan tanggal sumber.

@@ -2,7 +2,7 @@
 
 **Platform CLAU AI**: tempat agent menjalankan skill dari repo pilar untuk bisnis hospitality Indonesia. Repo ini berisi kode (frontend Next.js, backend FastAPI) dan **registry agent**. Aturan isi konten tidak ditulis di sini; aturan ada di [clau-ai-core](https://github.com/d34faiza-commits/clau-ai-core) (submodule `core/`) dan repo pilar.
 
-> **Status:** Private. Backend v0.6.0: PostgreSQL 16 (migrasi 0001–0003), login + 2FA (QR & kode cadangan) + `/users`, backup terenkripsi. Belum ada workflow request/draft/approval di API (Tahap 1 PR 3) dan pemanggilan AI model. Status kerja terkini: [status & handoff](https://github.com/d34faiza-commits/CLAU-AI-CONTENT/blob/main/docs/status.md).
+> **Status:** Private. Backend v0.7.0: PostgreSQL 16 (migrasi 0001–0004), login + 2FA (QR & kode cadangan) + `/users`, backup terenkripsi, workflow request → draft → QA → approval di API (aturan Rule 08 dicek server & database). Belum: UI workflow, kelola fact sheet, pemanggilan AI model. Status kerja terkini: [status & handoff](https://github.com/d34faiza-commits/CLAU-AI-CONTENT/blob/main/docs/status.md).
 
 ## Prinsip Platform
 
@@ -19,9 +19,9 @@ clau-ai-agents/
 ├── agents/
 │   ├── README.md · registry.json   # agent → intent → skill/prompt/template di repo pilar
 │   └── avatars/ · personas/ · evals/
-├── backend/              # FastAPI: /health, /agents, /pillars, /route, /auth/*, /users
-│   ├── app/main.py · app/auth/ · app/db/ · Dockerfile · requirements*.txt
-│   ├── migrations/       # Alembic 0001–0003 (skema = core/shared/database-schema.md)
+├── backend/              # FastAPI: /health, /agents, /pillars, /route, /auth/*, /users, /requests, /drafts, /qa-records, /approvals
+│   ├── app/main.py · app/workflow.py · app/auth/ · app/db/ · Dockerfile · requirements*.txt
+│   ├── migrations/       # Alembic 0001–0004 (skema = core/shared/database-schema.md)
 │   └── tests/            # API, auth, database sungguhan, konsistensi registry ↔ core router
 ├── frontend/             # Next.js 16 (App Router): registry agent, /login, /account, /users; Dockerfile
 ├── docs/                 # security.md, post-vps-checklist.md, deploy/vps-1-setup.md, design/
@@ -72,7 +72,8 @@ docker compose down                        # data tetap di volume db-data (hapus
 | 0 | Scaffold + registry + router statis | ✅ |
 | 1 · PR 1 | Database sesuai `core/shared/database-schema.md` (PostgreSQL 16, Constraint Wajib di database) | ✅ 0.4.0 |
 | 1 · PR 2 / 2b | Login, hak akses, 2FA, `/users`, backup terenkripsi, audit keamanan | ✅ 0.5.0 / 0.6.0 |
-| 1 · PR 3 | Request → draft → QA → approval di API (review independen L2/L3 dicek server) | Berikutnya |
+| 1 · PR 3 | Request → draft → QA → approval di API (Rule 08 dicek server & database) | ✅ 0.7.0 |
+| 1 · PR 3b | Kelola klien, fact sheet & Konfirmasi Fakta; UI workflow | Berikutnya |
 | 2 | Pemanggilan AI model per skill, simpan draft + tabel klaim (VPS 2) | Planned |
 
 Setiap tahap tetap Level 1 otomasi (manusia yang publish), kecuali owner menyetujui level lebih tinggi lewat revisi Constitution.

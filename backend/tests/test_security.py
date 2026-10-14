@@ -102,6 +102,11 @@ ENDPOINTS = {
     # Manajemen user: khusus owner.
     ("GET", "/users"), ("POST", "/users"), ("PUT", "/users/{user_id}/memberships"),
     ("POST", "/users/{user_id}/disable"), ("POST", "/users/{user_id}/enable"),
+    # Workflow (Tahap 1 PR 3): request → draft → QA → approval; tidak ada publish/kirim.
+    ("POST", "/requests"), ("GET", "/requests"), ("GET", "/requests/{request_id}"),
+    ("POST", "/drafts"), ("GET", "/drafts"), ("GET", "/drafts/{draft_id}"),
+    ("POST", "/qa-records"), ("GET", "/qa-records"), ("GET", "/qa-records/{record_id}"),
+    ("POST", "/approvals"), ("GET", "/approvals"), ("GET", "/approvals/{approval_id}"),
 }
 
 
