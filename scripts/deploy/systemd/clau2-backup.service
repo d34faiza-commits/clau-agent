@@ -1,0 +1,12 @@
+[Unit]
+Description=CLAU VPS 2 backup database terenkripsi (simpan 14 hari, uji restore tiap Minggu)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/clau-vps2-backup
+TimeoutStartSec=30min
+Nice=10
+PrivateTmp=true
+UMask=0077
