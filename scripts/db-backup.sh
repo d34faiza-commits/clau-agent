@@ -5,9 +5,13 @@
 # Tanpa passphrase backup tidak bisa dibuka: simpan passphrase di password manager owner, terpisah dari
 # file backup. Salin file ke luar server (Backblaze B2) dan uji restore bulanan: scripts/db-restore.sh --verify.
 #
-#   scripts/db-backup.sh            # stack docker compose harus jalan
+#   scripts/db-backup.sh                  # stack docker compose harus jalan
+#   scripts/db-backup.sh sebelum-restore  # label di nama file (huruf kecil, angka, tanda -)
 set -euo pipefail
 cd "$(dirname "$0")/.."
+
+label="${1:-}"
+[[ -z "$label" || "$label" =~ ^[a-z0-9-]{1,32}$ ]] || { echo "label tidak valid: $label" >&2; exit 2; }
 
 env_value() { grep -m1 "^$1=" .env | cut -d= -f2-; }
 PASS="$(env_value CLAU_BACKUP_PASSPHRASE)"
@@ -19,8 +23,9 @@ fi
 
 umask 077
 mkdir -p backups
-out="backups/clau-$(date -u +%Y%m%dT%H%M%SZ).dump.enc"
+out="backups/clau-$(date -u +%Y%m%dT%H%M%SZ)${label:+-$label}.dump.enc"
+trap 'rm -f "$out" "$out.hmac"' ERR  # dump gagal di tengah: jangan tinggalkan file setengah jadi
 docker compose exec -T -e PGPASSWORD="$PGPASS" db pg_dump -h 127.0.0.1 -U postgres -d clau -Fc --no-password \
   | PASS="$PASS" openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -pass env:PASS -out "$out"
-PASS="$PASS" openssl dgst -sha256 -hmac "$PASS" -r "$out" | cut -d' ' -f1 > "$out.hmac"
+CLAU_HMAC_KEY="$PASS" python3 -I scripts/backup_hmac.py "$out" > "$out.hmac"
 echo "backup: $out ($(wc -c < "$out") byte, terenkripsi)"

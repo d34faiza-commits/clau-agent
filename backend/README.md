@@ -91,10 +91,10 @@ Test: `tests/test_auth.py` (53 test ke PostgreSQL sungguhan, termasuk replay kod
 ```bash
 scripts/db-backup.sh                                   # backups/clau-<UTC>.dump.enc + .hmac (chmod 600)
 scripts/db-restore.sh --verify backups/clau-….dump.enc # uji restore ke database sementara (bulanan)
-scripts/db-restore.sh --yes    backups/clau-….dump.enc # ganti isi database (backend dihentikan sementara)
+scripts/db-restore.sh --yes    backups/clau-….dump.enc # ganti isi database: backup isi sekarang dulu, restore ke database baru, tukar, cek sehat
 ```
 
-`pg_dump` → AES-256 (PBKDF2 600.000 iterasi) dengan `CLAU_BACKUP_PASSPHRASE`, HMAC-SHA256 dicek sebelum restore (file diubah = ditolak). Passphrase disimpan owner terpisah dari backup; salin backup ke luar server (Backblaze B2). Dites di CI job `docker`.
+`pg_dump` → AES-256 (PBKDF2 600.000 iterasi) dengan `CLAU_BACKUP_PASSPHRASE`, HMAC-SHA256 dicek sebelum restore (file diubah = ditolak; `scripts/backup_hmac.py`, passphrase lewat environment, tidak pernah jadi argumen proses). `--verify` mencetak ringkasan isi (`scripts/db-summary.sql`). Passphrase disimpan owner terpisah dari backup. Di VPS 2: backup tiap 6 jam + Backblaze B2 dan pemulihan `sudo clau-vps2-restore` ([`docs/deploy/vps-2-setup.md`](../docs/deploy/vps-2-setup.md) § 5). Backup, uji, dan restore penuh (termasuk backup skema lama dan pembatalan otomatis) dites di CI job `docker`.
 
 ## Workflow (0.7.0, Tahap 1 PR 3)
 

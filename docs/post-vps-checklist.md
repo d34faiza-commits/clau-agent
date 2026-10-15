@@ -11,7 +11,7 @@
 | 3 | Versi ikut repo: Next.js 16 + Node 22 LTS, Python 3.12, PostgreSQL 16, Redis 7 (semua di-pin) |
 | 4 | Nama pilar ikut `clau-ai-core` (AI-CONSTITUTION §2): AI Marketing, AI Sales, AI Admin, AI Business Intelligence, AI Automation |
 | 5 | Aturan data per AI provider (Restricted tidak pernah dikirim; data tamu disamarkan; panggilan AI dicatat). **NEXT ACTION:** belum tertulis di AI-BOUNDARY (1.2.0); wajib ditambahkan (perintah owner) sebelum langkah 1 di bawah |
-| 6 | Backup VPS 1 = config tanpa `.env`; backup VPS 2 = DB terenkripsi + config ke Backblaze B2 + tes restore bulanan |
+| 6 | Backup VPS 1 = config tanpa `.env`; backup VPS 2 = DB terenkripsi tiap 6 jam + Backblaze B2 (Object Lock) + uji restore mingguan; pemulihan manual `clau-vps2-restore` ([`deploy/vps-2-setup.md`](./deploy/vps-2-setup.md) § 5) |
 
 ## Setelah VPS siap
 

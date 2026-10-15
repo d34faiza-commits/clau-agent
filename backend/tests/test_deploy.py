@@ -182,3 +182,129 @@ echo lanjut
     out = subprocess.run(["bash", "-c", script], env=env, capture_output=True, text=True)
     assert out.returncode == 0, out.stderr
     assert out.stdout.strip().splitlines()[-1] == expect
+
+
+# --- Backup & pemulihan VPS 2 (docs/deploy/vps-2-setup.md § I & § 5, keputusan owner 2026-10-15) ---------------
+
+
+def test_vps2_backup_runs_every_six_hours_and_copies_offsite():
+    timer = unit("clau2-backup.timer")
+    assert timer["OnCalendar"] == ["*-*-* 02,08,14,20:00:00 Asia/Makassar"]
+    assert timer["Persistent"] == ["true"], "backup yang terlewat (server mati) dijalankan saat server hidup lagi"
+    backup = (DEPLOY / "vps2-backup.sh").read_text()
+    assert "clau-vps2-offsite push" in backup and "/etc/clau/offsite.env" in backup
+    check = (DEPLOY / "vps2-check.sh").read_text()
+    assert '[ "$age" -le 13 ]' in check and '[ "$sent_age" -le 13 ]' in check, "cek harus tahu jadwal 6 jam"
+    setup = (DEPLOY / "vps2-setup.sh").read_text()
+    assert re.search(r"apt-get .* install .*\brclone\b", setup)
+    for tool in ("offsite", "restore"):
+        assert f'"$SRC/vps2-{tool}.sh" /usr/local/sbin/clau-vps2-{tool}' in setup
+
+
+def test_restore_is_never_automatic():
+    """Pemulihan hanya lewat clau-vps2-restore yang diketik manusia: tidak ada timer/deploy/backup yang memanggilnya."""
+    for path in [*DEPLOY.glob("*.sh"), *UNITS.iterdir()]:
+        if path.name in ("vps2-restore.sh", "vps2-setup.sh", "vps2-check.sh"):
+            continue
+        text = path.read_text()
+        assert "clau-vps2-restore" not in text.replace("Pemulihan: sudo clau-vps2-restore", ""), path.name
+        assert "db-restore.sh --yes" not in text, path.name
+    restore = (DEPLOY / "vps2-restore.sh").read_text()
+    assert '[ "$answer" = PULIHKAN ]' in restore
+    assert 'Enter = batal' in restore and "pick=" not in restore.split("read -rp")[0], "tidak boleh ada pilihan default"
+
+
+def test_restore_commands_never_read_the_operator_keyboard():
+    """docker compose exec membaca stdin: tanpa </dev/null jawaban PULIHKAN yang diketik ikut termakan (bug 2026-10-15)."""
+    restore = (DEPLOY / "vps2-restore.sh").read_text()
+    for call in ('"$OFFSITE" list', '"$OFFSITE" pull', "db-restore.sh --verify", "db-restore.sh --yes", '"$OFFSITE" push'):
+        lines = [line for line in restore.splitlines() if call in line and not line.lstrip().startswith("#")]
+        assert lines and all("</dev/null" in line for line in lines), call
+
+
+def test_db_restore_backs_up_and_swaps_instead_of_overwriting():
+    restore = (ROOT / "scripts" / "db-restore.sh").read_text()
+    yes = restore.split('if [[ "$mode" == "--verify" ]]', 1)[1].split("\nelse\n", 1)[1]
+    yes = "\n".join(line for line in yes.splitlines() if not line.lstrip().startswith("#"))
+    assert yes.index("db-backup.sh sebelum-restore") < yes.index("docker compose stop backend"), "isi sekarang di-backup dulu"
+    assert "--clean" not in yes, "restore ke database baru, bukan menimpa (tabel skema baru menghalangi backup lama)"
+    assert yes.index('restore_into "$new"') < yes.index('swap clau "$old"'), "database ditukar setelah restore lengkap"
+    assert 'swap "$old" clau' in yes, "backend tidak sehat → isi sebelumnya kembali"
+
+
+def test_backup_passphrase_never_on_command_line():
+    """Argumen proses terbaca semua user (`ps`); passphrase hanya lewat environment."""
+    for path in [ROOT / "scripts" / "db-backup.sh", ROOT / "scripts" / "db-restore.sh", *DEPLOY.glob("vps2-*.sh")]:
+        text = path.read_text()
+        assert "-hmac" not in text and "-pass pass:" not in text and "-k " not in text, path.name
+    offsite = (DEPLOY / "vps2-offsite.sh").read_text()
+    assert "--b2-account" not in offsite and "--b2-key" not in offsite, "key B2 lewat environment rclone"
+    assert 'chmod 600 "$CONF"' in offsite and "read -rsp" in offsite
+
+
+def test_backup_hmac_matches_openssl_format(tmp_path):
+    """.hmac lama (openssl dgst -hmac) harus tetap cocok dengan scripts/backup_hmac.py."""
+    sample = tmp_path / "clau-x.dump.enc"
+    sample.write_bytes(bytes(range(256)) * 5000)
+    key = "passphrase-uji-" + "a" * 40
+    ours = subprocess.run(["python3", "-I", str(ROOT / "scripts" / "backup_hmac.py"), str(sample)],
+                          env={"CLAU_HMAC_KEY": key, "PATH": "/usr/bin:/bin"}, capture_output=True, text=True, check=True).stdout.strip()
+    theirs = subprocess.run(["openssl", "dgst", "-sha256", "-hmac", key, "-r", str(sample)],
+                            capture_output=True, text=True, check=True).stdout.split()[0]
+    assert ours == theirs
+
+
+@pytest.mark.parametrize("name", ["../../etc/passwd", "clau-x.dump.enc", "clau-20261015T020000Z.dump.enc/../x", "a b"])
+def test_offsite_pull_rejects_unknown_names(name, tmp_path):
+    out = subprocess.run([str(DEPLOY / "vps2-offsite.sh"), "pull", name, str(tmp_path)], capture_output=True, text=True,
+                         env={"PATH": "/usr/bin:/bin", "CLAU_OFFSITE_ENV": str(tmp_path / "tidak-ada.env")})
+    assert out.returncode == 1 and "nama backup tidak valid" in out.stderr
+
+
+def _restore_repo(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "backups").mkdir(parents=True)
+    (repo / "scripts").mkdir()
+    (repo / "scripts" / "backup_hmac.py").write_text((ROOT / "scripts" / "backup_hmac.py").read_text())
+    (repo / ".env").write_text("CLAU_BACKUP_PASSPHRASE=" + "p" * 64 + "\n")
+    for name in ("clau-20261015T000000Z.dump.enc", "clau-20261015T060000Z-sebelum-restore.dump.enc", "catatan.txt"):
+        (repo / "backups" / name).write_bytes(b"isi")
+    env = {"PATH": "/usr/bin:/bin", "CLAU_REPO": str(repo), "CLAU_OFFSITE_ENV": str(tmp_path / "tidak-ada.env")}
+    return repo, env
+
+
+def test_restore_lists_backups_newest_first_in_wita(tmp_path):
+    _, env = _restore_repo(tmp_path)
+    out = subprocess.run([str(DEPLOY / "vps2-restore.sh"), "--list"], env=env, capture_output=True, text=True, check=True).stdout
+    rows = [line for line in out.splitlines() if re.match(r"\s+\d+\. ", line)]
+    assert len(rows) == 2, out  # file lain di backups/ diabaikan
+    assert "2026-10-15 14:00 WITA" in rows[0] and "(isi sebelum restore)" in rows[0]
+    assert "2026-10-15 08:00 WITA" in rows[1] and "B2 belum disetel" in out
+
+
+@pytest.mark.parametrize(("answers", "message"), [
+    ("\n", "dibatalkan"),               # Enter saja = batal (tanpa pilihan default)
+    ("9\n", "dibatalkan"),              # nomor di luar daftar
+    ("1\n", "passphrase salah"),        # .hmac tidak cocok + tidak ada jawaban passphrase
+    ("", "dibatalkan"),                 # stdin habis
+])
+def test_restore_stops_before_touching_anything(tmp_path, answers, message):
+    repo, env = _restore_repo(tmp_path)
+    before = sorted(p.name for p in (repo / "backups").iterdir())
+    out = subprocess.run([str(DEPLOY / "vps2-restore.sh")], input=answers, env=env, capture_output=True, text=True)
+    assert out.returncode == 1 and message in out.stderr, out.stderr
+    assert sorted(p.name for p in (repo / "backups").iterdir()) == before
+
+
+def test_restore_replacement_server_rejects_bad_secret_key_without_changing_env(tmp_path):
+    repo, env = _restore_repo(tmp_path)
+    good = "p" * 64
+    name = "clau-20261015T000000Z.dump.enc"
+    mac = subprocess.run(["python3", "-I", str(ROOT / "scripts" / "backup_hmac.py"), str(repo / "backups" / name)],
+                         env={"CLAU_HMAC_KEY": "lama" * 10, "PATH": "/usr/bin:/bin"}, capture_output=True, text=True, check=True).stdout
+    (repo / "backups" / f"{name}.hmac").write_text(mac)
+    before = (repo / ".env").read_text()
+    for answers, message in ((f"2\n{good}\n", "passphrase tidak cocok"), (f"2\n{'lama' * 10}\npendek\n", "CLAU_SECRET_KEY tidak valid")):
+        out = subprocess.run([str(DEPLOY / "vps2-restore.sh"), "--server-pengganti"], input=answers, env=env, capture_output=True, text=True)
+        assert out.returncode == 1 and message in out.stderr, out.stderr
+        assert (repo / ".env").read_text() == before

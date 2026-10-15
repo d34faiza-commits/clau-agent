@@ -85,10 +85,25 @@ latest=$(ls -1t "$REPO"/backups/clau-*.dump.enc 2>/dev/null | head -1)
 if [ -z "$latest" ]; then gagal "belum ada backup database (sudo clau-vps2-backup)"
 else
   age=$(( ($(date +%s) - $(stat -c %Y "$latest")) / 3600 ))
-  [ "$age" -le 26 ] && ok "backup terakhir $age jam lalu ($(ls -1 "$REPO"/backups/clau-*.dump.enc | wc -l) file)" || gagal "backup terakhir $age jam lalu (lebih dari sehari)"
+  # Jadwal tiap 6 jam: lebih dari 13 jam = paling sedikit dua backup terlewat.
+  [ "$age" -le 13 ] && ok "backup terakhir $age jam lalu ($(ls -1 "$REPO"/backups/clau-*.dump.enc | wc -l) file, tiap 6 jam)" || gagal "backup terakhir $age jam lalu (jadwal tiap 6 jam; journalctl -u clau2-backup -n 50)"
   [ -s "$latest.hmac" ] && ok "backup punya HMAC (cek keutuhan)" || gagal "backup tanpa .hmac"
 fi
-cek "salinan backup di luar server (Backblaze B2) belum ada: NEXT ACTION; simpan CLAU_BACKUP_PASSPHRASE di password manager"
+verified=$(stat -c %Y "$ROOT/.verify-last" 2>/dev/null || echo 0)
+[ $(( ($(date +%s) - verified) / 86400 )) -le 8 ] && ok "uji restore terakhir $(( ($(date +%s) - verified) / 86400 )) hari lalu" \
+  || cek "uji restore belum jalan minggu ini (sudo clau-vps2-backup --verify)"
+command -v clau-vps2-restore >/dev/null && ok "alat pemulihan terpasang (sudo clau-vps2-restore)" || gagal "clau-vps2-restore belum terpasang (jalankan ulang vps2-setup.sh)"
+if [ -f "$ETC/offsite.env" ]; then
+  perm=$(stat -c '%a %U' "$ETC/offsite.env")
+  [ "$perm" = "600 root" ] && ok "key B2 chmod 600 milik root" || gagal "key B2: '$perm' (seharusnya 600 root)"
+  sent=0 sent_name=""
+  [ -f "$ROOT/.offsite-last" ] && read -r sent sent_name < "$ROOT/.offsite-last"
+  sent_age=$(( ($(date +%s) - ${sent:-0}) / 3600 ))
+  [ "$sent_age" -le 13 ] && ok "salinan B2 terakhir $sent_age jam lalu (${sent_name:-?})" \
+    || gagal "salinan B2 terakhir $sent_age jam lalu (journalctl -u clau2-backup -n 50)"
+else
+  cek "salinan backup di luar server (Backblaze B2) belum disetel: sudo clau-vps2-offsite setup (panduan § I)"
+fi
 
 judul "Deploy"
 live=$(cat "$ROOT/.live-sha" 2>/dev/null)

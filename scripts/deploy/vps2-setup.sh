@@ -12,8 +12,9 @@
 #   3. .env dengan secret acak (chmod 600, root), origin = alamat HTTPS Tailscale server ini.
 #   4. Stack docker compose dari commit release/vps1 (main yang CI-nya hijau), port hanya 127.0.0.1.
 #   5. `tailscale serve`: https://<nama-server>.<tailnet>.ts.net → frontend (hanya anggota tailnet).
-#   6. Timer: deploy otomatis 5 menit sekali, backup database terenkripsi harian (+ uji restore mingguan).
-#   7. Alat cek: sudo clau-vps2-check.
+#   6. Timer: deploy otomatis 5 menit sekali, backup database terenkripsi tiap 6 jam (+ uji restore mingguan,
+#      salinan ke Backblaze B2 setelah `sudo clau-vps2-offsite setup`).
+#   7. Alat: sudo clau-vps2-check (cek), sudo clau-vps2-restore (pemulihan, selalu manual).
 set -euo pipefail
 
 ROOT=/srv/clau
@@ -61,7 +62,7 @@ log "1/8 Update sistem & paket dasar"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -q
 apt-get -y -q full-upgrade
-apt-get -y -q install ufw fail2ban unattended-upgrades ca-certificates curl git openssl python3 >/dev/null
+apt-get -y -q install ufw fail2ban unattended-upgrades ca-certificates curl git openssl python3 rclone >/dev/null
 hostnamectl set-hostname clau-vps2 2>/dev/null || echo "(nama host tidak diubah; tidak masalah)"
 
 log "2/8 Firewall, SSH, fail2ban"
@@ -162,7 +163,7 @@ if ! tailscale serve --bg --https=443 http://127.0.0.1:3000; then
 fi
 tailscale serve status
 
-log "8/8 Deploy otomatis, backup harian, alat cek"
+log "8/8 Deploy otomatis, backup tiap 6 jam, alat cek & pemulihan"
 for u in clau2-deploy.service clau2-deploy.timer clau2-backup.service clau2-backup.timer; do
   install -m 644 -o root -g root "$SRC/systemd/$u" "/etc/systemd/system/$u"
 done
@@ -170,9 +171,11 @@ done
 install -m 755 -o root -g root "$SRC/vps2-deploy.sh" /usr/local/sbin/clau-vps2-deploy
 install -m 755 -o root -g root "$SRC/vps2-backup.sh" /usr/local/sbin/clau-vps2-backup
 install -m 755 -o root -g root "$SRC/vps2-check.sh" /usr/local/sbin/clau-vps2-check
+install -m 755 -o root -g root "$SRC/vps2-offsite.sh" /usr/local/sbin/clau-vps2-offsite
+install -m 755 -o root -g root "$SRC/vps2-restore.sh" /usr/local/sbin/clau-vps2-restore
 systemctl daemon-reload
 systemctl enable --now clau2-deploy.timer clau2-backup.timer >/dev/null
-/usr/local/sbin/clau-vps2-backup
+/usr/local/sbin/clau-vps2-backup || echo "(backup pertama/salinan B2 belum berhasil: lihat pesan di atas, lalu sudo clau-vps2-check)"
 
 printf '\n\033[32mSelesai.\033[0m Buka https://%s dari laptop/HP yang tersambung Tailscale.\n' "$dns"
 printf 'Owner pertama (sekali): cd %s && sudo docker compose run --rm backend python -m app.auth.cli create-owner --email <email> --name "<nama>"\n' "$REPO"
