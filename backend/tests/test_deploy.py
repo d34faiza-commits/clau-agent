@@ -87,3 +87,46 @@ def test_vps1_only_deploys_ci_green_release_branch():
     assert "github.ref == 'refs/heads/main'" in job
     deploy = (DEPLOY / "vps1-deploy.sh").read_text()
     assert 'fetch --quiet origin "$BRANCH"' in deploy and "FETCH_HEAD" in deploy and not re.search(r"git .*\bpull\b", deploy)
+
+
+# --- VPS 2 (docs/deploy/vps-2-setup.md) ----------------------------------------------------------------
+
+
+def test_vps2_setup_installs_every_checked_file():
+    setup = (DEPLOY / "vps2-setup.sh").read_text()
+    units = re.search(r"for u in ([^;]+); do\n  install -m 644", setup).group(1).split()
+    for name in units:
+        assert (UNITS / name).is_file(), name
+    for src, dst in re.findall(r'install -m 755 -o root -g root "\$SRC/(\S+)" (\S+)', setup):
+        assert (DEPLOY / src).is_file(), src
+    check = (DEPLOY / "vps2-check.sh").read_text()
+    for timer in (u for u in units if u.endswith(".timer")):
+        assert timer in check, f"{timer} dipasang tapi tidak dicek"
+
+
+def test_vps2_deploys_only_ci_green_release_branch_and_rolls_back():
+    deploy = (DEPLOY / "vps2-deploy.sh").read_text()
+    assert "CLAU_BRANCH=release/vps1" in unit("clau2-deploy.service")["Environment"]
+    assert unit("clau2-deploy.service")["ExecStart"] == ["/usr/local/sbin/clau-vps2-deploy"], "jalankan salinan milik root, bukan file repo"
+    assert 'fetch --quiet origin "$BRANCH"' in deploy and "FETCH_HEAD" in deploy and not re.search(r"git .*\bpull\b", deploy)
+    # Migrasi baru: backup dulu; gagal: skema diturunkan lalu image & commit lama dipakai lagi.
+    assert "clau-vps2-backup" in deploy.split('log "build')[0]
+    assert "alembic downgrade" in deploy and ':prev" "$img:local"' in deploy
+
+
+def test_vps2_app_is_never_public():
+    setup = (DEPLOY / "vps2-setup.sh").read_text()
+    assert "ufw default deny incoming" in setup and "ufw allow in on tailscale0" in setup
+    assert "tailscale funnel" not in setup.replace("tailscale funnel status", ""), "Funnel membuka aplikasi ke internet"
+    assert "--https=443 http://127.0.0.1:3000" in setup
+    compose = (ROOT / "docker-compose.yml").read_text()
+    ports = re.findall(r'ports: \["([^"]+)"\]', compose)
+    assert ports and all(p.startswith("127.0.0.1:") for p in ports), ports
+    assert 'CLAU_ALLOWED_ORIGINS "https://$dns"' in setup and 'CLAU_PUBLIC_ORIGIN "https://$dns"' in setup
+
+
+def test_vps2_secrets_stay_root_only():
+    setup = (DEPLOY / "vps2-setup.sh").read_text()
+    assert 'chmod 600 "$REPO/.env"' in setup and 'chmod 600 "$KEY"' in setup
+    check = (DEPLOY / "vps2-check.sh").read_text()
+    assert "CLAU_BACKUP_PASSPHRASE=" not in check.replace("simpan CLAU_BACKUP_PASSPHRASE", ""), "cek tidak boleh menampilkan secret"

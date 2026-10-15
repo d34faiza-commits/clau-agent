@@ -95,6 +95,8 @@ services:
     environment:
       CLAU_BACKEND_URL: http://backend:8000
       CLAU_AUTH_ENABLED: ${CLAU_AUTH_ENABLED:-1}
+      # Alamat publik yang dibuka browser (https://…), untuk redirect ke /login di balik reverse proxy.
+      CLAU_PUBLIC_ORIGIN: ${CLAU_PUBLIC_ORIGIN:-}
     depends_on:
       backend: { condition: service_healthy }
     ports: ["127.0.0.1:${CLAU_FRONTEND_PORT:-3000}:3000"]

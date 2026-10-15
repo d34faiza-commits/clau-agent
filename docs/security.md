@@ -1,6 +1,6 @@
 # Keamanan Platform CLAU AI
 
-> Status per 2026-10-13: VPS 1 = pratinjau frontend (HTTP via IP, tanpa backend, tanpa login, data SIMULASI). Backend 0.8.0 (PostgreSQL 16, login + 2FA, `/users`, backup terenkripsi, workflow request → approval, fact sheet + Konfirmasi Fakta) sudah dibangun dan dites lokal/CI, **belum di-deploy** (menunggu VPS 2 + domain/HTTPS). Belum ada pemanggilan model AI. Dokumen ini mencatat ancaman yang sudah ditangani, cara memasang perlindungan di server, dan **aturan wajib** sebelum fitur berisiko (login, data client, AI, WhatsApp) dibangun di VPS 2.
+> Status per 2026-10-15: VPS 1 = pratinjau frontend (HTTP via IP, tanpa backend, tanpa login, data SIMULASI). VPS 2 dibuat 2026-10-15; paket setup tanpa domain (HTTPS Tailscale khusus tailnet): [`deploy/vps-2-setup.md`](./deploy/vps-2-setup.md). Backend 0.8.0 (PostgreSQL 16, login + 2FA, `/users`, backup terenkripsi, workflow request → approval, fact sheet + Konfirmasi Fakta) sudah dibangun dan dites lokal/CI, **belum di-deploy** (menunggu owner menjalankan paket VPS 2). Belum ada pemanggilan model AI. Dokumen ini mencatat ancaman yang sudah ditangani, cara memasang perlindungan di server, dan **aturan wajib** sebelum fitur berisiko (login, data client, AI, WhatsApp) dibangun di VPS 2.
 
 ## 1. Ringkasan Audit 2026-10-09
 
@@ -83,7 +83,7 @@ Sudah diterapkan dari § 6: Argon2id, sesi di server (cookie `__Host-` HttpOnly/
 
 | Area | Aturan |
 |---|---|
-| HTTPS | Domain + TLS (Cloudflare/Let's Encrypt) **sebelum** login atau data client apa pun. Lalu HSTS di Nginx: `add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;` |
+| HTTPS | Domain + TLS (Cloudflare/Let's Encrypt) **sebelum** login atau data client apa pun. Lalu HSTS di Nginx: `add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;`. Sementara belum ada domain (keputusan owner 2026-10-15): HTTPS Tailscale (`https://clau-vps2.<tailnet>.ts.net`, `tailscale serve`, tanpa Funnel) hanya untuk anggota tailnet; tanpa port aplikasi di IP publik ([`deploy/vps-2-setup.md`](./deploy/vps-2-setup.md)). Klien baru boleh login setelah domain + HTTPS publik |
 | SQL injection | Hanya query berparameter / ORM (SQLAlchemy). Dilarang menyusun SQL dengan f-string atau `+`. User database aplikasi tanpa hak DDL. Database hanya listen di localhost/Tailscale |
 | Autentikasi | Password di-hash Argon2id; 2FA untuk owner; rate limit + lockout login; sesi kedaluwarsa |
 | CSRF | Cookie sesi `HttpOnly; Secure; SameSite=Lax` + token CSRF untuk setiap POST/PUT/PATCH/DELETE; cek header `Origin` |

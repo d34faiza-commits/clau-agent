@@ -1,0 +1,16 @@
+[Unit]
+Description=CLAU VPS 2 pull-based deploy (release/vps1 = main dengan CI hijau)
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+# Root: Docker Compose butuh akses daemon Docker (setara root). Script yang dijalankan adalah salinan milik root
+# di /usr/local/sbin (dipasang vps2-setup.sh), bukan file di repo yang ikut berubah saat fetch.
+[Service]
+Type=oneshot
+Environment=CLAU_BRANCH=release/vps1
+ExecStart=/usr/local/sbin/clau-vps2-deploy
+TimeoutStartSec=30min
+Nice=10
+PrivateTmp=true
+UMask=0077

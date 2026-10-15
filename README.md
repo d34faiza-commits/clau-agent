@@ -24,8 +24,8 @@ clau-ai-agents/
 │   ├── migrations/       # Alembic 0001–0005 (skema = core/shared/database-schema.md)
 │   └── tests/            # API, auth, database sungguhan, konsistensi registry ↔ core router
 ├── frontend/             # Next.js 16 (App Router): registry agent, /login, /account, /users; Dockerfile
-├── docs/                 # security.md, post-vps-checklist.md, deploy/vps-1-setup.md, design/
-├── scripts/              # init-env.sh, db-backup.sh/db-restore.sh, sync-submodules.sh, check-core-pins.sh, deploy/ (VPS 1)
+├── docs/                 # security.md, post-vps-checklist.md, deploy/vps-1-setup.md, deploy/vps-2-setup.md, design/
+├── scripts/              # init-env.sh, db-backup.sh/db-restore.sh, sync-submodules.sh, check-core-pins.sh, deploy/ (VPS 1 & VPS 2)
 ├── docker-compose.yml    # backend + frontend dalam container (port hanya 127.0.0.1)
 ├── .env.example          # semua variabel environment (tanpa secret); salin ke .env
 └── .github/workflows/    # ci.yml, cross-repo-validate.yml, sync-submodules.yml, notify-downstream.yml, main-guard.yml
@@ -63,7 +63,7 @@ docker compose down                        # data tetap di volume db-data (hapus
 - **Environment:** semua variabel ada di [`.env.example`](./.env.example) beserta artinya. `.env` tidak di-commit; secret (password database, API key AI, WhatsApp) hanya di `.env` lokal/server, tidak pernah di repo ([docs/security.md](./docs/security.md) § 6). Test `backend/tests/test_env.py` memastikan setiap variabel yang dibaca kode tercantum dan tidak ada secret di template.
 - **Image:** `backend/Dockerfile` (Python 3.12, dependency runtime saja: `backend/requirements-runtime.txt`) dan `frontend/Dockerfile` (Node 22, Next.js output standalone). Base image dipin ke digest dan diperbarui Dependabot. Build context = root repo dengan `.dockerignore` allowlist, jadi `.env`, `.git`, dan `core/` tidak pernah ikut ke image.
 - **Pengamanan container:** user non-root, filesystem read-only, tanpa capability Linux, `no-new-privileges`, batas memori & proses, port hanya di `127.0.0.1` (publik lewat Nginx + TLS). Dicek job CI `docker`.
-- **VPS 1** tetap memakai deploy tarik + systemd dengan user khusus `clau-web` / `clau-deploy` dan cek harian `clau-vps1-check` ([docs/deploy/vps-1-setup.md](./docs/deploy/vps-1-setup.md)); compose ini dipakai untuk kerja lokal dan menjadi dasar deploy VPS 2.
+- **VPS 1** tetap memakai deploy tarik + systemd dengan user khusus `clau-web` / `clau-deploy` dan cek harian `clau-vps1-check` ([docs/deploy/vps-1-setup.md](./docs/deploy/vps-1-setup.md)); compose ini dipakai untuk kerja lokal dan untuk **VPS 2** (backend + database + login lewat HTTPS Tailscale sampai ada domain, deploy otomatis dengan rollback, backup harian; [docs/deploy/vps-2-setup.md](./docs/deploy/vps-2-setup.md)).
 
 ## Roadmap Platform
 

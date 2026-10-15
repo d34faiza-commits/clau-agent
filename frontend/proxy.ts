@@ -14,8 +14,9 @@ export function proxy(request: NextRequest) {
   if (process.env.CLAU_AUTH_ENABLED !== "1") return NextResponse.next();
   const { pathname, search } = request.nextUrl;
   if (isPublic(pathname) || SESSION_COOKIES.some((c) => request.cookies.has(c))) return NextResponse.next();
-  const url = request.nextUrl.clone();
-  url.pathname = "/login";
+  // Di balik reverse proxy HTTPS (Nginx, `tailscale serve`) server Next.js sendiri hanya melihat
+  // http://127.0.0.1:3000; CLAU_PUBLIC_ORIGIN (alamat yang dibuka browser) membuat redirect tetap benar.
+  const url = new URL("/login", process.env.CLAU_PUBLIC_ORIGIN || request.nextUrl.origin);
   url.search = `?next=${encodeURIComponent(pathname + search)}`;
   return NextResponse.redirect(url);
 }

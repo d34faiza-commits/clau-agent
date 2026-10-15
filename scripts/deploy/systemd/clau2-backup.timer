@@ -1,0 +1,10 @@
+[Unit]
+Description=Backup database CLAU harian 02:00 WITA
+
+[Timer]
+OnCalendar=*-*-* 02:00:00 Asia/Makassar
+RandomizedDelaySec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
