@@ -3,7 +3,8 @@
 # Dipasang sebagai /usr/local/sbin/clau-vps2-restore oleh vps2-setup.sh.
 #
 #   sudo clau-vps2-restore           # pilih backup (server + B2), uji, konfirmasi PULIHKAN, pulihkan, cek sehat
-#   sudo clau-vps2-restore --list    # hanya tampilkan daftar backup
+#   sudo clau-vps2-restore --list    # hanya tampilkan daftar backup (40 terbaru)
+#   sudo clau-vps2-restore --semua   # tampilkan & boleh pilih semua backup (mis. B2 yang lebih dari seminggu)
 #   sudo clau-vps2-restore --server-pengganti
 #                                    # server baru menggantikan VPS 2 yang hilang: passphrase backup & CLAU_SECRET_KEY
 #                                    # lama (password manager) dipakai lagi, supaya backup lama terbuka dan 2FA semua
@@ -14,6 +15,7 @@
 # backend tidak sehat → isi sebelumnya kembali otomatis (scripts/db-restore.sh --yes). Deploy & backup otomatis
 # dijeda selama restore. Tidak ada pemulihan otomatis: mesin tidak memutuskan data mana yang benar.
 set -euo pipefail
+umask 077  # file sementara (.env.baru, log) berisi secret: jangan pernah terbaca user lain, sekejap pun
 
 REPO="${CLAU_REPO:-/srv/clau/clau-ai-agents}"
 ROOT="$(dirname "$REPO")"
@@ -26,11 +28,18 @@ judul() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 [ "$(id -u)" -eq 0 ] || [ -n "${CLAU_REPO:-}" ] || die "jalankan dengan sudo: sudo clau-vps2-restore"
 cd "$REPO"
 [ -f .env ] || die "$REPO/.env tidak ada (jalankan vps2-setup.sh dulu)"
-mode="${1:-}"
-case "$mode" in ""|--list|--server-pengganti) ;; *) sed -n '2,15p' "$0"; exit 2 ;; esac
+mode="" list_only=0 limit=40
+for arg in "$@"; do
+  case "$arg" in
+    --list) list_only=1 ;;
+    --semua) limit=100000 ;;
+    --server-pengganti) mode="$arg" ;;
+    *) sed -n '2,16p' "$0"; exit 2 ;;
+  esac
+done
 
 env_value() { grep -m1 "^$1=" .env | cut -d= -f2-; }
-pg() { docker compose exec -T -e PGPASSWORD="$(env_value POSTGRES_PASSWORD)" db psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 -qtA "$@"; }
+pg() { PGPASSWORD="$(env_value POSTGRES_PASSWORD)" docker compose exec -T -e PGPASSWORD db psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 -qtA "$@"; }
 when() {  # nama file → waktu WITA
   [[ "$1" =~ $NAME_RE ]] || { echo "?"; return; }
   TZ=Asia/Makassar date -d "${BASH_REMATCH[1]} ${BASH_REMATCH[2]}:${BASH_REMATCH[3]}:${BASH_REMATCH[4]} UTC" '+%Y-%m-%d %H:%M WITA'
@@ -51,15 +60,16 @@ offsite=0
 if [ -f "$OFFSITE_ENV" ]; then
   if remote="$("$OFFSITE" list </dev/null)"; then
     offsite=1
-    while read -r n s; do
-      [ -n "$n" ] || continue
+    while read -r n s extra; do
+      [[ "$n" =~ $NAME_RE && "$s" =~ ^[0-9]+$ && -z "$extra" ]] || continue  # nama dari B2 = data tak tepercaya
       if [ -n "${where[$n]:-}" ]; then where[$n]="server + B2"; else where[$n]=B2; size[$n]=$s; fi
     done <<<"$remote"
   else
     echo "(daftar B2 tidak bisa dibaca; hanya backup di server yang tampil)" >&2
   fi
 fi
-mapfile -t names < <(printf '%s\n' "${!where[@]}" | sort -r | head -30)
+mapfile -t names < <(printf '%s\n' "${!where[@]}" | sort -r | head -n "$limit")
+total=${#where[@]}
 [ "${#names[@]}" -gt 0 ] && [ -n "${names[0]}" ] || die "tidak ada backup (server$([ "$offsite" = 1 ] && echo ' maupun B2'))"
 
 judul "Backup tersedia (terbaru di atas)"
@@ -69,7 +79,8 @@ for i in "${!names[@]}"; do
   printf '  %2d. %s  %8s KB  %-12s %s%s\n' $((i + 1)) "$(when "$n")" $(( ${size[$n]:-0} / 1024 )) "${where[$n]}" "$n" "$note"
 done
 [ "$offsite" = 1 ] || echo "  (B2 belum disetel: hanya backup di server ini)"
-[ "$mode" = "--list" ] && exit 0
+[ "$total" -le "${#names[@]}" ] || echo "  (+$(( total - ${#names[@]} )) backup lebih lama: tambahkan --semua)"
+[ "$list_only" = 1 ] && exit 0
 
 # --- 2. Pilih (tanpa nilai default: harus diketik) ----------------------------------------------------------------
 read -rp $'\nNomor backup yang dipulihkan (Enter = batal): ' pick || pick=""
@@ -121,7 +132,26 @@ EOF
 read -rp $'\nKetik PULIHKAN untuk lanjut (huruf besar): ' answer || answer=""
 [ "$answer" = PULIHKAN ] || die "dibatalkan; tidak ada yang diubah"
 
-# --- 5. Server pengganti: kunci lama masuk .env (salinan .env sekarang disimpan; dikembalikan bila restore gagal) ---
+# --- 5. Jeda deploy & backup otomatis ---------------------------------------------------------------------------
+systemd=0 restored=0
+cleanup() {  # selalu jalan saat keluar: .env kunci lama tidak pernah tertinggal tanpa restore; timer hidup lagi
+  if [ "$restored" != 1 ] && [ -f .env.sebelum-pengganti ]; then
+    mv .env.sebelum-pengganti .env && echo "(.env dikembalikan ke kunci server ini)" >&2
+  fi
+  [ "$systemd" = 1 ] && systemctl start clau2-deploy.timer clau2-backup.timer || true
+}
+trap cleanup EXIT
+if [ -d /run/systemd/system ] && systemctl cat clau2-deploy.timer >/dev/null 2>&1; then
+  systemd=1
+  systemctl stop clau2-deploy.timer clau2-backup.timer
+  while systemctl is-active --quiet clau2-backup.service; do echo "(menunggu backup terjadwal selesai)"; sleep 5; done
+fi
+exec 9>"$ROOT/.deploy.lock"
+flock -w 1200 9 || die "deploy masih berjalan lebih dari 20 menit; ulangi nanti (journalctl -u clau2-deploy -n 80)"
+# Mulai sini Ctrl-C / SSH terputus diabaikan: restore yang setengah jalan lebih berbahaya daripada menunggu.
+trap '' HUP INT TERM
+
+# --- 6. Server pengganti: kunci lama masuk .env (salinan .env sekarang disimpan; dikembalikan bila restore gagal) ---
 set_env() {  # set_env NAMA NILAI tanpa sed: nilai tidak pernah ditafsirkan sebagai pola/ekspresi
   NAME="$1" VALUE="$2" awk 'BEGIN { n = ENVIRON["NAME"]; v = ENVIRON["VALUE"] }
     index($0, n "=") == 1 { print n "=" v; done = 1; next } { print } END { if (!done) print n "=" v }' .env > .env.baru
@@ -134,21 +164,14 @@ if [ -n "$new_secret" ]; then
   echo "Kunci server lama dipakai di .env (salinan sebelumnya: .env.sebelum-pengganti)."
 fi
 
-# --- 6. Jeda deploy & backup otomatis, lalu pulihkan --------------------------------------------------------------
-systemd=0
-if [ -d /run/systemd/system ] && systemctl cat clau2-deploy.timer >/dev/null 2>&1; then
-  systemd=1
-  systemctl stop clau2-deploy.timer clau2-backup.timer
-  trap 'systemctl start clau2-deploy.timer clau2-backup.timer' EXIT
-  while systemctl is-active --quiet clau2-backup.service; do echo "(menunggu backup terjadwal selesai)"; sleep 5; done
-fi
-exec 9>"$ROOT/.deploy.lock"
-flock -w 1200 9 || die "deploy masih berjalan lebih dari 20 menit; ulangi nanti (journalctl -u clau2-deploy -n 80)"
+# --- 7. Pulihkan ------------------------------------------------------------------------------------------------
 
 judul "Memulihkan $name"
 log="$(mktemp)"
 set +e
-scripts/db-restore.sh --yes "$file" 2>&1 </dev/null | tee "$log"
+# setsid: restore berjalan di sesi proses sendiri, jadi Ctrl-C / SSH terputus tidak sampai ke docker compose (yang
+# memasang penangkap sinyal sendiri). tee --output-error=warn: terminal yang hilang tidak mematahkan pipa restore.
+setsid -w scripts/db-restore.sh --yes "$file" 2>&1 </dev/null | tee -i --output-error=warn "$log"
 rc=${PIPESTATUS[0]}
 set -e
 safety="$(sed -n 's/^cadangan sebelum restore: //p' "$log")"
@@ -161,12 +184,13 @@ if [ "$rc" != 0 ] && [ -n "$new_secret" ]; then
   docker compose up -d --wait --wait-timeout 300 backend </dev/null >/dev/null 2>&1 || true
   echo "(.env dikembalikan ke kunci server ini)" >&2
 fi
-[ "$rc" = 0 ] || die "restore tidak selesai; isi database dikembalikan ke kondisi sebelumnya (lihat pesan di atas). Cadangan: ${safety:-tidak ada}"
-
+[ "$rc" = 0 ] || die "restore tidak selesai; lihat pesan di atas (isi sebelumnya dikembalikan bila restore sempat berjalan). Cadangan: ${safety:-tidak ada}"
+restored=1
 [ -z "$new_secret" ] || rm -f .env.sebelum-pengganti  # secret server baru yang sudah tidak dipakai
 
 # Jejak di audit_log (append-only): siapa memulihkan backup apa. Nilai lewat variabel psql, bukan disambung ke SQL.
-pg -d clau -v backup="$name" -v safety="$safety" -v by="${SUDO_USER:-root}" -v mode="${mode:-biasa}" <<'SQL'
+pg -d clau -v backup="$name" -v safety="$safety" -v by="${SUDO_USER:-root}" -v mode="${mode:-biasa}" <<'SQL' \
+  || echo "(restore BERHASIL, tapi jejak audit_log gagal ditulis; catat manual)" >&2
 INSERT INTO audit_log (actor_id, action, object_type, object_id, meta)
 VALUES (NULL, 'database.restore', 'database', 'clau',
         jsonb_build_object('backup', :'backup', 'cadangan_sebelumnya', :'safety', 'oleh_admin_server', :'by',

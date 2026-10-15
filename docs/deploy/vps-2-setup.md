@@ -130,7 +130,7 @@ Tujuan: kalau VPS 2 rusak/terhapus/akun Linode bermasalah, backup tetap ada. Fil
    - Files in Bucket: **Private**
    - Default Encryption: **Enable**
    - Object Lock: **Enable**
-3. Di bucket itu → **Object Lock** → Default Retention Policy: mode **Governance**, **30 days**. Backup tidak bisa dihapus selama 30 hari, juga oleh orang yang menguasai VPS 2.
+3. Di bucket itu → **Object Lock** → Default Retention Policy: mode **Compliance**, **30 days**. Backup tidak bisa dihapus oleh siapa pun selama 30 hari: tidak oleh orang yang menguasai VPS 2, tidak juga oleh akun Backblaze sendiri (mode Governance bisa dilewati key dengan izin khusus, jadi tidak dipakai). Biayanya tetap kecil karena file backup kecil.
 4. Di bucket itu → **Lifecycle Settings** → *Use custom lifecycle rules*: File Path `vps2/`, *Days till hide* **60**, *Days till delete* **1**. Backup lebih dari 60 hari dibersihkan otomatis.
 5. **Application Keys → Add a New Application Key**: Name `clau-vps2`, *Allow access to Bucket(s)*: **hanya bucket tadi**, Type of Access: **Read and Write**, lainnya kosong → **Create New Key**. Salin **keyID** dan **applicationKey** ke password manager (key hanya tampil sekali). **Jangan kirim ke chat.**
 6. Di server (sesi Tailscale):
@@ -178,10 +178,12 @@ Yang terjadi, berurutan:
 3. Backup **diuji dulu** di database sementara (file utuh, bisa dibuka). Backup dari versi aplikasi yang lebih baru ditolak.
 4. Perbandingan isi sekarang vs isi backup (jumlah user, klien, request, draft, fact sheet, audit, aktivitas terakhir), plus peringatan bila backup kosong.
 5. Ketik `PULIHKAN` (huruf besar). Selain itu = batal, tidak ada yang diubah.
-6. Deploy & backup otomatis dijeda. Isi sekarang **di-backup dulu** (`…-sebelum-restore`, ikut disalin ke B2). Backup dipulihkan ke database baru; database aktif baru ditukar setelah lengkap, skema dinaikkan ke versi kode sekarang, lalu backend dicek sehat. **Gagal di langkah mana pun = isi sebelumnya kembali otomatis.**
+6. Deploy & backup otomatis dijeda, backend berhenti (aplikasi tidak bisa dipakai ±1–3 menit, jadi tidak ada data baru yang terlewat). Isi sekarang **di-backup dulu** (`…-sebelum-restore`, ikut disalin ke B2). Backup dipulihkan ke database baru; database aktif baru ditukar setelah lengkap, skema dinaikkan ke versi kode sekarang, lalu backend dicek sehat. Restore gagal atau backend tidak sehat = database sebelumnya kembali otomatis. Ctrl-C atau SSH terputus selama langkah ini diabaikan supaya tidak berhenti setengah jalan; tetap jangan matikan server.
 7. Jejak `database.restore` tercatat di audit log (backup apa, oleh admin server siapa).
 
-Salah pilih backup? Jalankan lagi `sudo clau-vps2-restore` dan pilih baris `(isi sebelum restore)`.
+Salah pilih backup? Jalankan lagi `sudo clau-vps2-restore` dan pilih baris `(isi sebelum restore)`. Daftar menampilkan 40 backup terbaru (±10 hari); yang lebih lama (B2 menyimpan 60 hari): `sudo clau-vps2-restore --semua`.
+
+Bila muncul "ada sisa restore yang terputus" (server mati di tengah restore): jangan dihapus, kirim pesannya ke agent. Database sisa itu bisa jadi satu-satunya salinan isi sebelumnya.
 
 Sesudahnya: login, cek `/users` (user/password/2FA kembali ke kondisi waktu backup), lalu `sudo clau-vps2-check`.
 

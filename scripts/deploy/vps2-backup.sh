@@ -14,7 +14,11 @@ VERIFIED="$ROOT/.verify-last"
 KEEP_DAYS=14
 cd "$REPO"
 
-out=$(scripts/db-backup.sh | tee /dev/stderr | sed -n 's/^backup: \([^ ]*\).*/\1/p')
+# Bukan `tee /dev/stderr`: di bawah systemd stderr = socket journald dan /dev/stderr tidak bisa dibuka (ENXIO), jadi
+# setiap backup terjadwal berhenti sebelum salinan B2 & uji restore (temuan audit 2026-10-15).
+result=$(scripts/db-backup.sh)
+echo "$result"
+out=$(sed -n 's/^backup: \([^ ]*\).*/\1/p' <<<"$result")
 [ -n "$out" ] && [ -s "$out" ] || { echo "backup gagal" >&2; exit 1; }
 find backups -maxdepth 1 -name 'clau-*.dump.enc*' -type f -mtime +"$KEEP_DAYS" -print -delete
 
@@ -24,6 +28,6 @@ if [ -f "$OFFSITE_ENV" ]; then
 fi
 last=$(stat -c %Y "$VERIFIED" 2>/dev/null || echo 0)
 if [ "${1:-}" = "--verify" ] || [ $(( $(date +%s) - last )) -gt $(( 6 * 86400 )) ]; then
-  scripts/db-restore.sh --verify "$out" && touch "$VERIFIED"
+  if scripts/db-restore.sh --verify "$out"; then touch "$VERIFIED"; else echo "uji restore GAGAL: $out" >&2; status=1; fi
 fi
 exit "$status"

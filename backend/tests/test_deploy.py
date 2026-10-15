@@ -226,7 +226,10 @@ def test_db_restore_backs_up_and_swaps_instead_of_overwriting():
     restore = (ROOT / "scripts" / "db-restore.sh").read_text()
     yes = restore.split('if [[ "$mode" == "--verify" ]]', 1)[1].split("\nelse\n", 1)[1]
     yes = "\n".join(line for line in yes.splitlines() if not line.lstrip().startswith("#"))
-    assert yes.index("db-backup.sh sebelum-restore") < yes.index("docker compose stop backend"), "isi sekarang di-backup dulu"
+    # Backend berhenti dulu (tidak ada tulisan yang terlewat), lalu isi sekarang di-backup, baru restore.
+    assert yes.index("docker compose stop backend") < yes.index("db-backup.sh sebelum-restore") < yes.index('restore_into "$new"')
+    assert "trap '' HUP INT TERM" in yes and "set +e" in yes, "restore tidak boleh berhenti setengah jalan"
+    assert "string_agg(datname" in yes and "DROP DATABASE IF EXISTS $old" not in yes, "sisa restore terputus tidak dihapus diam-diam"
     assert "--clean" not in yes, "restore ke database baru, bukan menimpa (tabel skema baru menghalangi backup lama)"
     assert yes.index('restore_into "$new"') < yes.index('swap clau "$old"'), "database ditukar setelah restore lengkap"
     assert 'swap "$old" clau' in yes, "backend tidak sehat → isi sebelumnya kembali"
@@ -308,3 +311,55 @@ def test_restore_replacement_server_rejects_bad_secret_key_without_changing_env(
         out = subprocess.run([str(DEPLOY / "vps2-restore.sh"), "--server-pengganti"], input=answers, env=env, capture_output=True, text=True)
         assert out.returncode == 1 and message in out.stderr, out.stderr
         assert (repo / ".env").read_text() == before
+
+
+def test_backup_timer_does_not_open_dev_stderr():
+    """Di bawah systemd stderr = socket journald: `tee /dev/stderr` gagal (ENXIO) dan backup terjadwal berhenti sebelum
+    salinan B2 & uji restore (temuan audit 2026-10-15)."""
+    for path in [*DEPLOY.glob("*.sh"), *(ROOT / "scripts").glob("*.sh")]:
+        code = "\n".join(line for line in path.read_text().splitlines() if not line.lstrip().startswith("#"))
+        assert "/dev/stderr" not in code, path.name
+    backup = (DEPLOY / "vps2-backup.sh").read_text()
+    line = next(line for line in backup.splitlines() if 'db-restore.sh --verify "$out"' in line)
+    assert line.lstrip().startswith("if ") and "status=1" in line, "uji restore gagal harus terlapor"
+
+
+def test_offsite_list_only_passes_exact_name_and_size(tmp_path):
+    """Nama objek B2 = data tak tepercaya (siapa pun dengan key bucket): nama berspasi/$(…) tidak boleh sampai ke bash."""
+    remote = tmp_path / "b2" / "bucket-uji" / "vps2"
+    remote.mkdir(parents=True)
+    for name in ("clau-20261015T020000Z.dump.enc", "clau-20261015T020000Z.dump.enc a[$(touch PWNED)]",
+                 "clau-20261015T020000Z.dump.enc.hmac", "lain.txt"):
+        (remote / name).write_bytes(b"x" * 7)
+    conf = tmp_path / "offsite.env"
+    conf.write_text(f"RCLONE_CONFIG_CLAUOFF_TYPE=alias\nRCLONE_CONFIG_CLAUOFF_REMOTE={tmp_path / 'b2'}\nCLAU_OFFSITE_BUCKET=bucket-uji\n")
+    if subprocess.run(["bash", "-c", "command -v rclone"], capture_output=True).returncode:
+        pytest.skip("rclone tidak terpasang (VPS 2 memasangnya lewat vps2-setup.sh)")
+    out = subprocess.run([str(DEPLOY / "vps2-offsite.sh"), "list"], env={"PATH": "/usr/bin:/bin", "CLAU_OFFSITE_ENV": str(conf)},
+                         capture_output=True, text=True, check=True, cwd=tmp_path).stdout
+    assert out.splitlines() == ["clau-20261015T020000Z.dump.enc 7"]
+    assert not (tmp_path / "PWNED").exists()
+
+
+def test_restore_ignores_hostile_offsite_names(tmp_path):
+    repo, env = _restore_repo(tmp_path)
+    fake = tmp_path / "offsite-palsu.sh"
+    fake.write_text("#!/bin/bash\n[ \"$1\" = list ] && printf '%s\\n' 'clau-20261016T000000Z.dump.enc a[$(touch PWNED)]' "
+                    "'clau-20261016T000000Z.dump.enc 5 x' 'clau-20261017T000000Z.dump.enc 9'\n")
+    fake.chmod(0o755)
+    (tmp_path / "offsite.env").write_text("")
+    env |= {"CLAU_OFFSITE_BIN": str(fake), "CLAU_OFFSITE_ENV": str(tmp_path / "offsite.env")}
+    out = subprocess.run([str(DEPLOY / "vps2-restore.sh"), "--list"], env=env, capture_output=True, text=True, cwd=tmp_path)
+    assert out.returncode == 0, out.stderr
+    assert not (tmp_path / "PWNED").exists() and not (repo / "PWNED").exists()
+    rows = [line for line in out.stdout.splitlines() if re.match(r"\s+\d+\. ", line)]
+    assert len(rows) == 3 and "clau-20261017T000000Z.dump.enc" in rows[0] and "2026-10-16" not in out.stdout
+
+
+def test_replacement_server_keys_written_only_after_lock():
+    """--server-pengganti: kunci lama baru masuk .env setelah timer dijeda & lock didapat, dan dikembalikan saat keluar
+    tanpa restore sukses (Ctrl-C / flock timeout tidak meninggalkan .env campuran)."""
+    restore = (DEPLOY / "vps2-restore.sh").read_text()
+    assert restore.index("flock -w 1200 9") < restore.index("set_env CLAU_SECRET_KEY")
+    assert restore.index("trap cleanup EXIT") < restore.index("set_env CLAU_SECRET_KEY")
+    assert 'if [ "$restored" != 1 ] && [ -f .env.sebelum-pengganti ]' in restore and "umask 077" in restore

@@ -42,7 +42,10 @@ case "${1:-}" in
     ;;
   list)
     load
-    "${RCLONE[@]}" lsf --files-only --format ps --separator ' ' "$dest" | awk -v re="$NAME_RE" '$1 ~ re'
+    # Nama objek B2 bisa ditulis siapa pun yang memegang key bucket: hanya baris "NAMA UKURAN" yang persis polanya
+    # yang lolos (nama dengan spasi/$(…) pernah bisa menjalankan perintah lewat aritmetika bash di restore).
+    "${RCLONE[@]}" lsf --files-only --format ps --separator $'\t' "$dest" \
+      | awk -F '\t' -v re="$NAME_RE" 'NF == 2 && $1 ~ re && $2 ~ /^[0-9]+$/ { print $1 " " $2 }'
     ;;
   pull)
     name="${2:-}" dir="${3:-}"
@@ -89,7 +92,7 @@ case "${1:-}" in
     if "${RCLONE[@]}" lsf "$dest/$probe_name" 2>/dev/null | grep -q .; then
       echo "OK  Object Lock aktif: file di B2 tidak bisa dihapus dari server ini"
     else
-      echo "PERINGATAN: file uji bisa dihapus permanen. Aktifkan Object Lock + Default Retention di bucket (panduan § I)."
+      echo "PERINGATAN: file uji bisa dihapus permanen. Aktifkan Object Lock + Default Retention mode Compliance di bucket (panduan § I)."
     fi
     echo "Selesai. Backup berikutnya (02/08/14/20 WITA) otomatis disalin ke B2. Cek: sudo clau-vps2-check"
     ;;

@@ -25,7 +25,7 @@ umask 077
 mkdir -p backups
 out="backups/clau-$(date -u +%Y%m%dT%H%M%SZ)${label:+-$label}.dump.enc"
 trap 'rm -f "$out" "$out.hmac"' ERR  # dump gagal di tengah: jangan tinggalkan file setengah jadi
-docker compose exec -T -e PGPASSWORD="$PGPASS" db pg_dump -h 127.0.0.1 -U postgres -d clau -Fc --no-password \
+PGPASSWORD="$PGPASS" docker compose exec -T -e PGPASSWORD db pg_dump -h 127.0.0.1 -U postgres -d clau -Fc --no-password \
   | PASS="$PASS" openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -pass env:PASS -out "$out"
 CLAU_HMAC_KEY="$PASS" python3 -I scripts/backup_hmac.py "$out" > "$out.hmac"
 echo "backup: $out ($(wc -c < "$out") byte, terenkripsi)"
