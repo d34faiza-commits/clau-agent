@@ -130,3 +130,11 @@ def test_vps2_secrets_stay_root_only():
     assert 'chmod 600 "$REPO/.env"' in setup and 'chmod 600 "$KEY"' in setup
     check = (DEPLOY / "vps2-check.sh").read_text()
     assert "CLAU_BACKUP_PASSPHRASE=" not in check.replace("simpan CLAU_BACKUP_PASSPHRASE", ""), "cek tidak boleh menampilkan secret"
+
+
+def test_frontend_healthcheck_does_not_follow_redirects():
+    """Di balik HTTPS (CLAU_PUBLIC_ORIGIN) halaman yang dijaga mengarah ke alamat publik yang tidak terjangkau dari
+    dalam container: health check harus memakai /login (200) tanpa mengikuti redirect (insiden VPS 2, 2026-10-15)."""
+    dockerfile = (ROOT / "frontend" / "Dockerfile").read_text()
+    check = re.search(r"HEALTHCHECK .*?\n(.*?)\n", dockerfile, re.S).group(1)
+    assert "127.0.0.1:3000/login" in check and "redirect: 'manual'" in check and "status === 200" in check

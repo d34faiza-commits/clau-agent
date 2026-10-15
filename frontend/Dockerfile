@@ -35,6 +35,8 @@ RUN mkdir -p .next/cache && chown node:node .next/cache
 USER node
 
 EXPOSE 3000
+# /login: halaman publik (200 tanpa redirect). Halaman lain mengarahkan ke CLAU_PUBLIC_ORIGIN (mis. alamat
+# HTTPS Tailscale) yang tidak bisa dijangkau dari dalam container, jadi redirect tidak diikuti.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD ["node", "-e", "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+  CMD ["node", "-e", "fetch('http://127.0.0.1:3000/login', { redirect: 'manual' }).then(r => process.exit(r.status === 200 ? 0 : 1)).catch(() => process.exit(1))"]
 CMD ["node", "server.js"]
