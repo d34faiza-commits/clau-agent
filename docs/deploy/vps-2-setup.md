@@ -8,7 +8,8 @@
 |---|---|
 | Server | DATA FINAL — dibuat owner 2026-10-15, Ubuntu 24.04 (kernel 6.8.0-147) |
 | Tailscale | DATA FINAL — 2026-10-15: `clau-vps2` tersambung, key expiry dimatikan |
-| A–H di bawah | NEXT ACTION — owner menjalankan; kirim hasil `sudo clau-vps2-check` ke agent |
+| A–E di bawah | DATA FINAL — 2026-10-15: dijalankan owner. `clau-vps2-check`: db/backend/frontend sehat, backend 0.8.0, login 200, halaman kerja 307, `/docs` 404, container bukan root, HTTPS Tailscale `https://clau-vps2.<tailnet>.ts.net` → frontend, Funnel mati, UFW aktif, SSH tanpa root/password, backup pertama + HMAC, rilis = `release/vps1` (`8b4d0c0`), disk 17%, RAM tersedia 3,1 GB. Satu GAGAL "port publik" = alarm palsu alat cek (alamat Tailscale/loopback ber-akhiran `%tailscale0`/`%lo`), diperbaiki setelahnya |
+| F–H di bawah | NEXT ACTION — kunci SSH publik, akun owner + 2FA, simpan passphrase backup |
 | Domain + HTTPS publik | Ditunda (owner belum beli domain). Sampai itu aplikasi **hanya** bisa dibuka anggota tailnet |
 | Backup di luar server (Backblaze B2) | NEXT ACTION setelah setup |
 

@@ -13,6 +13,12 @@ ok()   { printf '  \033[32mOK\033[0m          %s\n' "$*"; }
 cek()  { printf '  \033[33mPERLU DICEK\033[0m %s\n' "$*"; warn=$((warn + 1)); }
 gagal(){ printf '  \033[31mGAGAL\033[0m       %s\n' "$*"; fail=$((fail + 1)); }
 judul(){ printf '\n%s\n' "$*"; }
+# Alamat:port dari `ss -Htln` yang bisa dijangkau dari IP publik. Akhiran zona (%tailscale0, %lo) dibuang dulu;
+# loopback, Tailscale (100.x, fd7a:115c:a1e0::), SSH, dan UDP Tailscale bukan port aplikasi publik.
+public_listeners() {
+  awk '{print $4}' | sed -E 's/%[^]:]*//' \
+    | grep -vE '^(127\.[0-9.]+|\[::1\]|100\.[0-9.]+|\[fd7a:115c:a1e0:[0-9a-f:]*\]):' | grep -vE ':(22|41641)$' || true
+}
 
 [ "$(id -u)" -eq 0 ] || { echo "Jalankan dengan sudo: sudo clau-vps2-check"; exit 2; }
 
@@ -52,7 +58,7 @@ tailscale funnel status 2>/dev/null | grep -qi 'funnel on' && gagal "Tailscale F
 origins=$(grep -m1 '^CLAU_ALLOWED_ORIGINS=' "$REPO/.env" 2>/dev/null | cut -d= -f2-)
 [ "$origins" = "https://$dns" ] && ok "origin login = https://$dns" || gagal "CLAU_ALLOWED_ORIGINS='$origins', seharusnya https://$dns"
 if listening=$(ss -Htln 2>/dev/null); then
-  public=$(awk '{print $4}' <<<"$listening" | grep -vE '^(127\.0\.0\.[0-9]+|\[::1\]|100\.[0-9.]+|\[fd7a:115c:a1e0:[0-9a-f:]*\]):' | grep -vE ':(22|41641)$' || true)
+  public=$(public_listeners <<<"$listening")
   [ -z "$public" ] && ok "tidak ada port aplikasi yang mendengar di IP publik" || gagal "port terbuka di IP publik: $(tr '\n' ' ' <<<"$public")"
 else
   gagal "tidak bisa membaca port yang terbuka (ss)"
