@@ -151,3 +151,34 @@ def test_vps2_check_ignores_tailscale_and_loopback_listeners():
     ))
     out = subprocess.run(["bash", "-c", f"{func}\npublic_listeners"], input=sample, capture_output=True, text=True, check=True).stdout.split()
     assert out == ["0.0.0.0:5432", "172.237.65.22:8080", "[::]:3000"]
+
+
+@pytest.mark.parametrize(
+    ("ssh_connection", "who", "expect"),
+    [
+        (None, "dea pts/1 2026-10-15 10:23 (100.92.94.1)", "lanjut"),  # sudo membuang SSH_CONNECTION (insiden 2026-10-15)
+        (None, "dea pts/0 2026-10-15 09:55 (180.254.11.236)", "ditolak"),
+        ("100.92.94.1 51000 100.121.42.69 22", "", "lanjut"),
+        ("180.254.11.236 51000 172.237.65.22 22", "", "ditolak"),
+        (None, "", "lanjut"),
+    ],
+)
+def test_vps2_lock_ssh_detects_session_origin_under_set_u(ssh_connection, who, expect):
+    """--lock-ssh dijalankan lewat sudo (SSH_CONNECTION kosong) dengan `set -u`: tidak boleh berhenti, dan sesi dari
+    IP publik tetap ditolak."""
+    setup = (DEPLOY / "vps2-setup.sh").read_text()
+    block = re.search(r'^  remote="\$\{SSH_CONNECTION.*?^  esac$', setup, re.S | re.M).group(0)
+    script = f"""set -euo pipefail
+die() {{ echo ditolak; exit 0; }}
+who() {{ printf '%s\\n' "$WHO_LINE"; }}
+tailscale() {{ echo 100.121.42.69; }}
+ADMIN=dea
+{block}
+echo lanjut
+"""
+    env = {"PATH": "/usr/bin:/bin", "WHO_LINE": who}
+    if ssh_connection:
+        env["SSH_CONNECTION"] = ssh_connection
+    out = subprocess.run(["bash", "-c", script], env=env, capture_output=True, text=True)
+    assert out.returncode == 0, out.stderr
+    assert out.stdout.strip().splitlines()[-1] == expect

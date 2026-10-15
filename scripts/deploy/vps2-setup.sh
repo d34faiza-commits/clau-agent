@@ -41,7 +41,8 @@ admin_home=$(getent passwd "$ADMIN" | cut -d: -f6)
 if [ "$LOCK_SSH" = 1 ]; then
   log "SSH publik ditutup: hanya lewat Tailscale"
   # sudo biasanya membuang SSH_CONNECTION; cadangan: alamat asal sesi dari `who -m`.
-  remote="${SSH_CONNECTION%% *}"
+  remote="${SSH_CONNECTION:-}"
+  remote="${remote%% *}"
   [ -n "$remote" ] || remote=$(who -m 2>/dev/null | sed -n 's/.*(\([^)]*\)).*/\1/p')
   case "$remote" in
     100.*|fd7a:115c:a1e0:*) ;;
