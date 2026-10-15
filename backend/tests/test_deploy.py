@@ -138,3 +138,16 @@ def test_frontend_healthcheck_does_not_follow_redirects():
     dockerfile = (ROOT / "frontend" / "Dockerfile").read_text()
     check = re.search(r"HEALTHCHECK .*?\n(.*?)\n", dockerfile, re.S).group(1)
     assert "127.0.0.1:3000/login" in check and "redirect: 'manual'" in check and "status === 200" in check
+
+
+def test_vps2_check_ignores_tailscale_and_loopback_listeners():
+    """`ss` menulis alamat dengan zona (100.x%tailscale0, 127.0.0.53%lo): bukan port publik (alarm palsu 2026-10-15)."""
+    check = (DEPLOY / "vps2-check.sh").read_text()
+    func = re.search(r"^public_listeners\(\) \{.*?^\}", check, re.S | re.M).group(0)
+    sample = "\n".join(f"LISTEN 0 4096 {addr} 0.0.0.0:*" for addr in (
+        "100.121.42.69%tailscale0:62458", "127.0.0.53%lo:53", "127.0.0.54:53", "127.0.0.1:3000", "127.0.0.1:8000",
+        "[fd7a:115c:a1e0::b338:2a47]%tailscale0:443", "0.0.0.0:22", "[::]:22", "[::1]:631",
+        "0.0.0.0:5432", "172.237.65.22:8080", "[::]:3000",
+    ))
+    out = subprocess.run(["bash", "-c", f"{func}\npublic_listeners"], input=sample, capture_output=True, text=True, check=True).stdout.split()
+    assert out == ["0.0.0.0:5432", "172.237.65.22:8080", "[::]:3000"]
