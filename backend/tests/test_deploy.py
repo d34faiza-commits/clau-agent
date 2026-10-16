@@ -227,7 +227,8 @@ def test_db_restore_backs_up_and_swaps_instead_of_overwriting():
     yes = restore.split('if [[ "$mode" == "--verify" ]]', 1)[1].split("\nelse\n", 1)[1]
     yes = "\n".join(line for line in yes.splitlines() if not line.lstrip().startswith("#"))
     # Backend berhenti dulu (tidak ada tulisan yang terlewat), lalu isi sekarang di-backup, baru restore.
-    assert yes.index("docker compose stop backend") < yes.index("db-backup.sh sebelum-restore") < yes.index('restore_into "$new"')
+    assert 'WRITERS="backend worker"' in yes, "semua service yang menulis ke database (termasuk worker AI) berhenti"
+    assert yes.index("docker compose stop $WRITERS") < yes.index("db-backup.sh sebelum-restore") < yes.index('restore_into "$new"')
     assert "trap '' HUP INT TERM" in yes and "set +e" in yes, "restore tidak boleh berhenti setengah jalan"
     assert "string_agg(datname" in yes and "DROP DATABASE IF EXISTS $old" not in yes, "sisa restore terputus tidak dihapus diam-diam"
     assert "--clean" not in yes, "restore ke database baru, bukan menimpa (tabel skema baru menghalangi backup lama)"

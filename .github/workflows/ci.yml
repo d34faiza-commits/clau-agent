@@ -85,6 +85,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build & start
+        env:
+          CLAU_AI_ENABLED: "1"  # worker AI dengan provider tiruan (tanpa biaya, tanpa data keluar)
         run: |
           scripts/init-env.sh
           docker compose up -d --build --wait --wait-timeout 240
@@ -140,7 +142,11 @@ jobs:
           curl -fsS -o /dev/null http://127.0.0.1:3000/agents
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/docs)" = 404
           test "$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: evil.example' http://127.0.0.1:8000/health)" = 400
-          for s in backend frontend; do test "$(docker compose exec -T "$s" id -u)" != 0; done
+          for s in backend worker frontend; do test "$(docker compose exec -T "$s" id -u)" != 0; done
+          # Antrean AI ujung ke ujung: job → worker (container terpisah) → draft agent + AI fact-check + QA + biaya.
+          docker compose exec -T backend python - < backend/tests/compose_ai_smoke.py
+          # Worker tidak memegang password admin/migrasi database.
+          test -z "$(docker compose exec -T worker env | grep -E '^(POSTGRES_PASSWORD|CLAU_DB_MIGRATOR_PASSWORD|CLAU_DB_ADMIN_URL|CLAU_SECRET_KEY)=')"
           docker image ls --format '{{.Repository}}:{{.Tag}} {{.Size}}' | grep ':local'
       - name: Logs
         if: failure()

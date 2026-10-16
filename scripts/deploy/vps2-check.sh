@@ -31,7 +31,7 @@ for t in clau2-deploy.timer clau2-backup.timer apt-daily-upgrade.timer; do
 done
 
 judul "Aplikasi (docker compose)"
-for s in db backend frontend; do
+for s in db backend worker frontend; do
   state=$(cd "$REPO" && docker compose ps --format '{{.Service}} {{.Health}}' 2>/dev/null | awk -v s="$s" '$1 == s {print $2}')
   [ "$state" = healthy ] && ok "$s sehat" || gagal "$s: '${state:-tidak jalan}' (cd $REPO && sudo docker compose logs --tail 50 $s)"
 done
@@ -45,7 +45,7 @@ code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/requests)
 [ "$code" = 307 ] && ok "halaman kerja wajib login (307)" || gagal "/requests tanpa login: $code (seharusnya 307)"
 code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/docs)
 [ "$code" = 404 ] && ok "dokumentasi API tertutup (404)" || gagal "/docs: $code (seharusnya 404, CLAU_ENV=production)"
-for c in $(cd "$REPO" && docker compose ps -q backend frontend 2>/dev/null); do
+for c in $(cd "$REPO" && docker compose ps -q backend worker frontend 2>/dev/null); do
   uid=$(docker exec "$c" id -u 2>/dev/null)
   [ -n "$uid" ] && [ "$uid" != 0 ] && ok "container $(docker inspect -f '{{.Name}}' "$c" | tr -d /) bukan root" || gagal "container $c jalan sebagai root"
 done

@@ -79,12 +79,45 @@ services:
       CLAU_SESSION_IDLE_MINUTES: ${CLAU_SESSION_IDLE_MINUTES:-}
       CLAU_SESSION_MAX_HOURS: ${CLAU_SESSION_MAX_HOURS:-}
       CLAU_DATABASE_URL: postgresql+psycopg://clau_app:${CLAU_DB_APP_PASSWORD:?}@db:5432/clau
+      # Endpoint AI memeriksa tombol mati, intent, provider, dan perkiraan biaya yang sama dengan worker.
+      CLAU_AI_ENABLED: ${CLAU_AI_ENABLED:-0}
+      CLAU_AI_PROVIDER: ${CLAU_AI_PROVIDER:-fake}
+      CLAU_AI_INTENTS: ${CLAU_AI_INTENTS:-caption}
+      CLAU_AI_JOB_ESTIMATE_MICRO_USD: ${CLAU_AI_JOB_ESTIMATE_MICRO_USD:-}
     ports: ["127.0.0.1:${CLAU_BACKEND_PORT:-8000}:8000"]
     tmpfs: [/tmp]
     depends_on:
       migrate: { condition: service_completed_successfully }
     mem_limit: 512m
     pids_limit: 128
+
+  # Worker AI (Tahap 2): mengambil job dari antrean ai_jobs, memanggil provider, menyimpan draft agent. Satu-satunya
+  # service yang nanti memegang API key provider (AI-BOUNDARY § Data ke Provider AI); tanpa port, tanpa password admin.
+  worker:
+    <<: [*hardening, *backend-image]
+    command: ["python", "-m", "app.ai.worker"]
+    environment:
+      CLAU_ENV: ${CLAU_ENV:-production}
+      CLAU_DATABASE_URL: postgresql+psycopg://clau_app:${CLAU_DB_APP_PASSWORD:?}@db:5432/clau
+      CLAU_AI_ENABLED: ${CLAU_AI_ENABLED:-0}
+      CLAU_AI_PROVIDER: ${CLAU_AI_PROVIDER:-fake}
+      CLAU_AI_INTENTS: ${CLAU_AI_INTENTS:-caption}
+      CLAU_AI_JOB_ESTIMATE_MICRO_USD: ${CLAU_AI_JOB_ESTIMATE_MICRO_USD:-}
+      CLAU_AI_WORKER_TIMEOUT_S: ${CLAU_AI_WORKER_TIMEOUT_S:-}
+      CLAU_AI_POLL_INTERVAL_S: ${CLAU_AI_POLL_INTERVAL_S:-}
+    tmpfs: [/tmp]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    # Sehat = putaran worker berjalan (file detak di /tmp diperbarui tiap putaran, juga saat AI dimatikan). Batas 900 s
+    # > CLAU_AI_WORKER_TIMEOUT_S bawaan: satu panggilan model yang lama tidak membuat container dianggap mati.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os, sys, time; sys.exit(0 if time.time() - os.path.getmtime('/tmp/clau-worker-alive') < 900 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    mem_limit: 256m
+    pids_limit: 64
 
   frontend:
     <<: *hardening

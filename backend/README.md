@@ -31,7 +31,7 @@ Input dibatasi, body ≤ 64 KB, Host divalidasi, header keamanan di setiap respo
 
 ## Database
 
-PostgreSQL 16 (SQLAlchemy 2 + Alembic + psycopg 3). Skema mengikuti kontrak [`core/shared/database-schema.md`](../core/shared/database-schema.md): 18 tabel di `app/db/models.py`, migrasi di `migrations/versions/`.
+PostgreSQL 16 (SQLAlchemy 2 + Alembic + psycopg 3). Skema mengikuti kontrak [`core/shared/database-schema.md`](../core/shared/database-schema.md): 21 tabel di `app/db/models.py`, migrasi di `migrations/versions/`.
 
 | Aturan (Constraint Wajib kontrak) | Ditegakkan oleh |
 |---|---|
@@ -126,6 +126,25 @@ Alur `design/user-flow/client-portal-flow.md` § Konfirmasi Fakta; kode `app/fac
 
 Test: `tests/test_facts.py` (alur utuh sampai approval L2, siapa boleh apa, isolasi klien, validasi, audit tanpa nilai) dan `tests/test_db.py` (aturan migrasi 0005, upgrade dari 0004 dengan fact sheet lama). Uji mutasi: 35 pengaman dirusak satu per satu, 34 tertangkap; satu lolos karena pengaman lapis kedua yang sudah dicakup aturan lain (persetujuan lewat alur klien).
 
+## AI Menulis Draft (0.9.0, Tahap 2 PR 4b)
+
+Kontrak: `core/shared/api-contracts.md` § AI Menulis Draft; aturan data: `core/AI-BOUNDARY.md` § Data ke Provider AI (v1.4.0). Kode: `app/ai/`.
+
+| Bagian | Isi |
+|---|---|
+| Alur | `POST /requests/{id}/ai-drafts` → job `ai_jobs` (`queued`) → **worker** `python -m app.ai.worker` (service `worker`, container terpisah) → draft versi baru (`created_by` NULL, `agent_id`) + klaim + QA otomatis → review & approval manusia. Tidak ada publish |
+| AI fact-check | Label bukti ditentukan worker, bukan model: klaim faktual dengan `fact_key` di fact sheet terbaru yang disetujui = `DATA FINAL` (sumber + tanggal jawaban klien); tanpa fakta = `RISK` (approval terkunci `facts_unconfirmed`); `experience`/`other` = `ASSUMPTION`. QA otomatis `claim-verification` Pass/Fail, `independent` false |
+| Data ke provider | Hanya fakta yang dikonfirmasi klien (nilai koreksi terakhir) + teks request yang disamarkan (`app/ai/prompt.redact`: email, telepon, kode booking → `<KONTAK>` / `<NO_BOOKING>`). Prompt urut stabil → bisa di-cache provider; `prompt_version` dicatat |
+| Pengaman | `CLAU_AI_ENABLED=1` wajib (tombol mati global, juga menghentikan job antre); `CLAU_AI_INTENTS` (default `caption`); provider tiruan (`fake`) hanya untuk klien SIMULASI; fact sheet disetujui wajib; batas biaya `global` bulan berjalan wajib (`PUT /ai-budgets`, owner) + per klien opsional; satu job aktif per request |
+| Antrean | `FOR UPDATE SKIP LOCKED` (aman untuk banyak worker); panggilan model di luar transaksi; provider tidak tersedia = coba lagi 30/60 s, maks 3; ditolak model = `refused`; worker mati = job dikembalikan (`worker_timeout` setelah 3); request ditutup di tengah jalan = `request_closed` |
+| Database (migrasi 0006) | `ai_jobs` (transisi status, beku setelah selesai, tidak dihapus), `ai_calls` append-only (biaya/token, tanpa isi), `ai_budgets`; draft agent untuk klien NYATA hanya dari job yang berjalan (`ai_draft_without_job`) |
+| Biaya | `GET /ai-usage` (owner): total, per klien, per agent, status batas + peringatan (`alert_at_pct`). Mikro-USD |
+| Jejak | `audit_log`: `ai_job.create/succeeded/failed/retry/reaped/cancel`, `ai_budget.set`; tanpa isi request, fakta, atau hasil |
+
+Provider Claude (model per tingkat kesulitan, output terstruktur, caching, fallback refusal) menyusul di PR 4c; UI tombol & halaman pemakaian di PR 4d.
+
+Test: `tests/test_ai.py` (28: alur SIMULASI utuh, contoh "private beach" ditandai dan mengunci approval sampai versi tanpa klaim itu, prompt hanya fakta terbaru yang dikonfirmasi + penyamaran, penjaga endpoint, peran & isolasi klien, retry/tolak/request ditutup/worker mati, dua worker tidak mengambil job yang sama, tombol mati, aturan database 0006, batas biaya) dan `tests/compose_ai_smoke.py` (CI job `docker`: container backend → database → container worker).
+
 ## Belum Ada (Planned)
 
-Pemanggilan AI model untuk menulis draft (Tahap 2, VPS 2), notifikasi ke klien, Portal Klien terpisah.
+Provider AI nyata (PR 4c), UI AI (PR 4d), notifikasi ke klien, Portal Klien terpisah.

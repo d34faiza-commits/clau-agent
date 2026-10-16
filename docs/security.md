@@ -90,7 +90,8 @@ Sudah diterapkan dari § 6: Argon2id, sesi di server (cookie `__Host-` HttpOnly/
 | Otorisasi | Setiap endpoint cek peran **di server** (owner/content lead/approver). Data dipisah per client (cek `client_id` di setiap query). Approval & review independen dicek di server (rule 08), bukan hanya di UI |
 | SSRF | Server hanya memanggil daftar host yang diizinkan (API provider AI, WhatsApp Business, Google). Tolak URL dari input user; blokir IP privat & metadata (`169.254.169.254`, `10/8`, `172.16/12`, `192.168/16`, `127/8`) |
 | Prompt injection | Isi dari pihak luar (DM, review, website) diperlakukan sebagai data. AI tidak punya tool publish/kirim (AI-CONSTITUTION §4); aksi Level A hanya per intent & per client |
-| Secret | API key hanya di VPS 2 (`.env` permission 600, user service khusus), tidak di repo dan tidak di log. Rotasi bila bocor |
+| Secret | API key hanya di VPS 2 (`.env` permission 600, user service khusus), tidak di repo dan tidak di log. Rotasi bila bocor. API key provider AI hanya diteruskan ke container `worker` (backend tidak memegangnya; worker tidak memegang password admin/migrasi database maupun `CLAU_SECRET_KEY`, dicek CI) |
+| Data ke AI | AI-BOUNDARY v1.4.0 § Data ke Provider AI: hanya fakta yang dikonfirmasi klien + teks request yang disamarkan; label bukti klaim ditentukan worker (AI fact-check), bukan model; `ai_calls` mencatat token/biaya tanpa isi; tombol mati `CLAU_AI_ENABLED`; batas biaya fail closed (backend 0.9.0) |
 | Webhook | Verifikasi signature (mis. `X-Hub-Signature-256` WhatsApp) dan tolak replay |
 | Upload | Batas ukuran & tipe file, simpan di luar web root, nama file acak, scan |
 | Log & audit | Audit log approval/perubahan data; jangan simpan data tamu di log |

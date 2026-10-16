@@ -10,13 +10,13 @@
 | 2 | Yang di-deploy: repo `clau-ai-agents` (frontend → VPS 1, backend → VPS 2); panduan di `clau-ai-agents/docs/deploy/` |
 | 3 | Versi ikut repo: Next.js 16 + Node 22 LTS, Python 3.12, PostgreSQL 16, Redis 7 (semua di-pin) |
 | 4 | Nama pilar ikut `clau-ai-core` (AI-CONSTITUTION §2): AI Marketing, AI Sales, AI Admin, AI Business Intelligence, AI Automation |
-| 5 | Aturan data per AI provider (Restricted tidak pernah dikirim; data tamu disamarkan; panggilan AI dicatat). **NEXT ACTION:** belum tertulis di AI-BOUNDARY (1.2.0); wajib ditambahkan (perintah owner) sebelum langkah 1 di bawah |
+| 5 | Aturan data per AI provider (Restricted tidak pernah dikirim; data tamu disamarkan; panggilan AI dicatat). **Berlaku:** AI-BOUNDARY v1.4.0 § Data ke Provider AI (persetujuan owner 2026-10-16) |
 | 6 | Backup VPS 1 = config tanpa `.env`; backup VPS 2 = DB terenkripsi tiap 6 jam + Backblaze B2 (Object Lock) + uji restore mingguan; pemulihan manual `clau-vps2-restore` ([`deploy/vps-2-setup.md`](./deploy/vps-2-setup.md) § 5) |
 
 ## Setelah VPS siap
 
 - [ ] **0. Keamanan dulu.** Penuhi aturan wajib di [`security.md` § 6](./security.md#6-aturan-wajib-sebelum-vps-2-login-database-ai-whatsapp) (HTTPS, query berparameter, CSRF, otorisasi di server, allowlist SSRF, secret) sebelum login, database, atau data client dipakai.
-- [ ] **1. Hubungkan backend ke model AI.** API key hanya di VPS 2 (`.env` permission 600). Terapkan aturan data per provider (keputusan #5).
+- [ ] **1. Hubungkan backend ke model AI.** API key hanya di VPS 2 (`.env` permission 600), hanya untuk container `worker`. Aturan data per provider (keputusan #5) **sudah berlaku**: AI-BOUNDARY v1.4.0 § Data ke Provider AI (owner 2026-10-16). Antrean + worker + AI fact-check sudah ada (backend 0.9.0, provider tiruan); sisa: provider Claude (PR 4c), UI (PR 4d), akun & batas biaya (owner).
 - [ ] **2. Jalankan 33 kasus eval ke output nyata.**
   - Generate output untuk setiap kasus di `agents/evals/cases/*.json`.
   - Cek otomatis: `python agents/evals/run_evals.py --agent <id> --outputs outputs.json`.

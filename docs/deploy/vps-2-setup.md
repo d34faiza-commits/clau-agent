@@ -205,7 +205,22 @@ Pilih backup terbaru yang berlokasi **B2** (backup "server" di mesin baru masih 
 
 Uji coba sekali setelah langkah I selesai (NEXT ACTION, ±30 menit, VPS uji sementara): langkah 1–3 di VPS kecil sementara, cek data tampil, lalu hapus VPS uji itu.
 
+## 5a. AI menulis draft (Tahap 2)
+
+Service `worker` (container terpisah) mengerjakan antrean AI. **Default mati** (`CLAU_AI_ENABLED=0`): tidak ada panggilan ke provider sampai owner menyalakannya. Saat ini hanya provider **tiruan** (tanpa biaya, tanpa data keluar, hanya untuk klien SIMULASI); provider Claude menyusul (PR 4c) dan baru dipakai setelah akun & batas biaya diputuskan owner.
+
+Mencoba alur dengan provider tiruan (klien SIMULASI, fact sheet disetujui, batas biaya diatur owner di aplikasi):
+
+```bash
+cd /srv/clau/clau-ai-agents
+sudo sed -i '/^CLAU_AI_ENABLED=/d' .env
+echo 'CLAU_AI_ENABLED=1' | sudo tee -a .env
+sudo docker compose up -d --wait
+```
+
+Mematikan lagi: perintah yang sama dengan `CLAU_AI_ENABLED=0`. Job yang masih antre saat AI dimatikan otomatis gagal dengan kode `ai_disabled` (tidak ada yang tertinggal berjalan). `sudo clau-vps2-check` memeriksa worker sehat dan bukan root.
+
 ## 6. Berikutnya
 
 - NEXT ACTION: domain + HTTPS publik → klien bisa login; lalu HSTS, CSP nonce, rate limit login per IP di reverse proxy ([`security.md` § 2](../security.md)).
-- NEXT ACTION: Tahap 2 (AI menulis draft): API key provider AI hanya di `.env` VPS 2 ([`post-vps-checklist.md`](../post-vps-checklist.md)).
+- NEXT ACTION: Tahap 2 lanjutan: provider Claude (PR 4c; API key hanya di `.env` VPS 2, diteruskan ke container `worker` saja) dan UI AI (PR 4d) ([`post-vps-checklist.md`](../post-vps-checklist.md)).

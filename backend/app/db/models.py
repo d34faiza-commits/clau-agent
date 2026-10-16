@@ -60,6 +60,13 @@ TIMEZONES = ("Asia/Jakarta", "Asia/Makassar", "Asia/Jayapura")
 NOTIFICATION_CHANNELS = ("in_app", "email", "whatsapp")
 FACT_DECISIONS = ("confirmed", "corrected")
 REQUEST_STATUSES = ("open", "in_progress", "approved", "rejected", "closed")
+# Antrean AI Tahap 2 (migrasi 0006, kontrak core 0.9.0).
+AI_JOB_STATUSES = ("queued", "running", "succeeded", "failed", "cancelled")
+AI_JOB_KINDS = ("draft",)
+AI_ERROR_CODES = (
+    "provider_error", "provider_unavailable", "refused", "invalid_output", "budget_exceeded", "request_closed",
+    "fact_sheet_missing", "worker_timeout", "ai_disabled", "cancelled_by_user",
+)
 # Kategori klaim yang menyatakan fakta tentang bisnis klien: wajib bisa ditelusuri ke fact sheet (migrasi 0004).
 FACTUAL_CATEGORIES = tuple(c for c in CLAIM_CATEGORIES if c not in ("experience", "other"))
 FACT_KEY_RE = "^[a-z0-9]+([._-][a-z0-9]+)*$"
@@ -439,3 +446,98 @@ class AuditLog(Base):
     meta: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
     created_at: Mapped[datetime] = created_at()
     __table_args__ = (Index("ix_audit_log_object", "object_type", "object_id"),)
+
+
+class AiJob(Base):
+    """Antrean kerja AI (Tahap 2). Worker mengambil job `queued` dengan FOR UPDATE SKIP LOCKED; transisi status,
+    beku setelah selesai, dan draft hasil yang cocok ditegakkan trigger (migrasi 0006). Tanpa isi prompt."""
+
+    __tablename__ = "ai_jobs"
+    id: Mapped[int] = pk()
+    request_id: Mapped[int] = mapped_column(ForeignKey("requests.id"), nullable=False, index=True)
+    agent_id: Mapped[str] = mapped_column(Text, nullable=False)
+    intent: Mapped[str] = mapped_column(Text, nullable=False)
+    kind: Mapped[str] = mapped_column(Text, nullable=False, server_default="draft")
+    status: Mapped[str] = mapped_column(Text, nullable=False, server_default="queued")
+    attempts: Mapped[int] = mapped_column(SmallInteger, nullable=False, server_default="0")
+    max_attempts: Mapped[int] = mapped_column(SmallInteger, nullable=False, server_default="3")
+    run_after: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    locked_by: Mapped[str | None] = mapped_column(Text)
+    error_code: Mapped[str | None] = mapped_column(Text)
+    fact_sheet_id: Mapped[int | None] = mapped_column(ForeignKey("fact_sheets.id"))
+    draft_id: Mapped[int | None] = mapped_column(ForeignKey("drafts.id"), unique=True)
+    requested_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    created_at: Mapped[datetime] = created_at()
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint(one_of("status", AI_JOB_STATUSES), name="status"),
+        CheckConstraint(one_of("kind", AI_JOB_KINDS), name="kind"),
+        CheckConstraint(f"error_code IS NULL OR {one_of('error_code', AI_ERROR_CODES)}", name="error_code"),
+        CheckConstraint(f"agent_id ~ '{SLUG_RE}' AND intent ~ '{SLUG_RE}'", name="ids_format"),
+        CheckConstraint("max_attempts BETWEEN 1 AND 5 AND attempts BETWEEN 0 AND max_attempts", name="attempts_range"),
+        CheckConstraint("locked_by IS NULL OR char_length(locked_by) <= 100", name="locked_by_length"),
+        # Status menentukan kolom hasil: hanya succeeded yang punya draft; failed wajib kode error; selesai = finished_at.
+        CheckConstraint(
+            "(status IN ('queued', 'running') AND finished_at IS NULL AND draft_id IS NULL AND error_code IS NULL)"
+            " OR (status = 'succeeded' AND finished_at IS NOT NULL AND draft_id IS NOT NULL AND error_code IS NULL)"
+            " OR (status = 'failed' AND finished_at IS NOT NULL AND draft_id IS NULL AND error_code IS NOT NULL)"
+            " OR (status = 'cancelled' AND finished_at IS NOT NULL AND draft_id IS NULL)",
+            name="status_fields",
+        ),
+        # Satu job aktif per request (ai_job_active); antrean diambil dari job queued yang sudah waktunya.
+        Index("uq_ai_jobs_one_active", "request_id", unique=True, postgresql_where=text("status IN ('queued', 'running')")),
+        Index("ix_ai_jobs_queue", "run_after", postgresql_where=text("status = 'queued'")),
+    )
+
+
+class AiCall(Base):
+    """Satu panggilan model AI (AI-BOUNDARY § Data ke Provider AI). Append-only; tanpa isi prompt/jawaban."""
+
+    __tablename__ = "ai_calls"
+    id: Mapped[int] = pk()
+    job_id: Mapped[int] = mapped_column(ForeignKey("ai_jobs.id"), nullable=False, index=True)
+    provider: Mapped[str] = mapped_column(Text, nullable=False)
+    model: Mapped[str] = mapped_column(Text, nullable=False)
+    prompt_version: Mapped[str] = mapped_column(Text, nullable=False)
+    input_tokens: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    output_tokens: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    cache_read_tokens: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    cache_write_tokens: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    cost_micro_usd: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default="0")
+    stop_reason: Mapped[str | None] = mapped_column(Text)
+    provider_request_id: Mapped[str | None] = mapped_column(Text)
+    latency_ms: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    created_at: Mapped[datetime] = created_at()
+    __table_args__ = (
+        CheckConstraint(
+            "input_tokens >= 0 AND output_tokens >= 0 AND cache_read_tokens >= 0 AND cache_write_tokens >= 0"
+            " AND cost_micro_usd >= 0 AND latency_ms >= 0",
+            name="non_negative",
+        ),
+        CheckConstraint(
+            "char_length(provider) BETWEEN 1 AND 50 AND char_length(model) BETWEEN 1 AND 100"
+            " AND char_length(prompt_version) BETWEEN 1 AND 64 AND char_length(coalesce(stop_reason, '')) <= 50"
+            " AND char_length(coalesce(provider_request_id, '')) <= 200",
+            name="text_length",
+        ),
+        Index("ix_ai_calls_created_at", "created_at"),
+    )
+
+
+class AiBudget(Base):
+    """Batas biaya AI per bulan: `global` atau per client_code. Tanpa batas global bulan berjalan = AI ditolak."""
+
+    __tablename__ = "ai_budgets"
+    scope: Mapped[str] = mapped_column(Text, primary_key=True)
+    month: Mapped[date] = mapped_column(Date, primary_key=True)
+    limit_micro_usd: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    alert_at_pct: Mapped[int] = mapped_column(SmallInteger, nullable=False, server_default="80")
+    updated_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    __table_args__ = (
+        CheckConstraint(f"scope = 'global' OR scope ~ '{CLIENT_CODE_RE}'", name="scope"),
+        CheckConstraint("month = date_trunc('month', month)::date", name="month_first_day"),
+        CheckConstraint("limit_micro_usd > 0 AND limit_micro_usd <= 100000000000", name="limit_range"),
+        CheckConstraint("alert_at_pct BETWEEN 1 AND 100", name="alert_range"),
+    )

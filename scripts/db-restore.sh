@@ -46,6 +46,7 @@ if [[ "$mode" == "--verify" ]]; then
   echo "isi backup: $summary"
 else
   new=clau_restore_new old=clau_sebelum_restore failed=clau_restore_gagal
+  WRITERS="backend worker"  # service yang menulis ke database (frontend tidak)
   # Sisa restore yang terputus (mis. server mati di tengah) tidak pernah dihapus diam-diam: bisa jadi satu-satunya
   # salinan isi sebelumnya.
   leftover="$(psql_admin -d postgres -c "SELECT string_agg(datname, ' ') FROM pg_database WHERE datname IN ('$old', '$failed')")"
@@ -58,11 +59,11 @@ else
   # setiap langkah dicek sendiri (set +e) supaya kegagalan tidak menghentikan script di tengah jalan.
   trap '' HUP INT TERM PIPE
   set +e
-  # Backend berhenti DULU: tidak ada tulisan baru antara cadangan dan restore yang bisa hilang.
-  docker compose stop backend >/dev/null 2>&1
+  # Backend dan worker AI berhenti DULU: tidak ada tulisan baru antara cadangan dan restore yang bisa hilang.
+  docker compose stop $WRITERS >/dev/null 2>&1
   safety="$(scripts/db-backup.sh sebelum-restore | sed -n 's/^backup: \([^ ]*\).*/\1/p')"
   if [[ -z "$safety" || ! -s "$safety" ]]; then
-    docker compose start backend >/dev/null 2>&1
+    docker compose start $WRITERS >/dev/null 2>&1
     echo "backup isi sekarang GAGAL: restore dibatalkan, database tidak diubah" >&2
     exit 1
   fi
@@ -74,7 +75,7 @@ else
   if ! psql_admin -d postgres -c "DROP DATABASE IF EXISTS $new" -c "CREATE DATABASE $new OWNER clau_migrator ENCODING 'UTF8' TEMPLATE template0" \
      || ! restore_into "$new"; then
     psql_admin -d postgres -c "DROP DATABASE IF EXISTS $new" >/dev/null 2>&1
-    docker compose start backend >/dev/null 2>&1
+    docker compose start $WRITERS >/dev/null 2>&1
     echo "restore GAGAL: database clau tidak diubah" >&2
     exit 1
   fi
@@ -84,11 +85,11 @@ else
   }
   if ! swap clau "$old"; then
     psql_admin -d postgres -c "DROP DATABASE IF EXISTS $new" >/dev/null 2>&1
-    docker compose start backend >/dev/null 2>&1
+    docker compose start $WRITERS >/dev/null 2>&1
     echo "restore GAGAL (database clau tidak bisa ditukar): database clau tidak diubah" >&2
     exit 1
   fi
-  if swap "$new" clau && docker compose up -d --wait --wait-timeout 300 backend >/dev/null 2>&1; then
+  if swap "$new" clau && docker compose up -d --wait --wait-timeout 300 $WRITERS >/dev/null 2>&1; then
     # `up` menjalankan service migrate dulu (hak akses role + alembic upgrade head: backup dari versi lebih lama
     # dinaikkan ke skema kode sekarang), lalu backend sampai sehat.
     psql_admin -d postgres -c "DROP DATABASE $old" >/dev/null 2>&1 \
@@ -97,7 +98,7 @@ else
     exit 0
   fi
   echo "backend tidak sehat setelah restore: database dikembalikan ke isi sebelumnya" >&2
-  docker compose stop backend >/dev/null 2>&1
+  docker compose stop $WRITERS >/dev/null 2>&1
   if psql_admin -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'clau'" | grep -q 1; then
     swap clau "$failed" || echo "(gagal memindahkan database hasil restore ke $failed)" >&2
   fi
@@ -107,7 +108,7 @@ else
   else
     echo "PERLU TINDAKAN: database $old belum bisa dikembalikan menjadi clau. Cadangan file: $safety" >&2
   fi
-  docker compose up -d --wait --wait-timeout 300 backend >/dev/null 2>&1 \
+  docker compose up -d --wait --wait-timeout 300 $WRITERS >/dev/null 2>&1 \
     || echo "backend masih belum sehat: docker compose logs --tail 50 migrate backend; cadangan: $safety" >&2
   exit 1
 fi
