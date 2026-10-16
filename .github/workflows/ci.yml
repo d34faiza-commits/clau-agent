@@ -82,11 +82,13 @@ jobs:
   docker:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    # Worker AI dengan provider tiruan (tanpa biaya, tanpa data keluar). Di level job, bukan per step: restore di
+    # step smoke membuat ulang container backend/worker dan harus memakai nilai yang sama (di VPS nilai ini di .env).
+    env:
+      CLAU_AI_ENABLED: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build & start
-        env:
-          CLAU_AI_ENABLED: "1"  # worker AI dengan provider tiruan (tanpa biaya, tanpa data keluar)
         run: |
           scripts/init-env.sh
           docker compose up -d --build --wait --wait-timeout 240
