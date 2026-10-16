@@ -26,7 +26,7 @@ Prinsip yang perlu diingat:
 
 - **Submodule = pin ke satu commit**, bukan salinan yang ikut berubah otomatis. Repo induk menyimpan hash commit submodule; isi file tetap di repo aslinya.
 - **Edit di repo asal**, bukan di folder submodule. Perubahan di `core/` atau `agents/` di dalam repo lain tidak ikut ke repo aslinya dan akan tertimpa saat sync.
-- Semua repo **private**: akun atau token yang meng-clone harus punya akses ke ketiga repo.
+- Semua repo **public, hanya untuk dilihat** (lihat `LICENSE`): clone + submodule tidak butuh token. Token tetap dibutuhkan untuk push dan PR otomatis (bot sync).
 - `agents/core/` mengikuti pin milik clau-agent, dan `core/` di marketing disamakan dengan pin itu. Core baru masuk marketing hanya setelah agents lulus test terhadapnya. Pin beda = gagal (`scripts/check-core-pins.sh --strict` di script sync dan `cross-repo-validate`).
 - **`main` wajib lewat PR dengan CI hijau** (core `AI-BOUNDARY.md` § Disiplin Push), juga untuk bump submodule. Script menolak push langsung ke `main`.
 

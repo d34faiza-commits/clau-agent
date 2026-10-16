@@ -2,7 +2,7 @@
 
 **Platform CLAU AI**: tempat agent menjalankan skill dari repo pilar untuk bisnis hospitality Indonesia. Repo ini berisi kode (frontend Next.js, backend FastAPI) dan **registry agent**. Aturan isi konten tidak ditulis di sini; aturan ada di [clau-core](https://github.com/d34faiza-commits/clau-core) (submodule `core/`) dan repo pilar.
 
-> **Status:** Private. Backend v0.8.0: PostgreSQL 16 (migrasi 0001–0005), login + 2FA (QR & kode cadangan) + `/users`, backup terenkripsi, workflow request → draft → QA → approval dan fact sheet + Konfirmasi Fakta oleh klien (aturan Rule 08 dicek server & database), dengan halaman UI-nya (`/requests`, `/fact-sheets`). Belum: pemanggilan AI model. Status kerja terkini: [status & handoff](https://github.com/d34faiza-commits/clau-content/blob/main/docs/status.md).
+> **Status:** Public, hanya untuk dilihat ([LICENSE](./LICENSE)). Backend v0.9.0: PostgreSQL 16 (migrasi 0001–0006), login + 2FA (QR & kode cadangan) + `/users`, backup terenkripsi tiap 6 jam + Backblaze B2, workflow request → draft → QA → approval dan fact sheet + Konfirmasi Fakta oleh klien (aturan Rule 08 dicek server & database), antrean AI menulis draft dengan AI fact-check & batas biaya (provider tiruan; provider Claude menyusul), dengan halaman UI-nya (`/requests`, `/fact-sheets`, `/ai-usage`). Status kerja terkini: [status & handoff](https://github.com/d34faiza-commits/clau-content/blob/main/docs/status.md).
 
 ## Prinsip Platform
 
@@ -80,4 +80,4 @@ Setiap tahap tetap Level 1 otomasi (manusia yang publish), kecuali owner menyetu
 
 ## Lisensi
 
-Proprietary, private use. Lihat [LICENSE](./LICENSE).
+Proprietary, source-available (hanya untuk dilihat; tidak boleh disalin, dipakai, atau dipakai melatih AI tanpa izin tertulis). Lihat [LICENSE](./LICENSE).
