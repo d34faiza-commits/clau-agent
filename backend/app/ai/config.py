@@ -1,4 +1,5 @@
-"""Pengaturan AI dari environment, dibaca setiap kali dipakai (tombol mati berlaku tanpa restart worker)."""
+"""Pengaturan AI dari environment container. Mengubah .env berlaku setelah container dibuat ulang
+(`docker compose up -d`); worker yang dimatikan menggagalkan job antre (`ai_disabled`) dan berhenti menyimpan hasil."""
 
 from __future__ import annotations
 

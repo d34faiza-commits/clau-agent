@@ -36,6 +36,7 @@ from app.registry import agent_for_intent
 
 OPEN = ("open", "in_progress")
 HEARTBEAT = "/tmp/clau-worker-alive"
+MAX_CLAIMS = 30  # sama dengan batas klaim per draft di API (DraftIn)
 
 
 def log(msg: str) -> None:
@@ -51,7 +52,8 @@ def system_audit(db: Session, action: str, job: AiJob, **meta: object) -> None:
 
 
 def reap(db: Session, timeout_s: int) -> int:
-    """Job running yang terlalu lama (worker mati) → antre lagi, atau failed bila percobaan habis."""
+    """Job running yang terlalu lama (worker mati) → antre lagi, atau failed bila percobaan habis. Worker lama yang
+    ternyata masih hidup kehilangan kepemilikan (lease) dan tidak bisa menyimpan hasilnya lagi."""
     cutoff = now() - timedelta(seconds=timeout_s)
     stale = list(db.scalars(select(AiJob).where(AiJob.status == "running", AiJob.locked_at < cutoff).with_for_update(skip_locked=True)))
     for job in stale:
@@ -64,23 +66,68 @@ def reap(db: Session, timeout_s: int) -> int:
     return len(stale)
 
 
-def claim(db: Session, worker_id: str) -> int | None:
-    job_id = db.scalar(text(
+def fail_queued(db: Session, code: str) -> int:
+    """Tombol mati: job yang masih antre langsung gagal (tidak menunggu AI dinyalakan lagi)."""
+    jobs = list(db.scalars(select(AiJob).where(AiJob.status == "queued").with_for_update(skip_locked=True)))
+    for job in jobs:
+        job.status, job.error_code, job.finished_at = "failed", code, now()
+        system_audit(db, "ai_job.failed", job, code=code, attempt=job.attempts)
+    db.commit()
+    return len(jobs)
+
+
+@dataclass(frozen=True)
+class Lease:
+    """Kepemilikan job oleh satu worker untuk satu percobaan. Hasil hanya disimpan bila lease masih berlaku."""
+
+    job_id: int
+    attempts: int
+    worker: str
+
+
+def claim(db: Session, worker_id: str) -> Lease | None:
+    row = db.execute(text(
         "UPDATE ai_jobs SET status = 'running', attempts = attempts + 1, locked_at = now(), locked_by = :w "
         "WHERE id = (SELECT id FROM ai_jobs WHERE status = 'queued' AND run_after <= now() "
-        "ORDER BY run_after, id FOR UPDATE SKIP LOCKED LIMIT 1) RETURNING id"
-    ), {"w": worker_id[:100]})
+        "ORDER BY run_after, id FOR UPDATE SKIP LOCKED LIMIT 1) RETURNING id, attempts"
+    ), {"w": worker_id[:100]}).first()
     db.commit()
-    return job_id
+    return Lease(row[0], row[1], worker_id[:100]) if row else None
 
 
-def fail(db: Session, job_id: int, code: str, usage: Usage | None = None, retry: bool = False) -> str:
-    job = db.scalar(select(AiJob).where(AiJob.id == job_id).with_for_update())
-    if job is None or job.status != "running":
-        db.rollback()
+def owned_job(db: Session, lease: Lease) -> AiJob | None:
+    job = db.scalar(select(AiJob).where(AiJob.id == lease.job_id).with_for_update())
+    if job is None or job.status != "running" or job.locked_by != lease.worker or job.attempts != lease.attempts:
+        return None
+    return job
+
+
+def record_call(db: Session, job_id: int, provider: str, usage: Usage, prompt_version: str, latency_ms: int = 0) -> None:
+    db.add(AiCall(
+        job_id=job_id, provider=provider[:50], model=usage.model[:100], prompt_version=(prompt_version or "n/a")[:64],
+        input_tokens=usage.input_tokens, output_tokens=usage.output_tokens, cache_read_tokens=usage.cache_read_tokens,
+        cache_write_tokens=usage.cache_write_tokens, cost_micro_usd=usage.cost_micro_usd,
+        stop_reason=(usage.stop_reason or None) and usage.stop_reason[:50],
+        provider_request_id=(usage.provider_request_id or None) and usage.provider_request_id[:200], latency_ms=latency_ms,
+    ))
+
+
+def record_orphan_call(db: Session, lease: Lease, provider: str, usage: Usage | None, prompt_version: str) -> None:
+    """Panggilan yang sudah dibayar tetap tercatat walau lease hilang (job diambil alih / dibatalkan)."""
+    db.rollback()
+    if usage is not None:
+        record_call(db, lease.job_id, provider, usage, prompt_version)
+        db.commit()
+
+
+def fail(db: Session, lease: Lease, code: str, provider: str, usage: Usage | None = None, retry: bool = False,
+         prompt_version: str = "") -> str:
+    job = owned_job(db, lease)
+    if job is None:
+        record_orphan_call(db, lease, provider, usage, prompt_version)
         return "skipped"
     if usage is not None:
-        record_call(db, job, usage, "")
+        record_call(db, job.id, provider, usage, prompt_version)
     if retry and job.attempts < job.max_attempts:
         delay = 30 * 2 ** (job.attempts - 1)  # 30 s, 60 s, 120 s ...
         job.status, job.run_after, job.locked_at, job.locked_by = "queued", now() + timedelta(seconds=delay), None, None
@@ -90,16 +137,6 @@ def fail(db: Session, job_id: int, code: str, usage: Usage | None = None, retry:
         system_audit(db, "ai_job.failed", job, code=code, attempt=job.attempts)
     db.commit()
     return job.status
-
-
-def record_call(db: Session, job: AiJob, usage: Usage, prompt_version: str, latency_ms: int = 0) -> None:
-    db.add(AiCall(
-        job_id=job.id, provider=ai_settings().provider, model=usage.model[:100], prompt_version=(prompt_version or "n/a")[:64],
-        input_tokens=usage.input_tokens, output_tokens=usage.output_tokens, cache_read_tokens=usage.cache_read_tokens,
-        cache_write_tokens=usage.cache_write_tokens, cost_micro_usd=usage.cost_micro_usd,
-        stop_reason=(usage.stop_reason or None) and usage.stop_reason[:50],
-        provider_request_id=(usage.provider_request_id or None) and usage.provider_request_id[:200], latency_ms=latency_ms,
-    ))
 
 
 @dataclass
@@ -112,11 +149,9 @@ class Context:
     facts: ClientFacts
 
 
-def load_context(db: Session, job_id: int) -> Context | str:
-    """Konteks job, atau kode error bila job tidak boleh dikerjakan."""
+def allowed(db: Session, job: AiJob, req: Request) -> str | None:
+    """None = job boleh dikerjakan/disimpan; selain itu kode error. Dicek sebelum DAN sesudah panggilan model."""
     settings = ai_settings()
-    job = db.get(AiJob, job_id)
-    req = db.get(Request, job.request_id)
     client = db.get(Client, req.client_code)
     agent = agent_for_intent(job.intent)
     if not settings.enabled or job.intent not in settings.intents or agent is None or agent["status"] != "active":
@@ -125,41 +160,63 @@ def load_context(db: Session, job_id: int) -> Context | str:
         return "ai_disabled"  # provider tiruan tidak pernah menulis untuk klien nyata
     if req.status not in OPEN:
         return "request_closed"
+    # Perkiraan biaya per job harus masih muat di batas global & klien (bukan sekadar "masih ada sisa").
+    if budget_problem(db, req.client_code, max(settings.job_estimate_micro_usd, 1)) is not None:
+        return "budget_exceeded"
+    return None
+
+
+def load_context(db: Session, lease: Lease) -> Context | str:
+    job = owned_job(db, lease)
+    if job is None:
+        return "skipped"
+    req = db.get(Request, job.request_id)
+    problem = allowed(db, job, req)
+    if problem:
+        return problem
     facts = client_facts(db, req.client_code)
     if facts is None:  # fakta versi terbaru yang disetujui saat job dikerjakan (koreksi klien terbaru ikut)
         return "fact_sheet_missing"
-    # Perkiraan biaya sudah dicek saat job dibuat; di sini cukup: masih ada sisa batas (≥ 1 mikro-USD).
-    if budget_problem(db, req.client_code, 1) is not None:
-        return "budget_exceeded"
-    return Context(job_id, job.agent_id, job.intent, req.client_code, req.text, facts)
+    return Context(job.id, job.agent_id, job.intent, req.client_code, req.text, facts)
 
 
-def save_result(db: Session, ctx: Context, gen: Generation, prompt_version: str, latency_ms: int) -> int | str:
-    """Simpan draft + klaim + QA + catatan panggilan; kode error bila request sudah berubah."""
-    job = db.scalar(select(AiJob).where(AiJob.id == ctx.job_id).with_for_update())
-    if job is None or job.status != "running":
+def clean(text_: str) -> str:
+    return text_.replace("\x00", "")
+
+
+def save_result(db: Session, lease: Lease, ctx: Context, gen: Generation, provider: str, prompt_version: str, latency_ms: int) -> int | str:
+    """Simpan draft + klaim + QA + catatan panggilan dalam satu transaksi; kode error bila tidak boleh disimpan."""
+    job = owned_job(db, lease)
+    if job is None:
         return "skipped"
     req = db.scalar(select(Request).where(Request.id == job.request_id).with_for_update())
-    if req.status not in OPEN:
-        return "request_closed"
+    problem = allowed(db, job, req)
+    if problem == "budget_exceeded":
+        problem = None  # panggilan sudah dibayar: hasilnya disimpan, job berikutnya yang ditolak
+    if problem:
+        return problem
+    if len(gen.claims) > MAX_CLAIMS:
+        return "invalid_output"  # tidak ada klaim (termasuk yang tidak berdasar) yang boleh terbuang diam-diam
     client = db.get(Client, req.client_code)
     agent = agent_for_intent(job.intent)
     checked = check_claims(gen.claims, ctx.facts)
     version = (db.scalar(select(func.max(Draft.version)).where(Draft.request_id == req.id)) or 0) + 1
     draft = Draft(
         request_id=req.id, fact_sheet_id=ctx.facts.sheet_id, skill=agent["skill"] or agent["prompt"] or agent["template"],
-        version=version, content=gen.content[:10_000] or "(kosong)", mode="SIMULASI" if client.simulation else "NYATA",
+        version=version, content=clean(gen.content)[:10_000] or "(kosong)", mode="SIMULASI" if client.simulation else "NYATA",
         created_by=None, agent_id=job.agent_id,
     )
     db.add(draft)
     db.flush()  # trigger: draft agent NYATA hanya dari job running (ai_draft_without_job)
     db.add_all(Claim(draft_id=draft.id, text=c.text, category=c.category, evidence_label=c.evidence_label, source=c.source,
-                     source_date=c.source_date, implied=c.implied, fact_key=c.fact_key) for c in checked[:30])
+                     source_date=c.source_date, implied=c.implied, fact_key=c.fact_key) for c in checked)
     flagged = sum(not c.grounded for c in checked)
     db.add(QARecord(draft_id=draft.id, gate="claim-verification", result="Fail" if flagged else "Pass",
                     reviewer_id=None, reviewer_role="agent", independent=False))
-    record_call(db, job, gen.usage, prompt_version, latency_ms)
+    record_call(db, job.id, provider, gen.usage, prompt_version, latency_ms)
     req.status = "in_progress"
+    # Fact sheet yang benar-benar dipakai (bisa lebih baru dari saat job dibuat).
+    job.fact_sheet_id = ctx.facts.sheet_id
     job.status, job.draft_id, job.finished_at = "succeeded", draft.id, now()
     db.flush()  # trigger: draft hasil cocok dengan job (ai_job_draft_mismatch)
     db.add(AuditLog(actor_id=None, action="draft.create", object_type="draft", object_id=str(draft.id),
@@ -170,36 +227,40 @@ def save_result(db: Session, ctx: Context, gen: Generation, prompt_version: str,
     return draft.id
 
 
-def process(make: sessionmaker, provider, job_id: int) -> str:
+def process(make: sessionmaker, provider, lease: Lease) -> str:
+    name = getattr(provider, "name", "unknown")
     with make() as db:
-        ctx = load_context(db, job_id)
+        ctx = load_context(db, lease)
         if isinstance(ctx, str):
-            return fail(db, job_id, ctx)
+            return fail(db, lease, ctx, name) if ctx != "skipped" else ctx
         prompt = build_prompt(ctx.agent_id, ctx.intent, list(ctx.facts.facts.values()), ctx.request_text)
         db.rollback()  # lepas snapshot/kunci sebelum panggilan model yang bisa lama
     started = time.monotonic()
     try:
         gen = provider.generate(prompt)
     except ProviderFailure as e:
-        log(f"job {job_id}: provider gagal ({e.code})")
+        log(f"job {lease.job_id}: provider gagal ({e.code})")
         with make() as db:
-            return fail(db, job_id, e.code, usage=e.usage, retry=e.retryable)
+            return fail(db, lease, e.code, name, usage=e.usage, retry=e.retryable, prompt_version=prompt.prompt_version)
     except Exception as e:  # noqa: BLE001 — error tak terduga dari provider: kode tetap, tanpa detail ke API
-        log(f"job {job_id}: provider error {type(e).__name__}")
+        log(f"job {lease.job_id}: provider error {type(e).__name__}")
         with make() as db:
-            return fail(db, job_id, "provider_error")
+            return fail(db, lease, "provider_error", name, prompt_version=prompt.prompt_version)
     latency = int((time.monotonic() - started) * 1000)
     with make() as db:
         try:
-            result = save_result(db, ctx, gen, prompt.prompt_version, latency)
-        except IntegrityError as e:
+            result = save_result(db, lease, ctx, gen, name, prompt.prompt_version, latency)
+        except Exception as e:  # noqa: BLE001 — aturan database / nilai tak valid: job gagal jelas, biaya tetap dicatat
             db.rollback()
-            code = "request_closed" if "request_closed" in str(e.orig) else "invalid_output"
-            log(f"job {job_id}: hasil ditolak database ({code})")
-            return fail(db, job_id, code, usage=gen.usage)
+            code = "request_closed" if "request_closed" in str(getattr(e, "orig", e)) else "invalid_output"
+            log(f"job {lease.job_id}: hasil ditolak ({code}, {type(e).__name__})")
+            return fail(db, lease, code, name, usage=gen.usage, prompt_version=prompt.prompt_version)
         if isinstance(result, str):
             db.rollback()
-            return fail(db, job_id, result, usage=gen.usage) if result != "skipped" else result
+            if result == "skipped":
+                record_orphan_call(db, lease, name, gen.usage, prompt.prompt_version)
+                return result
+            return fail(db, lease, result, name, usage=gen.usage, prompt_version=prompt.prompt_version)
     return "succeeded"
 
 
@@ -207,12 +268,16 @@ def run_once(make: sessionmaker, provider, worker_id: str) -> str | None:
     settings = ai_settings()
     with make() as db:
         reap(db, settings.worker_timeout_s)
-    with make() as db:
-        job_id = claim(db, worker_id)
-    if job_id is None:
+    if not settings.enabled:
+        with make() as db:
+            fail_queued(db, "ai_disabled")
         return None
-    status = process(make, provider, job_id)
-    log(f"job {job_id}: {status}")
+    with make() as db:
+        lease = claim(db, worker_id)
+    if lease is None:
+        return None
+    status = process(make, provider, lease)
+    log(f"job {lease.job_id}: {status}")
     return status
 
 
@@ -233,11 +298,9 @@ def main() -> None:
     while not stop:
         Path(HEARTBEAT).touch()  # healthcheck container: putaran masih berjalan
         settings = ai_settings()
-        if not settings.enabled:
-            time.sleep(settings.poll_interval_s)
-            continue
         try:
-            done = run_once(make, get_provider(settings.provider), worker_id)
+            provider = get_provider(settings.provider) if settings.enabled else None
+            done = run_once(make, provider, worker_id)
         except Exception as e:  # noqa: BLE001 — database putus dsb.: tunggu lalu coba lagi, worker tidak mati
             log(f"putaran gagal: {type(e).__name__}")
             done = None

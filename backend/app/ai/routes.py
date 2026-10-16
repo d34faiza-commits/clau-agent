@@ -11,7 +11,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import Field
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.ai.budget import budget_problem, month_bounds, month_start, spent
@@ -70,7 +70,9 @@ def create_ai_draft(request_id: int, ctx: AuthContext = Depends(current_user), d
     sheet = latest_approved_sheet(db, req.client_code)
     if sheet is None:
         raise ApiError(409, "fact_sheet_required", "AI hanya menulis dari fakta yang sudah disetujui klien: setujui fact sheet dulu.")
-    problem = budget_problem(db, req.client_code, settings.job_estimate_micro_usd)
+    # Pembuatan job antre bergiliran (kunci transaksi): cadangan biaya job aktif tidak bisa dihitung dua kali.
+    db.execute(text("SELECT pg_advisory_xact_lock(hashtext('clau_ai_budget'))"))
+    problem = budget_problem(db, req.client_code, settings.job_estimate_micro_usd, reserve_active=True)
     if problem:
         raise ApiError(409, problem, BUDGET_MESSAGES[problem])
     job = AiJob(request_id=req.id, agent_id=agent["id"], intent=req.intent, kind="draft", fact_sheet_id=sheet.id, requested_by=ctx.user.id)

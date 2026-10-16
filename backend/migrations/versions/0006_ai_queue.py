@@ -10,6 +10,8 @@ Aturan (pesan berawalan kode aturan, SQLSTATE 23514, seperti 0001/0004/0005):
   aplikasi, seperti audit_log).
 - ai_draft_without_job: draft agent untuk klien NYATA hanya dari job AI yang sedang running untuk request itu.
   Draft agent SIMULASI (seed pilot) tetap boleh.
+- Rule 08 untuk draft AI: peminta job = pembuat (qa_reviewer_is_author / approval_by_author), dan draft agent untuk
+  klien NYATA minimal L2 (claim verification independen manusia wajib).
 
 Revision ID: 0006
 Revises: 0005
@@ -103,6 +105,46 @@ END $$;
 CREATE TRIGGER trg_drafts_agent_needs_job BEFORE INSERT ON drafts
   FOR EACH ROW EXECUTE FUNCTION clau_draft_agent_needs_job();
 
+-- Rule 08 untuk draft AI: peminta job (ai_jobs.requested_by) = pembuat draft agent. Ia tidak boleh menjadi reviewer
+-- independen maupun memutuskan approval draft itu (draft agent punya created_by NULL, jadi aturan 0001/0004 saja tidak
+-- menangkapnya; temuan audit 2026-10-16).
+CREATE FUNCTION clau_ai_draft_requester(draft_id bigint) RETURNS bigint LANGUAGE sql STABLE AS $$
+  SELECT j.requested_by FROM ai_jobs j JOIN drafts d ON d.id = j.draft_id
+   WHERE j.draft_id = $1 AND d.created_by IS NULL
+$$;
+CREATE FUNCTION clau_qa_not_ai_requester() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.independent AND NEW.reviewer_id IS NOT NULL AND NEW.reviewer_id = clau_ai_draft_requester(NEW.draft_id) THEN
+    RAISE EXCEPTION 'qa_reviewer_is_author: peminta draft AI tidak boleh menjadi reviewer independen'
+      USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER trg_qa_records_not_ai_requester BEFORE INSERT OR UPDATE ON qa_records
+  FOR EACH ROW EXECUTE FUNCTION clau_qa_not_ai_requester();
+CREATE FUNCTION clau_approval_not_ai_requester() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.approver_id = clau_ai_draft_requester(NEW.draft_id) THEN
+    RAISE EXCEPTION 'approval_by_author: peminta draft AI tidak boleh memutuskan approval draft itu'
+      USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER trg_approvals_not_ai_requester BEFORE INSERT ON approvals
+  FOR EACH ROW EXECUTE FUNCTION clau_approval_not_ai_requester();
+
+-- Draft agent untuk klien NYATA minimal L2: selalu butuh claim verification independen oleh manusia. AI fact-check
+-- hanya melihat klaim yang dilaporkan model; isi draft (klaim yang tidak dilaporkan) tetap wajib dibaca manusia.
+CREATE OR REPLACE FUNCTION clau_draft_min_level(d drafts, req requests) RETURNS text LANGUAGE plpgsql STABLE AS $$
+BEGIN
+  IF req.approval_min = 'L1' AND (
+       EXISTS (SELECT 1 FROM claims WHERE draft_id = d.id AND fact_key IS NOT NULL)
+       OR (d.created_by IS NULL AND d.mode = 'NYATA')) THEN
+    RETURN 'L2';
+  END IF;
+  RETURN req.approval_min;
+END $$;
+
 -- Seperti audit_log: hak ubah/hapus ai_calls dan hapus ai_jobs dicabut dari semua role selain pemilik.
 DO $$
 DECLARE r record;
@@ -123,6 +165,19 @@ END $$;
 """
 
 DOWN_SQL = """
+-- Kembalikan level minimum 0004 (tanpa aturan draft agent).
+CREATE OR REPLACE FUNCTION clau_draft_min_level(d drafts, req requests) RETURNS text LANGUAGE plpgsql STABLE AS $$
+BEGIN
+  IF req.approval_min = 'L1' AND EXISTS (SELECT 1 FROM claims WHERE draft_id = d.id AND fact_key IS NOT NULL) THEN
+    RETURN 'L2';
+  END IF;
+  RETURN req.approval_min;
+END $$;
+DROP TRIGGER IF EXISTS trg_approvals_not_ai_requester ON approvals;
+DROP FUNCTION IF EXISTS clau_approval_not_ai_requester();
+DROP TRIGGER IF EXISTS trg_qa_records_not_ai_requester ON qa_records;
+DROP FUNCTION IF EXISTS clau_qa_not_ai_requester();
+DROP FUNCTION IF EXISTS clau_ai_draft_requester(bigint);
 DROP TRIGGER IF EXISTS trg_drafts_agent_needs_job ON drafts;
 DROP FUNCTION IF EXISTS clau_draft_agent_needs_job();
 DROP FUNCTION IF EXISTS clau_ai_record_append_only() CASCADE;

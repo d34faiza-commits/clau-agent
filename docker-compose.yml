@@ -116,6 +116,9 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
+    # Saat deploy/restart, job yang sedang menunggu model diberi waktu selesai (SIGTERM → putaran terakhir selesai).
+    # Bila tetap terputus, job dikembalikan ke antrean setelah CLAU_AI_WORKER_TIMEOUT_S (tidak hilang).
+    stop_grace_period: 2m
     mem_limit: 256m
     pids_limit: 64
 

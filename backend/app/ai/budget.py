@@ -31,15 +31,29 @@ def spent(db: Session, month: date, client_code: str | None = None) -> int:
     return int(db.scalar(stmt))
 
 
-def budget_problem(db: Session, client_code: str, estimate: int, month: date | None = None) -> str | None:
-    """None = boleh; selain itu kode: `ai_budget_missing` / `ai_budget_exceeded`."""
+def active_jobs(db: Session, client_code: str | None = None) -> int:
+    stmt = select(func.count()).select_from(AiJob).where(AiJob.status.in_(("queued", "running")))
+    if client_code is not None:
+        stmt = stmt.join(Request, Request.id == AiJob.request_id).where(Request.client_code == client_code)
+    return int(db.scalar(stmt))
+
+
+def budget_problem(db: Session, client_code: str, estimate: int, month: date | None = None, reserve_active: bool = False) -> str | None:
+    """None = boleh; selain itu kode: `ai_budget_missing` / `ai_budget_exceeded`.
+
+    reserve_active (saat job dibuat): perkiraan biaya job yang masih antre/berjalan ikut dihitung, supaya banyak job
+    yang dibuat bersamaan tidak melewati batas. Pemanggil mengunci pembuatan job (lihat routes) agar hitungan ini tidak
+    balapan."""
     month = month or month_start()
     glob = db.get(AiBudget, ("global", month))
     if glob is None:
         return "ai_budget_missing"
-    if spent(db, month) + estimate > glob.limit_micro_usd:
+    reserved = estimate * (active_jobs(db) + 1) if reserve_active else estimate
+    if spent(db, month) + reserved > glob.limit_micro_usd:
         return "ai_budget_exceeded"
     per_client = db.get(AiBudget, (client_code, month))
-    if per_client is not None and spent(db, month, client_code) + estimate > per_client.limit_micro_usd:
-        return "ai_budget_exceeded"
+    if per_client is not None:
+        reserved = estimate * (active_jobs(db, client_code) + 1) if reserve_active else estimate
+        if spent(db, month, client_code) + reserved > per_client.limit_micro_usd:
+            return "ai_budget_exceeded"
     return None
