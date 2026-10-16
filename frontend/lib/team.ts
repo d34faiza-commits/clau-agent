@@ -51,7 +51,7 @@ export type ConceptAgent = { name: string; role: Text; tagline: Text; look: Look
 
 export type Pillar = { id: number; name: Text; status: "active" | "planned"; repo: string | null };
 
-/** Nama & status 5 pilar; sumber: `agents/registry.json` → `pillars` (dicek test_registry terhadap README clau-ai-core). */
+/** Nama & status 5 pilar; sumber: `agents/registry.json` → `pillars` (dicek test_registry terhadap README clau-core). */
 export const PILLAR_LIST: Pillar[] = (registry as { pillars: Pillar[] }).pillars;
 export const PILLARS: Record<number, Text> = Object.fromEntries(PILLAR_LIST.map((p) => [p.id, p.name]));
 

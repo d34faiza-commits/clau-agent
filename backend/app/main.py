@@ -1,6 +1,6 @@
 """CLAU AI agents backend.
 
-Registry & router statis dari clau-ai-core, login & user (app/auth), dan workflow request → draft → QA →
+Registry & router statis dari clau-core, login & user (app/auth), dan workflow request → draft → QA →
 approval (app/workflow), serta klien, fact sheet & konfirmasi fakta (app/facts). Sengaja tidak ada endpoint yang mem-publish konten, mengirim pesan ke tamu, atau
 mengubah sistem client (core/AI-CONSTITUTION.md §4).
 """

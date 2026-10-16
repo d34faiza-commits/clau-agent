@@ -50,7 +50,7 @@ exit
 
 Lalu dari laptop: `ssh dea@<IP_VPS_2>` harus bisa masuk tanpa password server.
 
-### B. Deploy key (read-only) untuk repo `clau-ai-agents`
+### B. Deploy key (read-only) untuk repo `clau-agent`
 
 ```bash
 sudo mkdir -p /etc/clau
@@ -58,14 +58,14 @@ sudo ssh-keygen -t ed25519 -N "" -C clau-vps2-deploy -f /etc/clau/deploy_key
 sudo cat /etc/clau/deploy_key.pub
 ```
 
-Salin baris `ssh-ed25519 ...` yang muncul. Di GitHub: repo **clau-ai-agents** → **Settings** → **Deploy keys** → **Add deploy key** → Title `clau-vps2` → paste → **jangan** centang *Allow write access* → **Add key**.
+Salin baris `ssh-ed25519 ...` yang muncul. Di GitHub: repo **clau-agent** → **Settings** → **Deploy keys** → **Add deploy key** → Title `clau-vps2` → paste → **jangan** centang *Allow write access* → **Add key**.
 
 ### C. Ambil repo
 
 ```bash
 echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" | sudo tee /etc/clau/known_hosts
 sudo mkdir -p /srv/clau
-sudo GIT_SSH_COMMAND="ssh -i /etc/clau/deploy_key -o IdentitiesOnly=yes -o UserKnownHostsFile=/etc/clau/known_hosts" git clone git@github.com:d34faiza-commits/clau-ai-agents.git /srv/clau/clau-ai-agents
+sudo GIT_SSH_COMMAND="ssh -i /etc/clau/deploy_key -o IdentitiesOnly=yes -o UserKnownHostsFile=/etc/clau/known_hosts" git clone git@github.com:d34faiza-commits/clau-agent.git /srv/clau/clau-ai-agents
 ```
 
 Host key di baris pertama = key resmi GitHub ([fingerprint GitHub](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints)).

@@ -5,7 +5,7 @@
 #   1. pastikan working tree bersih, lalu pull --ff-only branch saat ini
 #   2. update tiap submodule top-level ke commit terbaru branch di .gitmodules
 #      (submodule bertingkat, mis. agents/core, ikut pin milik repo agents).
-#      Pengecualian: bila submodule lain memuat clau-ai-core (agents/core), `core` dipin ke commit
+#      Pengecualian: bila submodule lain memuat clau-core (agents/core), `core` dipin ke commit
 #      yang SAMA dengan pin di dalamnya, bukan ke main core. Jadi core baru masuk marketing bersama
 #      agents yang sudah lulus test terhadap core itu (pin core di semua tempat selalu sama).
 #   3. cek pin core sama (scripts/check-core-pins.sh --strict), lalu validator repo

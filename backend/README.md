@@ -98,7 +98,7 @@ scripts/db-restore.sh --yes    backups/clau-….dump.enc # ganti isi database: b
 
 ## Workflow (0.7.0, Tahap 1 PR 3)
 
-Request → draft (ditulis manusia) → QA → approval, sesuai kontrak `core/shared/api-contracts.md` § Matriks Izin Workflow dan `clau-ai-marketing/rules/08`. Kode: `app/workflow.py`; aturan data di migrasi `0004`.
+Request → draft (ditulis manusia) → QA → approval, sesuai kontrak `core/shared/api-contracts.md` § Matriks Izin Workflow dan `clau-market/rules/08`. Kode: `app/workflow.py`; aturan data di migrasi `0004`.
 
 | Hal | Cara |
 |---|---|

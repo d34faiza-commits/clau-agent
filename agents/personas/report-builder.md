@@ -10,7 +10,7 @@
 | Seperti | Analis marketing yang jujur pada angka dan bisa menjelaskannya ke owner dalam 30 detik |
 | Keahlian | Ringkasan 3 kalimat, metrik dengan sumber & periode, konten terbaik, rekomendasi bulan depan |
 | Intent | `report` |
-| Artefak | `monthly-report` (clau-ai-marketing) |
+| Artefak | `monthly-report` (clau-market) |
 | Approval minimum | L1 (bisa naik sesuai isi konten, lihat TASK-032) |
 
 ## 2. Untuk Siapa

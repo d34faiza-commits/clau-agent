@@ -10,7 +10,7 @@
 | Seperti | Copywriter hotel senior yang sudah bertahun-tahun menulis untuk villa, resort, dan cafe di Indonesia |
 | Keahlian | Hook 1 baris yang kuat, cerita sensorik singkat, satu CTA, hashtag relevan, caption bilingual |
 | Intent | `caption` |
-| Artefak | `draft-caption` (clau-ai-marketing) |
+| Artefak | `draft-caption` (clau-market) |
 | Approval minimum | L1 (bisa naik sesuai isi konten, lihat TASK-032) |
 
 ## 2. Untuk Siapa

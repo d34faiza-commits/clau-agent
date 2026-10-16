@@ -145,21 +145,21 @@ def test_vps2_check_ignores_tailscale_and_loopback_listeners():
     check = (DEPLOY / "vps2-check.sh").read_text()
     func = re.search(r"^public_listeners\(\) \{.*?^\}", check, re.S | re.M).group(0)
     sample = "\n".join(f"LISTEN 0 4096 {addr} 0.0.0.0:*" for addr in (
-        "100.121.42.69%tailscale0:62458", "127.0.0.53%lo:53", "127.0.0.54:53", "127.0.0.1:3000", "127.0.0.1:8000",
+        "100.64.0.10%tailscale0:62458", "127.0.0.53%lo:53", "127.0.0.54:53", "127.0.0.1:3000", "127.0.0.1:8000",
         "[fd7a:115c:a1e0::b338:2a47]%tailscale0:443", "0.0.0.0:22", "[::]:22", "[::1]:631",
-        "0.0.0.0:5432", "172.237.65.22:8080", "[::]:3000",
+        "0.0.0.0:5432", "203.0.113.10:8080", "[::]:3000",
     ))
     out = subprocess.run(["bash", "-c", f"{func}\npublic_listeners"], input=sample, capture_output=True, text=True, check=True).stdout.split()
-    assert out == ["0.0.0.0:5432", "172.237.65.22:8080", "[::]:3000"]
+    assert out == ["0.0.0.0:5432", "203.0.113.10:8080", "[::]:3000"]
 
 
 @pytest.mark.parametrize(
     ("ssh_connection", "who", "expect"),
     [
-        (None, "dea pts/1 2026-10-15 10:23 (100.92.94.1)", "lanjut"),  # sudo membuang SSH_CONNECTION (insiden 2026-10-15)
-        (None, "dea pts/0 2026-10-15 09:55 (180.254.11.236)", "ditolak"),
-        ("100.92.94.1 51000 100.121.42.69 22", "", "lanjut"),
-        ("180.254.11.236 51000 172.237.65.22 22", "", "ditolak"),
+        (None, "dea pts/1 2026-10-15 10:23 (100.64.0.20)", "lanjut"),  # sudo membuang SSH_CONNECTION (insiden 2026-10-15)
+        (None, "dea pts/0 2026-10-15 09:55 (198.51.100.7)", "ditolak"),
+        ("100.64.0.20 51000 100.64.0.10 22", "", "lanjut"),
+        ("198.51.100.7 51000 203.0.113.10 22", "", "ditolak"),
         (None, "", "lanjut"),
     ],
 )
@@ -171,7 +171,7 @@ def test_vps2_lock_ssh_detects_session_origin_under_set_u(ssh_connection, who, e
     script = f"""set -euo pipefail
 die() {{ echo ditolak; exit 0; }}
 who() {{ printf '%s\\n' "$WHO_LINE"; }}
-tailscale() {{ echo 100.121.42.69; }}
+tailscale() {{ echo 100.64.0.10; }}
 ADMIN=dea
 {block}
 echo lanjut

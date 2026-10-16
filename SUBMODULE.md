@@ -1,39 +1,39 @@
 # SUBMODULE.md — Koneksi Antar Repo CLAU AI
 
-Panduan Git submodule untuk tiga repo CLAU AI. File ini identik di `clau-ai-marketing` dan `clau-ai-agents`. Kalau mengubahnya, ubah di keduanya.
+Panduan Git submodule untuk tiga repo CLAU AI. File ini identik di `clau-market` dan `clau-agent`. Kalau mengubahnya, ubah di keduanya.
 
 ## 1. Topologi
 
 ```text
-clau-ai-marketing
-├── core/      → clau-ai-core     (= pin agents/core, bukan main core)
-└── agents/    → clau-ai-agents   (branch main)
-    └── core/  → clau-ai-core     (pin milik clau-ai-agents)
+clau-market
+├── core/      → clau-core     (= pin agents/core, bukan main core)
+└── agents/    → clau-agent   (branch main)
+    └── core/  → clau-core     (pin milik clau-agent)
 
-clau-ai-agents
-└── core/      → clau-ai-core     (branch main)
+clau-agent
+└── core/      → clau-core     (branch main)
 
-clau-ai-core   (tidak punya submodule)
+clau-core   (tidak punya submodule)
 ```
 
 | Repo | Submodule | Kegunaan |
 |---|---|---|
-| clau-ai-marketing | `core/` | Constitution, boundary, workflow umum, orchestrator |
-| clau-ai-marketing | `agents/` | Registry agent dan kode platform yang menjalankan skill Pilar 1 (referensi & validasi silang) |
-| clau-ai-agents | `core/` | Aturan induk; router di `core/orchestrator/router.md` dites terhadap `agents/registry.json` |
+| clau-market | `core/` | Constitution, boundary, workflow umum, orchestrator |
+| clau-market | `agents/` | Registry agent dan kode platform yang menjalankan skill Pilar 1 (referensi & validasi silang) |
+| clau-agent | `core/` | Aturan induk; router di `core/orchestrator/router.md` dites terhadap `agents/registry.json` |
 
 Prinsip yang perlu diingat:
 
 - **Submodule = pin ke satu commit**, bukan salinan yang ikut berubah otomatis. Repo induk menyimpan hash commit submodule; isi file tetap di repo aslinya.
 - **Edit di repo asal**, bukan di folder submodule. Perubahan di `core/` atau `agents/` di dalam repo lain tidak ikut ke repo aslinya dan akan tertimpa saat sync.
 - Semua repo **private**: akun atau token yang meng-clone harus punya akses ke ketiga repo.
-- `agents/core/` mengikuti pin milik clau-ai-agents, dan `core/` di marketing disamakan dengan pin itu. Core baru masuk marketing hanya setelah agents lulus test terhadapnya. Pin beda = gagal (`scripts/check-core-pins.sh --strict` di script sync dan `cross-repo-validate`).
+- `agents/core/` mengikuti pin milik clau-agent, dan `core/` di marketing disamakan dengan pin itu. Core baru masuk marketing hanya setelah agents lulus test terhadapnya. Pin beda = gagal (`scripts/check-core-pins.sh --strict` di script sync dan `cross-repo-validate`).
 - **`main` wajib lewat PR dengan CI hijau** (core `AI-BOUNDARY.md` § Disiplin Push), juga untuk bump submodule. Script menolak push langsung ke `main`.
 
 ## 2. Clone Pertama Kali
 
 ```bash
-git clone --recurse-submodules https://github.com/d34faiza-commits/clau-ai-marketing.git
+git clone --recurse-submodules https://github.com/d34faiza-commits/clau-market.git
 
 # Kalau sudah ter-clone tanpa submodule (folder core/ atau agents/ kosong):
 git submodule update --init --recursive
@@ -102,11 +102,11 @@ Kalau validasi gagal, sync **tidak** commit dan workflow merah. Pin lama tetap d
 `GITHUB_TOKEN` bawaan Actions hanya bisa mengakses repo tempat workflow berjalan, jadi tidak bisa meng-clone submodule private atau memicu repo lain. Karena itu dibutuhkan satu token:
 
 1. GitHub → **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
-2. **Repository access:** *Only select repositories* → `clau-ai-core`, `clau-ai-marketing`, `clau-ai-agents`.
+2. **Repository access:** *Only select repositories* → `clau-core`, `clau-market`, `clau-agent`.
 3. **Permissions → Repository permissions → Contents: Read and write** dan **Pull requests: Read and write** (bot membuka PR sync karena `main` wajib lewat PR; GitHub Free tidak memaksanya di server, jadi workflow sendiri menunggu CI hijau sebelum merge). Metadata (read) otomatis ikut.
 4. Expiration: pilih tanggal, lalu catat tanggal perpanjangannya.
 5. Simpan token sebagai secret **`SUBMODULE_TOKEN`** di **ketiga** repo: repo → **Settings → Secrets and variables → Actions → New repository secret**.
-6. **Disarankan:** buat token kedua yang **read-only** (repo sama, **Contents: Read-only** saja) dan simpan sebagai **`SUBMODULE_READ_TOKEN`** di clau-ai-marketing dan clau-ai-agents, di **Actions secrets** dan **Dependabot secrets** (Settings → Secrets and variables → Dependabot). `cross-repo-validate` memakainya lebih dulu; PR Dependabot tidak bisa membaca Actions secrets.
+6. **Disarankan:** buat token kedua yang **read-only** (repo sama, **Contents: Read-only** saja) dan simpan sebagai **`SUBMODULE_READ_TOKEN`** di clau-market dan clau-agent, di **Actions secrets** dan **Dependabot secrets** (Settings → Secrets and variables → Dependabot). `cross-repo-validate` memakainya lebih dulu; PR Dependabot tidak bisa membaca Actions secrets.
 
 Tanpa token, `sync-submodules` dan `notify-downstream` dilewati (notice), sedangkan `cross-repo-validate` **gagal**: check wajib tidak boleh hijau tanpa memvalidasi apa pun.
 
@@ -122,7 +122,7 @@ Tanpa token, `sync-submodules` dan `notify-downstream` dilewati (notice), sedang
 | `HEAD detached at …` di dalam submodule | Normal: submodule di-checkout ke commit pin | Mau mengedit? Jangan di sini. Edit di repo asal. Kalau terlanjur: `git -C core switch main` lalu pindahkan perubahan ke clone repo asal |
 | `fatal: reference is not a tree: <hash>` | Pin menunjuk commit yang belum di-push di repo asal | Push dulu repo asal (urutan: core → agents → marketing), lalu `git submodule update --init --recursive` |
 | `working tree tidak bersih` dari `sync-submodules.sh` | Ada perubahan lokal | Commit atau `git stash`, lalu jalankan ulang |
-| Warning "pin clau-ai-core berbeda antar submodule" | `agents/core` tertinggal dari `core/` (atau sebaliknya) | Sync clau-ai-agents dulu, lalu sync marketing. Otomatis lewat `notify-downstream` bila token ada |
+| Warning "pin clau-core berbeda antar submodule" | `agents/core` tertinggal dari `core/` (atau sebaliknya) | Sync clau-agent dulu, lalu sync marketing. Otomatis lewat `notify-downstream` bila token ada |
 | Workflow sync merah setelah perubahan di core | Perubahan core membuat validator/test di repo ini gagal | Baca log step validasi. Perbaiki di repo yang tepat (core atau repo ini), lalu jalankan workflow ulang (**Actions → Sync Submodules → Run workflow**) |
 | URL submodule berubah (repo di-rename/pindah) | `.git/config` masih memakai URL lama | Edit `.gitmodules`, lalu `git submodule sync --recursive && git submodule update --init --recursive` |
 | `git pull` tidak ikut memperbarui submodule | Default Git | `git config submodule.recurse true`, atau jalankan `git submodule update --init --recursive` setelah pull |

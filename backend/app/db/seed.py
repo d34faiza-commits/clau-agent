@@ -2,7 +2,7 @@
 dan satu draft buatan agent berstatus SIMULASI (klien `simulation = true`) dengan klaim berlabel ASSUMPTION.
 
 Bukan data client nyata (CLAUDE.md): kode klien berawalan CTH (= "Contoh"), selaras pilot fiktif di
-clau-ai-marketing/examples/. Idempoten: dijalankan berulang tidak menggandakan data.
+clau-market/examples/. Idempoten: dijalankan berulang tidak menggandakan data.
 
     python -m app.db.seed          # memakai CLAU_DATABASE_URL (role aplikasi)
 """

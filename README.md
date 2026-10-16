@@ -1,8 +1,8 @@
-# clau-ai-agents
+# clau-agent
 
-**Platform CLAU AI**: tempat agent menjalankan skill dari repo pilar untuk bisnis hospitality Indonesia. Repo ini berisi kode (frontend Next.js, backend FastAPI) dan **registry agent**. Aturan isi konten tidak ditulis di sini; aturan ada di [clau-ai-core](https://github.com/d34faiza-commits/clau-ai-core) (submodule `core/`) dan repo pilar.
+**Platform CLAU AI**: tempat agent menjalankan skill dari repo pilar untuk bisnis hospitality Indonesia. Repo ini berisi kode (frontend Next.js, backend FastAPI) dan **registry agent**. Aturan isi konten tidak ditulis di sini; aturan ada di [clau-core](https://github.com/d34faiza-commits/clau-core) (submodule `core/`) dan repo pilar.
 
-> **Status:** Private. Backend v0.8.0: PostgreSQL 16 (migrasi 0001–0005), login + 2FA (QR & kode cadangan) + `/users`, backup terenkripsi, workflow request → draft → QA → approval dan fact sheet + Konfirmasi Fakta oleh klien (aturan Rule 08 dicek server & database), dengan halaman UI-nya (`/requests`, `/fact-sheets`). Belum: pemanggilan AI model. Status kerja terkini: [status & handoff](https://github.com/d34faiza-commits/CLAU-AI-CONTENT/blob/main/docs/status.md).
+> **Status:** Private. Backend v0.8.0: PostgreSQL 16 (migrasi 0001–0005), login + 2FA (QR & kode cadangan) + `/users`, backup terenkripsi, workflow request → draft → QA → approval dan fact sheet + Konfirmasi Fakta oleh klien (aturan Rule 08 dicek server & database), dengan halaman UI-nya (`/requests`, `/fact-sheets`). Belum: pemanggilan AI model. Status kerja terkini: [status & handoff](https://github.com/d34faiza-commits/clau-content/blob/main/docs/status.md).
 
 ## Prinsip Platform
 
@@ -13,9 +13,9 @@
 ## Struktur
 
 ```text
-clau-ai-agents/
+clau-agent/
 ├── README.md · SUBMODULE.md · ACKNOWLEDGMENT.md · LICENSE
-├── core/                 # submodule → clau-ai-core
+├── core/                 # submodule → clau-core
 ├── agents/
 │   ├── README.md · registry.json   # agent → intent → skill/prompt/template di repo pilar
 │   └── avatars/ · personas/ · evals/
@@ -36,8 +36,8 @@ clau-ai-agents/
 Panduan submodule (update, sync, troubleshooting, GitHub Actions): [SUBMODULE.md](./SUBMODULE.md).
 
 ```bash
-git clone --recurse-submodules https://github.com/d34faiza-commits/clau-ai-agents.git
-cd clau-ai-agents
+git clone --recurse-submodules https://github.com/d34faiza-commits/clau-agent.git
+cd clau-agent
 
 # Backend
 cd backend && pip install -r requirements.txt && pytest && uvicorn app.main:app --reload

@@ -1,6 +1,6 @@
 """Klien, fact sheet, dan konfirmasi fakta (Tahap 1 PR 3b, kontrak core/shared/api-contracts.md 0.8.0).
 
-Alur Konfirmasi Fakta (CLAU-AI-CONTENT design/user-flow/client-portal-flow.md, rule 08):
+Alur Konfirmasi Fakta (clau-content design/user-flow/client-portal-flow.md, rule 08):
 1. Agency membuat versi fact sheet + daftar fakta (`POST /fact-sheets`).
 2. Approver klien menjawab setiap fakta: benar (`confirmed`) atau koreksi (`corrected` + nilai yang benar).
    Owner/content lead boleh mencatat jawaban tertulis klien, dengan bukti (`channel_ref`).

@@ -1,16 +1,16 @@
-# CLAUDE.md — clau-ai-agents
+# CLAUDE.md — clau-agent
 
 > Peta repo untuk AI agent. Baca file ini dulu sebelum menjelajah repo. Last updated: 2026-10-14
 
-> 🔔 **Sesi baru: baca [status & handoff CLAU AI](https://github.com/d34faiza-commits/CLAU-AI-CONTENT/blob/main/docs/status.md) dulu** (otoritas, keputusan yang sudah diambil, status, pekerjaan terbuka). Repo Jerco milik Pak Indra: jangan disentuh tanpa persetujuan beliau.
+> 🔔 **Sesi baru: baca [status & handoff CLAU AI](https://github.com/d34faiza-commits/clau-content/blob/main/docs/status.md) dulu** (otoritas, keputusan yang sudah diambil, status, pekerjaan terbuka). Repo Jerco milik Pak Indra: jangan disentuh tanpa persetujuan beliau.
 
 ## 1. Identitas
 
 | Item | Nilai |
 |---|---|
-| Repo | `d34faiza-commits/clau-ai-agents` (private) |
+| Repo | `d34faiza-commits/clau-agent` (private) |
 | Peran | Platform: registry agent, backend FastAPI, frontend Next.js |
-| Submodule | `core/` → clau-ai-core |
+| Submodule | `core/` → clau-core |
 | Status | Backend v0.9.0: API registry + login & hak akses (sesi cookie, CSRF, 2FA wajib owner dengan QR & kode cadangan, `/users` owner) + workflow request → draft → QA → approval (`app/workflow.py`) + klien, fact sheet & Konfirmasi Fakta (`app/facts.py`), matriks izin Rule 08 dengan aturan di database, + **antrean AI menulis draft** (`app/ai/`: job, worker container terpisah, AI fact-check, batas biaya; provider tiruan, provider Claude menyusul PR 4c) di atas PostgreSQL 16 (migrasi 0001–0006), backup terenkripsi. UI: `/requests` (termasuk *Buat draft dengan AI*), `/fact-sheets`, `/ai-usage` (owner), tambah klien di `/users`. Belum: provider AI nyata |
 
 ## 2. Peta File
@@ -50,7 +50,7 @@ cd frontend && npm ci && npm run build
 scripts/init-env.sh && docker compose up -d --build --wait   # db + migrate + backend + frontend; docker compose down
 ```
 
-Spesifikasi UI/UX (Portal Klien & Studio) dan design tokens ada di repo arsip `CLAU-AI-CONTENT/design/`.
+Spesifikasi UI/UX (Portal Klien & Studio) dan design tokens ada di repo arsip `clau-content/design/`.
 
 ## Aturan Kerja untuk Agent
 

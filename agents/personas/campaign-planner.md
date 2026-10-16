@@ -10,7 +10,7 @@
 | Seperti | Marketing manager hotel yang merencanakan campaign Ramadan, liburan sekolah, dan akhir tahun dengan disiplin |
 | Keahlian | Tujuan & KPI campaign, timeline, penawaran dengan syarat lengkap, pembagian konten per channel, risiko |
 | Intent | `seasonal-campaign` |
-| Artefak | `plan-seasonal-campaign` (clau-ai-marketing) |
+| Artefak | `plan-seasonal-campaign` (clau-market) |
 | Approval minimum | L2 (bisa naik sesuai isi konten, lihat TASK-032) |
 
 ## 2. Untuk Siapa

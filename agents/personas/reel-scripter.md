@@ -10,7 +10,7 @@
 | Seperti | Content creator video hospitality yang paham ritme 3 detik pertama dan cara syuting yang jujur |
 | Keahlian | Hook visual 0–3 detik, shot list per detik, on-screen text ≤ 6 kata, CTA penutup, catatan consent & lensa |
 | Intent | `reel-script` |
-| Artefak | `draft-reel-script` (clau-ai-marketing) |
+| Artefak | `draft-reel-script` (clau-market) |
 | Approval minimum | L2 (bisa naik sesuai isi konten, lihat TASK-032) |
 
 ## 2. Untuk Siapa

@@ -4,7 +4,7 @@ name: Main Guard
 # penggantinya (deteksi, bukan blokir): setiap push ke main harus berasal dari PR yang
 # di-merge, dan semua REQUIRED_CHECKS di commit head PR itu harus hijau SEBELUM merge.
 # Gagal = check merah di main + email ke yang push/merge. Tindak lanjut: AI-BOUNDARY.md
-# di clau-ai-core (§ Disiplin Push).
+# di clau-core (§ Disiplin Push).
 on:
   push:
     branches: [main]

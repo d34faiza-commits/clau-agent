@@ -47,7 +47,7 @@ def test_planned_pillar_agents_without_artifact_are_planned():
     planned = {p["id"] for p in REGISTRY["pillars"] if p["status"] == "planned"}
     for agent in REGISTRY["agents"]:
         if agent["pillar"] in planned and agent["status"] == "active":
-            assert agent["skill_repo"] == "clau-ai-marketing", agent["id"]
+            assert agent["skill_repo"] == "clau-market", agent["id"]
 
 
 @pytest.mark.skipif(not CORE_README.is_file(), reason="core/ submodule not initialised")

@@ -92,7 +92,7 @@ Repo private → pakai **deploy key read-only** khusus repo ini (bukan key priba
 ```bash
 ssh-keygen -t ed25519 -f ~/.ssh/clau_agents_deploy -N "" -C "clau-vps1 deploy (read-only)"
 cat ~/.ssh/clau_agents_deploy.pub
-# GitHub → clau-ai-agents → Settings → Deploy keys → Add deploy key
+# GitHub → clau-agent → Settings → Deploy keys → Add deploy key
 #   Title: clau-vps1 ; Allow write access: JANGAN dicentang
 
 printf "Host github-agents\n  HostName github.com\n  User git\n  IdentityFile ~/.ssh/clau_agents_deploy\n  IdentitiesOnly yes\n" >> ~/.ssh/config
@@ -100,7 +100,7 @@ chmod 600 ~/.ssh/config
 ssh -T github-agents                          # "successfully authenticated"
 
 sudo mkdir -p /srv/clau && sudo chown dea:dea /srv/clau
-git clone git@github-agents:d34faiza-commits/clau-ai-agents.git /srv/clau/clau-ai-agents
+git clone git@github-agents:d34faiza-commits/clau-agent.git /srv/clau/clau-ai-agents
 cd /srv/clau/clau-ai-agents/frontend
 npm ci && npm run build
 ```

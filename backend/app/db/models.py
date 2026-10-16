@@ -3,7 +3,7 @@
 Aturan yang wajib (Constraint Wajib di kontrak) ditegakkan di database sendiri, bukan hanya di kode:
 CHECK constraint di sini, dan trigger di migrasi 0001 untuk aturan yang melibatkan tabel lain.
 Nilai enum diambil dari sumbernya: label evidence & kategori klaim & vertical dari
-clau-ai-marketing/schemas/content-brief.schema.json, priority dari core/orchestrator/priority-engine.md,
+clau-market/schemas/content-brief.schema.json, priority dari core/orchestrator/priority-engine.md,
 level approval dari rule 08. Enum disimpan sebagai text + CHECK (bukan tipe ENUM Postgres) agar
 penambahan nilai cukup satu migrasi kecil.
 """
