@@ -141,10 +141,10 @@ Kontrak: `core/shared/api-contracts.md` § AI Menulis Draft; aturan data: `core/
 | Biaya | `GET /ai-usage` (owner): total, per klien, per agent, status batas + peringatan (`alert_at_pct`). Mikro-USD |
 | Jejak | `audit_log`: `ai_job.create/succeeded/failed/retry/reaped/cancel`, `ai_budget.set`; tanpa isi request, fakta, atau hasil |
 
-Provider Claude (model per tingkat kesulitan, output terstruktur, caching, fallback refusal) menyusul di PR 4c; UI tombol & halaman pemakaian di PR 4d.
+UI (PR 4d): tombol *Buat draft dengan AI* di `/requests/[id]` dan halaman owner `/ai-usage`. Provider Claude (model per tingkat kesulitan, output terstruktur, caching, fallback refusal) menyusul di PR 4c.
 
 Test: `tests/test_ai.py` (termasuk regresi audit 2026-10-16: alur SIMULASI utuh, contoh "private beach" ditandai dan mengunci approval sampai versi tanpa klaim itu, prompt hanya fakta terbaru yang dikonfirmasi + penyamaran, penjaga endpoint, peran & isolasi klien, retry/tolak/request ditutup/worker mati, dua worker tidak mengambil job yang sama, tombol mati, aturan database 0006, batas biaya) dan `tests/compose_ai_smoke.py` (CI job `docker`: container backend → database → container worker).
 
 ## Belum Ada (Planned)
 
-Provider AI nyata (PR 4c), UI AI (PR 4d), notifikasi ke klien, Portal Klien terpisah.
+Provider AI nyata (PR 4c), notifikasi ke klien, Portal Klien terpisah.

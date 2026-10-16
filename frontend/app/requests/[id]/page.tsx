@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Card, PageHeader } from "../../../components/ui";
+import AiPanel from "../../../components/AiPanel";
 import { Field, Notice, RefLink, SessionGate, StatusPill } from "../../../components/WorkflowUi";
+import { draftAuthor, type AiJob } from "../../../lib/ai";
 import { api, errorText, type Me } from "../../../lib/auth";
 import { L, useL, useLang } from "../../../lib/i18n";
 import {
@@ -32,6 +34,7 @@ export default function RequestDetail() {
   const [loaded, setLoaded] = useState(false);
   const [saved, setSaved] = useState<Msg>(null);
   const [error, setError] = useState("");
+  const [aiJobs, setAiJobs] = useState<AiJob[]>([]);
 
   const loadDraft = useCallback(async (draftId: number) => {
     setSelected(draftId);
@@ -79,6 +82,8 @@ export default function RequestDetail() {
   const role = roleFor(me, req.client_code);
   const open = OPEN.has(req.status);
   const latest = drafts[0];
+  // Draft agent: "pembuat" = peminta job AI (rule 08; database menolak review/approval oleh peminta).
+  const author = draft ? draftAuthor(draft, aiJobs) : null;
 
   return (
     <>
@@ -111,7 +116,7 @@ export default function RequestDetail() {
             {!draft ? (
               <p className="muted">{tr("No draft yet.", "Belum ada draft.")}</p>
             ) : (
-              <DraftView draft={draft} lang={lang} />
+              <DraftView draft={draft} lang={lang} author={author} />
             )}
           </Card>
 
@@ -132,8 +137,9 @@ export default function RequestDetail() {
         </div>
 
         <div className="stack">
-          {open && draft && draft.id === latest?.id && <DecisionForm me={me} req={req} draft={draft} onDone={() => load(true)} />}
-          {open && draft && AGENCY_WRITERS.has(role) && <QAForm me={me} role={role} draft={draft} onDone={() => loadDraft(draft.id)} />}
+          <AiPanel requestId={req.id} canAsk={open && AGENCY_WRITERS.has(role)} onJobs={setAiJobs} onDraft={() => load(true)} />
+          {open && draft && draft.id === latest?.id && <DecisionForm key={draft.id} me={me} req={req} draft={draft} author={author} onDone={() => load(true)} />}
+          {open && draft && AGENCY_WRITERS.has(role) && <QAForm key={draft.id} me={me} role={role} draft={draft} author={author} onDone={() => loadDraft(draft.id)} />}
           {/* Pesan di luar form: form dipasang ulang dari versi terbaru setelah tersimpan. */}
           <Notice msg={saved} />
           {open && loaded && AGENCY_WRITERS.has(role) && (
@@ -148,7 +154,7 @@ export default function RequestDetail() {
   );
 }
 
-function DraftView({ draft, lang }: { draft: Draft; lang: string }) {
+function DraftView({ draft, lang, author }: { draft: Draft; lang: string; author: number | null }) {
   const tr = useL();
   // Nilai fakta yang dijawab klien, berdampingan dengan klaim: reviewer & approver membandingkan teks klaim dengan
   // nilai yang benar (termasuk koreksi klien), bukan hanya fact key.
@@ -169,9 +175,15 @@ function DraftView({ draft, lang }: { draft: Draft; lang: string }) {
       <div className="wf-meta">
         <span className="badge badge--neutral">v{draft.version}</span>
         <span className={`badge badge--${draft.mode === "SIMULASI" ? "warning" : "info"}`}>{draft.mode}</span>
+        {draft.agent_id && draft.created_by === null && <span className="badge badge--info">{tr("Written by AI", "Ditulis AI")} · {draft.agent_id}</span>}
         <span className="muted">{draft.skill} · {formatDate(draft.created_at, lang)}</span>
         {draft.fact_sheet_id && <Link className="link" href={`/fact-sheets/${draft.fact_sheet_id}`}>{tr("Fact sheet", "Fact sheet")} #{draft.fact_sheet_id}</Link>}
       </div>
+      {draft.agent_id && draft.created_by === null && (
+        <p className="muted wf-hint">
+          {tr("AI draft: read the whole text, not only the claims below. The AI checked only the claims it reported.", "Draft AI: baca seluruh teks, bukan hanya klaim di bawah. AI hanya mengecek klaim yang ia laporkan.")}
+        </p>
+      )}
       <pre className="wf-content">{draft.content}</pre>
       {draft.claims.length > 0 && (
         <div className="table-wrap">
@@ -181,7 +193,7 @@ function DraftView({ draft, lang }: { draft: Draft; lang: string }) {
               {draft.claims.map((c) => {
                 const f = c.fact_key ? facts[c.fact_key] : undefined;
                 return (
-                  <tr key={c.id}>
+                  <tr key={c.id} className={c.evidence_label === "RISK" ? "wf-risk" : undefined}>
                     <td>{c.text}</td>
                     <td>{c.category}</td>
                     <td>{c.evidence_label}</td>
@@ -227,21 +239,25 @@ function Records({ rows, head, empty, statusCol }: { rows: ReactNode[][]; head: 
   );
 }
 
-function DecisionForm({ me, req, draft, onDone }: { me: Me; req: WfRequest; draft: Draft; onDone: () => void }) {
+function DecisionForm({ me, req, draft, author, onDone }: { me: Me; req: WfRequest; draft: Draft; author: number | null; onDone: () => void }) {
   const tr = useL();
   const { lang } = useLang();
   const member = memberFor(me, req.client_code);
   const role = member?.role ?? "";
   const max = LEVELS.indexOf((member?.max_level ?? "L1") as (typeof LEVELS)[number]);
-  const minimum = Math.max(LEVELS.indexOf(req.approval_min as (typeof LEVELS)[number]), draft.claims.some((c) => c.fact_key) ? 1 : 0);
+  // Sama dengan database (clau_draft_min_level): klaim fakta, atau draft AI untuk klien nyata, minimal L2.
+  const agentReal = draft.created_by === null && !!draft.agent_id && draft.mode === "NYATA";
+  const minimum = Math.max(LEVELS.indexOf(req.approval_min as (typeof LEVELS)[number]), draft.claims.some((c) => c.fact_key) || agentReal ? 1 : 0);
   const levels = LEVELS.filter((_, i) => i >= minimum && i <= max);
   const [level, setLevel] = useState<string>(levels[0] ?? "");
   const [decision, setDecision] = useState<string>(draft.mode === "SIMULASI" ? "Revise" : "Approved");
   const [ref, setRef] = useState("");
   const [msg, setMsg] = useState<Msg>(null);
   if (!SENIOR.has(role) && role !== "client_approver") return null;
-  if (draft.created_by === me.user.id)
-    return <Card><p className="muted">{tr("You wrote this draft, so someone else must decide on it.", "Kamu yang menulis draft ini, jadi orang lain yang memutuskan.")}</p></Card>;
+  if (author === me.user.id)
+    return <Card><p className="muted">{draft.created_by === null
+      ? tr("You asked the AI for this draft, so someone else must decide on it.", "Kamu yang meminta draft AI ini, jadi orang lain yang memutuskan.")
+      : tr("You wrote this draft, so someone else must decide on it.", "Kamu yang menulis draft ini, jadi orang lain yang memutuskan.")}</p></Card>;
   const agency = SENIOR.has(role);
   const needsRef = agency && decision === "Approved";
 
@@ -288,12 +304,12 @@ function DecisionForm({ me, req, draft, onDone }: { me: Me; req: WfRequest; draf
   );
 }
 
-function QAForm({ me, role, draft, onDone }: { me: Me; role: string; draft: Draft; onDone: () => void }) {
+function QAForm({ me, role, draft, author, onDone }: { me: Me; role: string; draft: Draft; author: number | null; onDone: () => void }) {
   const tr = useL();
   const { lang } = useLang();
   const [gate, setGate] = useState<string>("claim-verification");
   const [result, setResult] = useState<string>("Pass");
-  const canIndependent = SENIOR.has(role) && draft.created_by !== me.user.id;
+  const canIndependent = SENIOR.has(role) && author !== me.user.id;
   const [independent, setIndependent] = useState(canIndependent);
   const [msg, setMsg] = useState<Msg>(null);
 
@@ -325,7 +341,7 @@ function QAForm({ me, role, draft, onDone }: { me: Me; role: string; draft: Draf
           <input type="checkbox" checked={independent && canIndependent} disabled={!canIndependent} onChange={(e) => setIndependent(e.target.checked)} />
           {tr("Independent review (not the author)", "Review independen (bukan pembuat)")}
         </label>
-        {!canIndependent && <span className="muted wf-hint">{tr("Independent reviews are by the owner or a content lead who didn't write the draft.", "Review independen oleh owner atau content lead yang tidak menulis draft.")}</span>}
+        {!canIndependent && <span className="muted wf-hint">{tr("Independent reviews are by the owner or a content lead who didn't write the draft (or ask the AI for it).", "Review independen oleh owner atau content lead yang tidak menulis draft (atau meminta AI menulisnya).")}</span>}
         <Notice msg={msg} />
         <button type="submit" className="btn btn--secondary">{tr("Save review", "Simpan review")}</button>
       </form>
