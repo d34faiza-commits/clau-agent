@@ -1,6 +1,6 @@
 name: Notify Downstream
 
-# Setelah push ke main, minta clau-ai-marketing (memuat agents sebagai submodule) men-sync submodule sekarang
+# Setelah push ke main, minta clau-market (memuat agents sebagai submodule) men-sync submodule sekarang
 # (tidak menunggu jadwal harian). Butuh secret SUBMODULE_TOKEN dengan akses
 # Contents: write ke repo tujuan; tanpa secret, job dilewati (notice).
 on:
@@ -18,7 +18,7 @@ jobs:
     env:
       HAS_TOKEN: ${{ secrets.SUBMODULE_TOKEN != '' }}
       GH_TOKEN: ${{ secrets.SUBMODULE_TOKEN }}
-      TARGETS: d34faiza-commits/clau-ai-marketing
+      TARGETS: d34faiza-commits/clau-market
     steps:
       - name: Token check
         if: env.HAS_TOKEN != 'true'

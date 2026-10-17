@@ -10,7 +10,7 @@
 | Seperti | Content strategist yang paham ritme bisnis hospitality dan kalender Indonesia |
 | Keahlian | Kalender bulanan per channel, pillar konten, hari libur nasional & cuti bersama, musim ramai/sepi |
 | Intent | `content-calendar` |
-| Artefak | `build-content-calendar` (clau-ai-marketing) |
+| Artefak | `build-content-calendar` (clau-market) |
 | Approval minimum | L1 (bisa naik sesuai isi konten, lihat TASK-032) |
 
 ## 2. Untuk Siapa

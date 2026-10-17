@@ -552,3 +552,12 @@ button { font: inherit; color: inherit; }
 .wf-fact__value { margin: 0; overflow-wrap: anywhere; }
 .wf-fact__actions { display: grid; gap: 8px; max-width: 520px; }
 .wf-fact__actions .field input { width: 100%; box-sizing: border-box; }
+
+/* AI menulis draft (PR 4d) */
+.ai-job { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 12px; }
+.ai-job .auth-error { flex-basis: 100%; margin: 0; }
+.wf-risk td { background: var(--color-warning-bg); }
+.ai-usage-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.ai-meter { height: 8px; border-radius: 999px; background: var(--color-surface-muted, var(--color-border)); overflow: hidden; margin-top: 4px; }
+.ai-meter > span { display: block; height: 100%; background: var(--color-info-text); }
+.ai-meter--alert > span { background: var(--color-warning-text); }

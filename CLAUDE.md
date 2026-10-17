@@ -1,17 +1,17 @@
-# CLAUDE.md — clau-ai-agents
+# CLAUDE.md — clau-agent
 
 > Peta repo untuk AI agent. Baca file ini dulu sebelum menjelajah repo. Last updated: 2026-10-14
 
-> 🔔 **Sesi baru: baca [status & handoff CLAU AI](https://github.com/d34faiza-commits/CLAU-AI-CONTENT/blob/main/docs/status.md) dulu** (otoritas, keputusan yang sudah diambil, status, pekerjaan terbuka). Repo Jerco milik Pak Indra: jangan disentuh tanpa persetujuan beliau.
+> 🔔 **Sesi baru: baca [status & handoff CLAU AI](https://github.com/d34faiza-commits/clau-content/blob/main/docs/status.md) dulu** (otoritas, keputusan yang sudah diambil, status, pekerjaan terbuka). Repo Jerco milik Pak Indra: jangan disentuh tanpa persetujuan beliau.
 
 ## 1. Identitas
 
 | Item | Nilai |
 |---|---|
-| Repo | `d34faiza-commits/clau-ai-agents` (private) |
+| Repo | `d34faiza-commits/clau-agent` (public, hanya untuk dilihat; LICENSE) |
 | Peran | Platform: registry agent, backend FastAPI, frontend Next.js |
-| Submodule | `core/` → clau-ai-core |
-| Status | Backend v0.8.0: API registry + login & hak akses (sesi cookie, CSRF, 2FA wajib owner dengan QR & kode cadangan, `/users` owner) + workflow request → draft → QA → approval (`app/workflow.py`) + klien, fact sheet & Konfirmasi Fakta (`app/facts.py`), matriks izin Rule 08 dengan aturan di database, di atas PostgreSQL 16 (migrasi 0001–0005), backup terenkripsi. UI: `/requests`, `/fact-sheets`, tambah klien di `/users`. Belum: pemanggilan AI model |
+| Submodule | `core/` → clau-core |
+| Status | Backend v0.9.0: API registry + login & hak akses (sesi cookie, CSRF, 2FA wajib owner dengan QR & kode cadangan, `/users` owner) + workflow request → draft → QA → approval (`app/workflow.py`) + klien, fact sheet & Konfirmasi Fakta (`app/facts.py`), matriks izin Rule 08 dengan aturan di database, + **antrean AI menulis draft** (`app/ai/`: job, worker container terpisah, AI fact-check, batas biaya; provider tiruan, provider Claude menyusul PR 4c) di atas PostgreSQL 16 (migrasi 0001–0006), backup terenkripsi. UI: `/requests` (termasuk *Buat draft dengan AI*), `/fact-sheets`, `/ai-usage` (owner), tambah klien di `/users`. Belum: provider AI nyata |
 
 ## 2. Peta File
 
@@ -21,19 +21,20 @@
 | `agents/avatars/` | Master avatar 3D per agent + README (aturan, status gambar); crop UI di `frontend/public/agents/`; dijaga `backend/tests/test_avatars.py` |
 | `agents/personas/` | Kartu persona per agent (gaya bahasa, etika, batas & eskalasi, contoh) |
 | `agents/evals/` | Kasus uji per agent + `run_evals.py` + rubrik "seperti manusia ahli" |
+| `backend/app/ai/` | Tahap 2: `routes.py` (`/requests/{id}/ai-drafts`, `/ai-jobs`, `/ai-usage`, `/ai-budgets`), `worker.py` (antrean SKIP LOCKED, retry, `python -m app.ai.worker`), `factcheck.py` (fakta klien + AI fact-check), `prompt.py` (penyamaran + prompt stabil), `provider.py` (antarmuka + provider tiruan), `budget.py`. Aturan data: core AI-BOUNDARY § Data ke Provider AI |
 | `backend/app/main.py` · `backend/app/workflow.py` · `backend/app/facts.py` | `GET /health`, `GET /agents`, `GET /pillars`, `POST /route` · `/requests`, `/drafts`, `/qa-records`, `/approvals` (aturan data migrasi 0004) · `/clients`, `/fact-sheets` (aturan data migrasi 0005); peran & isolasi klien di API; tanpa endpoint publish. Inventaris endpoint & jembatan frontend dikunci `tests/test_security.py` |
 | `backend/app/auth/` | Login, sesi, CSRF, 2FA TOTP + kode cadangan, hak akses dari `memberships` (`access.py`), `/users` (owner), CLI `create-owner` / `reset-mfa` / `purge-sessions` |
-| `backend/app/db/` · `backend/migrations/` | Model SQLAlchemy (18 tabel `core/shared/database-schema.md`), bootstrap role (migrasi vs aplikasi), seed SIMULASI; migrasi Alembic + trigger Constraint Wajib. Ubah skema = migrasi baru |
+| `backend/app/db/` · `backend/migrations/` | Model SQLAlchemy (21 tabel `core/shared/database-schema.md`), bootstrap role (migrasi vs aplikasi), seed SIMULASI; migrasi Alembic + trigger Constraint Wajib. Ubah skema = migrasi baru |
 | `backend/tests/` | Test API, konsistensi registry ↔ `core/orchestrator/router.md` & tabel pilar `core/README.md`, persona & eval, `test_db.py` (Constraint Wajib ke PostgreSQL sungguhan; butuh `CLAU_TEST_DB_ADMIN_URL`), `test_workflow.py` (matriks izin, IDOR, aturan approval lewat API), `test_facts.py` (fact sheet & Konfirmasi Fakta) |
-| `frontend/` | Next.js App Router; halaman registry agent, `/login`, `/account`, `/users` (owner, juga tambah klien), `/requests` & `/requests/[id]` (draft, QA, keputusan), `/fact-sheets` & `/fact-sheets/[id]` (Konfirmasi Fakta); `app/api/[...path]` = jembatan ke backend; `proxy.ts` = penjaga halaman bila `CLAU_AUTH_ENABLED=1` |
-| `scripts/` | `init-env.sh`, `db-backup.sh` / `db-restore.sh` (backup terenkripsi + uji restore), `sync-submodules.sh`, `check-core-pins.sh`, `deploy/` (VPS 1 `vps1-*`, VPS 2 `vps2-*`) |
+| `frontend/` | Next.js App Router; halaman registry agent, `/login`, `/account`, `/users` (owner, juga tambah klien), `/requests` & `/requests/[id]` (draft, QA, keputusan), `/fact-sheets` & `/fact-sheets/[id]` (Konfirmasi Fakta), `/ai-usage` (owner: biaya & batas AI); `components/AiPanel.tsx` + `lib/ai.ts` = UI antrean AI; `app/api/[...path]` = jembatan ke backend; `proxy.ts` = penjaga halaman bila `CLAU_AUTH_ENABLED=1` |
+| `scripts/` | `init-env.sh`, `db-backup.sh` / `db-restore.sh` (backup terenkripsi + uji restore; `backup_hmac.py`, `db-summary.sql`), `sync-submodules.sh`, `check-core-pins.sh`, `deploy/` (VPS 1 `vps1-*`, VPS 2 `vps2-*`) |
 | `.env.example` | Semua variabel environment + arti & default aman; tanpa secret (dites `backend/tests/test_env.py`) |
 | `docker-compose.yml` · `backend/Dockerfile` · `frontend/Dockerfile` · `.dockerignore` | Container backend + frontend: non-root, read-only, port 127.0.0.1; base image dipin digest; dicek job CI `docker` |
 | `SUBMODULE.md` | Panduan submodule & GitHub Actions |
 | `.github/workflows/` | `ci.yml` (`backend`, `frontend`, `audit`, `docker`, `release-vps1`), `cross-repo-validate.yml`, `sync-submodules.yml`, `notify-downstream.yml`, `main-guard.yml` |
 | `backend/README.md` · `frontend/README.md` | Detail backend (auth, database, backup) · halaman & data frontend |
 | `docs/deploy/vps-1-setup.md` | VPS 1 (pratinjau, tanpa login): setup, auto-deploy, user khusus, `clau-vps1-check` |
-| `docs/deploy/vps-2-setup.md` | VPS 2 (backend + database + login, tanpa domain: HTTPS Tailscale khusus tailnet): `scripts/deploy/vps2-setup.sh`, deploy otomatis dengan rollback skema, backup harian terenkripsi, `clau-vps2-check` |
+| `docs/deploy/vps-2-setup.md` | VPS 2 (backend + database + login, tanpa domain: HTTPS Tailscale khusus tailnet): `scripts/deploy/vps2-setup.sh`, deploy otomatis dengan rollback skema, backup terenkripsi tiap 6 jam + Backblaze B2, pemulihan manual `clau-vps2-restore` (§ 5, termasuk server pengganti), `clau-vps2-check` |
 | `docs/security.md` | Audit & aturan keamanan: header, Nginx, sandbox systemd, supply chain; **aturan wajib sebelum login/DB/AI/WhatsApp di VPS 2** (§ 6) |
 | `docs/post-vps-checklist.md` | **Pengingat:** langkah wajib setelah VPS 1 & 2 siap (AI provider, eval 33 kasus, aktivasi pilar 2–4) |
 
@@ -49,7 +50,7 @@ cd frontend && npm ci && npm run build
 scripts/init-env.sh && docker compose up -d --build --wait   # db + migrate + backend + frontend; docker compose down
 ```
 
-Spesifikasi UI/UX (Portal Klien & Studio) dan design tokens ada di repo arsip `CLAU-AI-CONTENT/design/`.
+Spesifikasi UI/UX (Portal Klien & Studio) dan design tokens ada di repo arsip `clau-content/design/`.
 
 ## Aturan Kerja untuk Agent
 

@@ -31,7 +31,7 @@ for t in clau2-deploy.timer clau2-backup.timer apt-daily-upgrade.timer; do
 done
 
 judul "Aplikasi (docker compose)"
-for s in db backend frontend; do
+for s in db backend worker frontend; do
   state=$(cd "$REPO" && docker compose ps --format '{{.Service}} {{.Health}}' 2>/dev/null | awk -v s="$s" '$1 == s {print $2}')
   [ "$state" = healthy ] && ok "$s sehat" || gagal "$s: '${state:-tidak jalan}' (cd $REPO && sudo docker compose logs --tail 50 $s)"
 done
@@ -45,7 +45,7 @@ code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/requests)
 [ "$code" = 307 ] && ok "halaman kerja wajib login (307)" || gagal "/requests tanpa login: $code (seharusnya 307)"
 code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/docs)
 [ "$code" = 404 ] && ok "dokumentasi API tertutup (404)" || gagal "/docs: $code (seharusnya 404, CLAU_ENV=production)"
-for c in $(cd "$REPO" && docker compose ps -q backend frontend 2>/dev/null); do
+for c in $(cd "$REPO" && docker compose ps -q backend worker frontend 2>/dev/null); do
   uid=$(docker exec "$c" id -u 2>/dev/null)
   [ -n "$uid" ] && [ "$uid" != 0 ] && ok "container $(docker inspect -f '{{.Name}}' "$c" | tr -d /) bukan root" || gagal "container $c jalan sebagai root"
 done
@@ -85,10 +85,25 @@ latest=$(ls -1t "$REPO"/backups/clau-*.dump.enc 2>/dev/null | head -1)
 if [ -z "$latest" ]; then gagal "belum ada backup database (sudo clau-vps2-backup)"
 else
   age=$(( ($(date +%s) - $(stat -c %Y "$latest")) / 3600 ))
-  [ "$age" -le 26 ] && ok "backup terakhir $age jam lalu ($(ls -1 "$REPO"/backups/clau-*.dump.enc | wc -l) file)" || gagal "backup terakhir $age jam lalu (lebih dari sehari)"
+  # Jadwal tiap 6 jam: lebih dari 13 jam = paling sedikit dua backup terlewat.
+  [ "$age" -le 13 ] && ok "backup terakhir $age jam lalu ($(ls -1 "$REPO"/backups/clau-*.dump.enc | wc -l) file, tiap 6 jam)" || gagal "backup terakhir $age jam lalu (jadwal tiap 6 jam; journalctl -u clau2-backup -n 50)"
   [ -s "$latest.hmac" ] && ok "backup punya HMAC (cek keutuhan)" || gagal "backup tanpa .hmac"
 fi
-cek "salinan backup di luar server (Backblaze B2) belum ada: NEXT ACTION; simpan CLAU_BACKUP_PASSPHRASE di password manager"
+verified=$(stat -c %Y "$ROOT/.verify-last" 2>/dev/null || echo 0)
+[ $(( ($(date +%s) - verified) / 86400 )) -le 8 ] && ok "uji restore terakhir $(( ($(date +%s) - verified) / 86400 )) hari lalu" \
+  || cek "uji restore belum jalan minggu ini (sudo clau-vps2-backup --verify)"
+command -v clau-vps2-restore >/dev/null && ok "alat pemulihan terpasang (sudo clau-vps2-restore)" || gagal "clau-vps2-restore belum terpasang (jalankan ulang vps2-setup.sh)"
+if [ -f "$ETC/offsite.env" ]; then
+  perm=$(stat -c '%a %U' "$ETC/offsite.env")
+  [ "$perm" = "600 root" ] && ok "key B2 chmod 600 milik root" || gagal "key B2: '$perm' (seharusnya 600 root)"
+  sent=0 sent_name=""
+  [ -f "$ROOT/.offsite-last" ] && read -r sent sent_name < "$ROOT/.offsite-last"
+  sent_age=$(( ($(date +%s) - ${sent:-0}) / 3600 ))
+  [ "$sent_age" -le 13 ] && ok "salinan B2 terakhir $sent_age jam lalu (${sent_name:-?})" \
+    || gagal "salinan B2 terakhir $sent_age jam lalu (journalctl -u clau2-backup -n 50)"
+else
+  cek "salinan backup di luar server (Backblaze B2) belum disetel: sudo clau-vps2-offsite setup (panduan § I)"
+fi
 
 judul "Deploy"
 live=$(cat "$ROOT/.live-sha" 2>/dev/null)

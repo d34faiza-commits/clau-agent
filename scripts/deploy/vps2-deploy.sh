@@ -46,7 +46,7 @@ healthy() {
 
 env_value() { grep -m1 "^$1=" .env | cut -d= -f2-; }
 db_rev() {
-  docker compose exec -T -e PGPASSWORD="$(env_value POSTGRES_PASSWORD)" db \
+  PGPASSWORD="$(env_value POSTGRES_PASSWORD)" docker compose exec -T -e PGPASSWORD db \
     psql -h 127.0.0.1 -U postgres -d clau -tAc "SELECT version_num FROM alembic_version" 2>/dev/null || true
 }
 prev_rev=$(db_rev)

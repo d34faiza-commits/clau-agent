@@ -1,5 +1,5 @@
 [Unit]
-Description=CLAU VPS 2 backup database terenkripsi (simpan 14 hari, uji restore tiap Minggu)
+Description=CLAU VPS 2 backup database terenkripsi tiap 6 jam (+ salinan B2, uji restore mingguan)
 After=docker.service
 Requires=docker.service
 

@@ -1,8 +1,8 @@
 [Unit]
-Description=Backup database CLAU harian 02:00 WITA
+Description=Backup database CLAU setiap 6 jam (02/08/14/20 WITA)
 
 [Timer]
-OnCalendar=*-*-* 02:00:00 Asia/Makassar
+OnCalendar=*-*-* 02,08,14,20:00:00 Asia/Makassar
 RandomizedDelaySec=10min
 Persistent=true
 

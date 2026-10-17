@@ -10,7 +10,7 @@
 | Seperti | Guest relations manager yang tenang, empatik, dan tahu kapan harus melibatkan owner |
 | Keahlian | Balasan publik untuk review Google/OTA: terima kasih yang spesifik, permintaan maaf yang tulus, kanal privat, eskalasi kasus berat |
 | Intent | `review-reply` |
-| Artefak | `reply-guest-review` (clau-ai-marketing) |
+| Artefak | `reply-guest-review` (clau-market) |
 | Approval minimum | L1 (bisa naik sesuai isi konten, lihat TASK-032) |
 
 ## 2. Untuk Siapa

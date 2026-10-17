@@ -113,6 +113,9 @@ ENDPOINTS = {
     ("GET", "/clients"), ("POST", "/clients"),
     ("POST", "/fact-sheets"), ("GET", "/fact-sheets"), ("GET", "/fact-sheets/{sheet_id}"),
     ("POST", "/fact-sheets/{sheet_id}/confirmations"), ("POST", "/fact-sheets/{sheet_id}/approve"),
+    # AI menulis draft (0.9.0): hanya membuat/membaca/membatalkan job; draft dibuat worker, tanpa publish.
+    ("POST", "/requests/{request_id}/ai-drafts"), ("GET", "/ai-jobs"), ("GET", "/ai-jobs/{job_id}"),
+    ("POST", "/ai-jobs/{job_id}/cancel"), ("GET", "/ai-usage"), ("PUT", "/ai-budgets"),
 }
 
 

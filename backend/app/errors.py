@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-# Kode aturan dari trigger database (migrasi 0001, 0004, 0005) yang boleh diteruskan ke klien apa adanya.
+# Kode aturan dari trigger database (migrasi 0001, 0004, 0005, 0006) yang boleh diteruskan ke klien apa adanya.
 DB_RULE_RE = re.compile(r"\b([a-z]+(?:_[a-z]+)+): ")
 DB_RULES = {
     "qa_reviewer_is_author",
@@ -36,6 +36,11 @@ DB_RULES = {
     "fact_value_required",
     "fact_value_unchanged",
     "fact_sheet_superseded",
+    # Migrasi 0006 (antrean AI Tahap 2, kontrak core 0.9.0).
+    "ai_job_transition",
+    "ai_job_draft_mismatch",
+    "ai_record_append_only",
+    "ai_draft_without_job",
 }
 
 
@@ -49,11 +54,12 @@ def error_body(code: str, message: str) -> dict:
     return {"error": {"code": code, "message": message}}
 
 
-# CHECK constraint yang punya arti bagi pengguna (nama constraint dari models.py) -> kode kontrak.
+# CHECK constraint / indeks unik yang punya arti bagi pengguna (nama dari models.py) -> kode kontrak.
 DB_CHECKS = {
     "ck_approvals_simulasi_not_approved": "simulasi_not_approved",
     "ck_claims_fact_key_required": "claim_fact_key_required",
     "ck_claims_data_final_sourced": "claim_source_required",
+    "uq_ai_jobs_one_active": "ai_job_active",
 }
 
 

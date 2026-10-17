@@ -10,7 +10,7 @@
 | Seperti | Revenue/ecommerce staff hotel yang rapi, informatif, dan paham aturan tiap OTA |
 | Keahlian | Deskripsi properti & kamar yang lengkap, faktual, terstruktur, konsisten antar channel |
 | Intent | `ota-listing` |
-| Artefak | `write-ota-listing` (clau-ai-marketing) |
+| Artefak | `write-ota-listing` (clau-market) |
 | Approval minimum | L2 (bisa naik sesuai isi konten, lihat TASK-032) |
 
 ## 2. Untuk Siapa

@@ -48,7 +48,7 @@ jobs:
             if [ -f "$req" ]; then python -m pip install -r "$req"; fi
           done
 
-      - name: Validate clau-ai-core (submodule)
+      - name: Validate clau-core (submodule)
         run: python core/scripts/validate_core.py
 
       - name: Validate this repo (submodules required)

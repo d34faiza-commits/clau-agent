@@ -10,7 +10,7 @@
 | Seperti | Penerjemah hospitality bilingual yang menjaga makna, nada, dan klaim tetap sama |
 | Keahlian | Lokalisasi (bukan terjemahan literal), istilah lokal dengan penjelasan, konsistensi klaim antar bahasa |
 | Intent | `localize` |
-| Artefak | `localize-content` (clau-ai-marketing) |
+| Artefak | `localize-content` (clau-market) |
 | Approval minimum | L1 (bisa naik sesuai isi konten, lihat TASK-032) |
 
 ## 2. Untuk Siapa

@@ -1,8 +1,8 @@
-# clau-ai-agents
+# clau-agent
 
-**Platform CLAU AI**: tempat agent menjalankan skill dari repo pilar untuk bisnis hospitality Indonesia. Repo ini berisi kode (frontend Next.js, backend FastAPI) dan **registry agent**. Aturan isi konten tidak ditulis di sini; aturan ada di [clau-ai-core](https://github.com/d34faiza-commits/clau-ai-core) (submodule `core/`) dan repo pilar.
+**Platform CLAU AI**: tempat agent menjalankan skill dari repo pilar untuk bisnis hospitality Indonesia. Repo ini berisi kode (frontend Next.js, backend FastAPI) dan **registry agent**. Aturan isi konten tidak ditulis di sini; aturan ada di [clau-core](https://github.com/d34faiza-commits/clau-core) (submodule `core/`) dan repo pilar.
 
-> **Status:** Private. Backend v0.8.0: PostgreSQL 16 (migrasi 0001–0005), login + 2FA (QR & kode cadangan) + `/users`, backup terenkripsi, workflow request → draft → QA → approval dan fact sheet + Konfirmasi Fakta oleh klien (aturan Rule 08 dicek server & database), dengan halaman UI-nya (`/requests`, `/fact-sheets`). Belum: pemanggilan AI model. Status kerja terkini: [status & handoff](https://github.com/d34faiza-commits/CLAU-AI-CONTENT/blob/main/docs/status.md).
+> **Status:** Public, hanya untuk dilihat ([LICENSE](./LICENSE)). Backend v0.9.0: PostgreSQL 16 (migrasi 0001–0006), login + 2FA (QR & kode cadangan) + `/users`, backup terenkripsi tiap 6 jam + Backblaze B2, workflow request → draft → QA → approval dan fact sheet + Konfirmasi Fakta oleh klien (aturan Rule 08 dicek server & database), antrean AI menulis draft dengan AI fact-check & batas biaya (provider tiruan; provider Claude menyusul), dengan halaman UI-nya (`/requests`, `/fact-sheets`, `/ai-usage`). Status kerja terkini: [status & handoff](https://github.com/d34faiza-commits/clau-content/blob/main/docs/status.md).
 
 ## Prinsip Platform
 
@@ -13,9 +13,9 @@
 ## Struktur
 
 ```text
-clau-ai-agents/
+clau-agent/
 ├── README.md · SUBMODULE.md · ACKNOWLEDGMENT.md · LICENSE
-├── core/                 # submodule → clau-ai-core
+├── core/                 # submodule → clau-core
 ├── agents/
 │   ├── README.md · registry.json   # agent → intent → skill/prompt/template di repo pilar
 │   └── avatars/ · personas/ · evals/
@@ -36,8 +36,8 @@ clau-ai-agents/
 Panduan submodule (update, sync, troubleshooting, GitHub Actions): [SUBMODULE.md](./SUBMODULE.md).
 
 ```bash
-git clone --recurse-submodules https://github.com/d34faiza-commits/clau-ai-agents.git
-cd clau-ai-agents
+git clone --recurse-submodules https://github.com/d34faiza-commits/clau-agent.git
+cd clau-agent
 
 # Backend
 cd backend && pip install -r requirements.txt && pytest && uvicorn app.main:app --reload
@@ -63,7 +63,7 @@ docker compose down                        # data tetap di volume db-data (hapus
 - **Environment:** semua variabel ada di [`.env.example`](./.env.example) beserta artinya. `.env` tidak di-commit; secret (password database, API key AI, WhatsApp) hanya di `.env` lokal/server, tidak pernah di repo ([docs/security.md](./docs/security.md) § 6). Test `backend/tests/test_env.py` memastikan setiap variabel yang dibaca kode tercantum dan tidak ada secret di template.
 - **Image:** `backend/Dockerfile` (Python 3.12, dependency runtime saja: `backend/requirements-runtime.txt`) dan `frontend/Dockerfile` (Node 22, Next.js output standalone). Base image dipin ke digest dan diperbarui Dependabot. Build context = root repo dengan `.dockerignore` allowlist, jadi `.env`, `.git`, dan `core/` tidak pernah ikut ke image.
 - **Pengamanan container:** user non-root, filesystem read-only, tanpa capability Linux, `no-new-privileges`, batas memori & proses, port hanya di `127.0.0.1` (publik lewat Nginx + TLS). Dicek job CI `docker`.
-- **VPS 1** tetap memakai deploy tarik + systemd dengan user khusus `clau-web` / `clau-deploy` dan cek harian `clau-vps1-check` ([docs/deploy/vps-1-setup.md](./docs/deploy/vps-1-setup.md)); compose ini dipakai untuk kerja lokal dan untuk **VPS 2** (backend + database + login lewat HTTPS Tailscale sampai ada domain, deploy otomatis dengan rollback, backup harian; [docs/deploy/vps-2-setup.md](./docs/deploy/vps-2-setup.md)).
+- **VPS 1** tetap memakai deploy tarik + systemd dengan user khusus `clau-web` / `clau-deploy` dan cek harian `clau-vps1-check` ([docs/deploy/vps-1-setup.md](./docs/deploy/vps-1-setup.md)); compose ini dipakai untuk kerja lokal dan untuk **VPS 2** (backend + database + login lewat HTTPS Tailscale sampai ada domain, deploy otomatis dengan rollback, backup tiap 6 jam + Backblaze B2, pemulihan `clau-vps2-restore`; [docs/deploy/vps-2-setup.md](./docs/deploy/vps-2-setup.md)).
 
 ## Roadmap Platform
 
@@ -80,4 +80,4 @@ Setiap tahap tetap Level 1 otomasi (manusia yang publish), kecuali owner menyetu
 
 ## Lisensi
 
-Proprietary, private use. Lihat [LICENSE](./LICENSE).
+Proprietary, source-available (hanya untuk dilihat; tidak boleh disalin, dipakai, atau dipakai melatih AI tanpa izin tertulis). Lihat [LICENSE](./LICENSE).

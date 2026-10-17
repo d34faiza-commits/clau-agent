@@ -12,7 +12,7 @@ Daftar 5 pilar (`id`, `name.en`/`name.id`, `status`, `repo`). Nama, status, dan 
 
 | # | Pilar | Status | Repo |
 |---|---|---|---|
-| 1 | AI Marketing | `active` | clau-ai-marketing |
+| 1 | AI Marketing | `active` | clau-market |
 | 2 | AI Sales | `planned` | — |
 | 3 | AI Admin | `planned` | — |
 | 4 | AI Business Intelligence | `planned` (intent `report` sementara memakai template Pilar 1) | — |

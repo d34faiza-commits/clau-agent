@@ -31,7 +31,7 @@ Input dibatasi, body ≤ 64 KB, Host divalidasi, header keamanan di setiap respo
 
 ## Database
 
-PostgreSQL 16 (SQLAlchemy 2 + Alembic + psycopg 3). Skema mengikuti kontrak [`core/shared/database-schema.md`](../core/shared/database-schema.md): 18 tabel di `app/db/models.py`, migrasi di `migrations/versions/`.
+PostgreSQL 16 (SQLAlchemy 2 + Alembic + psycopg 3). Skema mengikuti kontrak [`core/shared/database-schema.md`](../core/shared/database-schema.md): 21 tabel di `app/db/models.py`, migrasi di `migrations/versions/`.
 
 | Aturan (Constraint Wajib kontrak) | Ditegakkan oleh |
 |---|---|
@@ -91,14 +91,14 @@ Test: `tests/test_auth.py` (53 test ke PostgreSQL sungguhan, termasuk replay kod
 ```bash
 scripts/db-backup.sh                                   # backups/clau-<UTC>.dump.enc + .hmac (chmod 600)
 scripts/db-restore.sh --verify backups/clau-….dump.enc # uji restore ke database sementara (bulanan)
-scripts/db-restore.sh --yes    backups/clau-….dump.enc # ganti isi database (backend dihentikan sementara)
+scripts/db-restore.sh --yes    backups/clau-….dump.enc # ganti isi database: backup isi sekarang dulu, restore ke database baru, tukar, cek sehat
 ```
 
-`pg_dump` → AES-256 (PBKDF2 600.000 iterasi) dengan `CLAU_BACKUP_PASSPHRASE`, HMAC-SHA256 dicek sebelum restore (file diubah = ditolak). Passphrase disimpan owner terpisah dari backup; salin backup ke luar server (Backblaze B2). Dites di CI job `docker`.
+`pg_dump` → AES-256 (PBKDF2 600.000 iterasi) dengan `CLAU_BACKUP_PASSPHRASE`, HMAC-SHA256 dicek sebelum restore (file diubah = ditolak; `scripts/backup_hmac.py`, passphrase lewat environment, tidak pernah jadi argumen proses). `--verify` mencetak ringkasan isi (`scripts/db-summary.sql`). Passphrase disimpan owner terpisah dari backup. Di VPS 2: backup tiap 6 jam + Backblaze B2 dan pemulihan `sudo clau-vps2-restore` ([`docs/deploy/vps-2-setup.md`](../docs/deploy/vps-2-setup.md) § 5). Backup, uji, dan restore penuh (termasuk backup skema lama dan pembatalan otomatis) dites di CI job `docker`.
 
 ## Workflow (0.7.0, Tahap 1 PR 3)
 
-Request → draft (ditulis manusia) → QA → approval, sesuai kontrak `core/shared/api-contracts.md` § Matriks Izin Workflow dan `clau-ai-marketing/rules/08`. Kode: `app/workflow.py`; aturan data di migrasi `0004`.
+Request → draft (ditulis manusia) → QA → approval, sesuai kontrak `core/shared/api-contracts.md` § Matriks Izin Workflow dan `clau-market/rules/08`. Kode: `app/workflow.py`; aturan data di migrasi `0004`.
 
 | Hal | Cara |
 |---|---|
@@ -126,6 +126,25 @@ Alur `design/user-flow/client-portal-flow.md` § Konfirmasi Fakta; kode `app/fac
 
 Test: `tests/test_facts.py` (alur utuh sampai approval L2, siapa boleh apa, isolasi klien, validasi, audit tanpa nilai) dan `tests/test_db.py` (aturan migrasi 0005, upgrade dari 0004 dengan fact sheet lama). Uji mutasi: 35 pengaman dirusak satu per satu, 34 tertangkap; satu lolos karena pengaman lapis kedua yang sudah dicakup aturan lain (persetujuan lewat alur klien).
 
+## AI Menulis Draft (0.9.0, Tahap 2 PR 4b)
+
+Kontrak: `core/shared/api-contracts.md` § AI Menulis Draft; aturan data: `core/AI-BOUNDARY.md` § Data ke Provider AI (v1.4.0). Kode: `app/ai/`.
+
+| Bagian | Isi |
+|---|---|
+| Alur | `POST /requests/{id}/ai-drafts` → job `ai_jobs` (`queued`) → **worker** `python -m app.ai.worker` (service `worker`, container terpisah) → draft versi baru (`created_by` NULL, `agent_id`) + klaim + QA otomatis → review & approval manusia. Tidak ada publish |
+| AI fact-check | Label bukti ditentukan worker, bukan model: klaim faktual dengan `fact_key` di fact sheet terbaru yang disetujui, kategori sama, dan nilai fakta tertulis di teks klaim = `DATA FINAL` (sumber + tanggal jawaban klien, WITA); tanpa fakta / isi tidak cocok = `RISK` (approval terkunci `facts_unconfirmed`); kategori tak dikenal = `RISK` `other.tanpa-kategori`; `experience`/`other` = `ASSUMPTION`; > 30 klaim = job `invalid_output`. QA otomatis `claim-verification` Pass/Fail, `independent` false |
+| Data ke provider | Hanya fakta yang dikonfirmasi klien (nilai koreksi terakhir) + teks request yang disamarkan (`app/ai/prompt.redact`: email, telepon, kode booking/PNR/voucher, nomor kamar, deret angka panjang → `<KONTAK>` / `<NO_BOOKING>` / `<NO_KAMAR>`; harga, tanggal, jam, kode promo tetap utuh). Prompt urut stabil → bisa di-cache provider; `prompt_version` dicatat |
+| Pengaman | `CLAU_AI_ENABLED=1` wajib (tombol mati global: job antre langsung `ai_disabled`, hasil panggilan yang sedang berjalan tidak disimpan); `CLAU_AI_INTENTS` (default `caption`); provider tiruan (`fake`) hanya untuk klien SIMULASI; fact sheet disetujui wajib; batas biaya `global` bulan berjalan wajib (`PUT /ai-budgets`, owner) + per klien opsional; satu job aktif per request; perkiraan biaya job yang masih antre ikut dihitung (dikunci advisory lock) |
+| Antrean | `FOR UPDATE SKIP LOCKED` (aman untuk banyak worker); panggilan model di luar transaksi; provider tidak tersedia = coba lagi 30/60 s, maks 3; ditolak model = `refused`; worker mati = job dikembalikan (`worker_timeout` setelah 3), worker lama kehilangan lease dan tidak bisa menyimpan (biayanya tetap dicatat); error tak terduga saat menyimpan = `invalid_output`, job tidak macet; `stop_grace_period` 2 menit saat deploy; request ditutup di tengah jalan = `request_closed` |
+| Database (migrasi 0006) | `ai_jobs` (transisi status, beku setelah selesai, tidak dihapus), `ai_calls` append-only (biaya/token, tanpa isi), `ai_budgets`; draft agent untuk klien NYATA hanya dari job yang berjalan (`ai_draft_without_job`) dan minimal L2 (review independen manusia); peminta job = pembuat draft (`qa_reviewer_is_author`, `approval_by_author`) |
+| Biaya | `GET /ai-usage` (owner): total, per klien, per agent, status batas + peringatan (`alert_at_pct`). Mikro-USD |
+| Jejak | `audit_log`: `ai_job.create/succeeded/failed/retry/reaped/cancel`, `ai_budget.set`; tanpa isi request, fakta, atau hasil |
+
+UI (PR 4d): tombol *Buat draft dengan AI* di `/requests/[id]` dan halaman owner `/ai-usage`. Provider Claude (model per tingkat kesulitan, output terstruktur, caching, fallback refusal) menyusul di PR 4c.
+
+Test: `tests/test_ai.py` (termasuk regresi audit 2026-10-16: alur SIMULASI utuh, contoh "private beach" ditandai dan mengunci approval sampai versi tanpa klaim itu, prompt hanya fakta terbaru yang dikonfirmasi + penyamaran, penjaga endpoint, peran & isolasi klien, retry/tolak/request ditutup/worker mati, dua worker tidak mengambil job yang sama, tombol mati, aturan database 0006, batas biaya) dan `tests/compose_ai_smoke.py` (CI job `docker`: container backend → database → container worker).
+
 ## Belum Ada (Planned)
 
-Pemanggilan AI model untuk menulis draft (Tahap 2, VPS 2), notifikasi ke klien, Portal Klien terpisah.
+Provider AI nyata (PR 4c), notifikasi ke klien, Portal Klien terpisah.

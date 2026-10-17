@@ -1,6 +1,6 @@
 # Frontend (Next.js) — UI v2 Enterprise
 
-Platform **CLAU AI** (modul aktif: Content Studio; tampilan v2) mengikuti [`docs/design/2026-10-07-enterprise-ui-brief.txt`](../docs/design/2026-10-07-enterprise-ui-brief.txt). Login (`/login`, `/account`, `/users`, `/requests`, `/fact-sheets`) aktif bila `CLAU_AUTH_ENABLED=1` dan `CLAU_BACKEND_URL` terisi (docker compose / VPS 2); di VPS 1 (tanpa backend) halaman itu menampilkan "login belum aktif" dan data tetap contoh SIMULASI. Belum ada koneksi ke AI model.
+Platform **CLAU AI** (modul aktif: Content Studio; tampilan v2) mengikuti [`docs/design/2026-10-07-enterprise-ui-brief.txt`](../docs/design/2026-10-07-enterprise-ui-brief.txt). Login (`/login`, `/account`, `/users`, `/requests`, `/fact-sheets`, `/ai-usage`) aktif bila `CLAU_AUTH_ENABLED=1` dan `CLAU_BACKEND_URL` terisi (docker compose / VPS 2); di VPS 1 (tanpa backend) halaman itu menampilkan "login belum aktif" dan data tetap contoh SIMULASI. AI menulis draft memakai antrean backend (Tahap 2); saat ini provider tiruan untuk klien SIMULASI, provider Claude menyusul.
 
 ## Versi UI
 
@@ -22,7 +22,7 @@ Platform **CLAU AI** (modul aktif: Content Studio; tampilan v2) mengikuti [`docs
 | Garis | `#E2E8F0` |
 | Status | Success `#16A34A` · Warning `#D97706` · Error `#DC2626` · Info `#2563EB` (selalu dengan label) |
 | Font | Inter |
-| Sumber token | `CLAU-AI-CONTENT/design/tokens/tokens.json` v1.1.0 `semantic.app-v2` (branch snapshot `tokens-v1.1.0-app-v2`) |
+| Sumber token | `clau-content/design/tokens/tokens.json` v1.1.0 `semantic.app-v2` (branch snapshot `tokens-v1.1.0-app-v2`) |
 
 ### Snapshot v3 "AI Workforce" (disimpan atas permintaan Dea Karisna, 2026-10-08)
 
@@ -54,7 +54,8 @@ Platform **CLAU AI** (modul aktif: Content Studio; tampilan v2) mengikuti [`docs
 | `/login` | Masuk: password → kode 2FA atau kode cadangan |
 | `/account` | Akun: ganti password, aktifkan 2FA (QR), kode cadangan, sesi aktif & keluar semua perangkat |
 | `/users` | Owner: buat user, ubah peran/klien, nonaktifkan/aktifkan; tambah klien |
-| `/requests` · `/requests/[id]` | Permintaan konten: buat permintaan, tulis draft per versi (klaim + fact key), catat review QA, catat keputusan klien (bukti tertulis bila dicatat agency). Tidak ada tombol publish |
+| `/requests` · `/requests/[id]` | Permintaan konten: buat permintaan, tulis draft per versi (klaim + fact key), **Buat draft dengan AI** (status job diperbarui tiap 3 detik, batalkan selama antre; draft AI diberi tanda, klaim `RISK` disorot; peminta draft AI tidak diberi form review independen/keputusan), catat review QA, catat keputusan klien (bukti tertulis bila dicatat agency). Tidak ada tombol publish |
+| `/ai-usage` | Owner: biaya AI per bulan (WITA), per klien & per agent, batas global (wajib) & per klien dengan peringatan |
 | `/fact-sheets` · `/fact-sheets/[id]` | Fact sheet per klien: susun versi + daftar fakta, klien menjawab *Benar* / *Perbaiki* per fakta, lalu menyetujui versi itu |
 
 ## Data
@@ -78,8 +79,8 @@ npm run build
 
 ## Keputusan (Dea Karisna, 2026-10-07) — `DATA FINAL`
 
-- Nama produk: **CLAU AI** (wordmark "CLAU AI" + deskriptor modul "Content Studio"; opsi B, keputusan owner 2026-10-09, CLAU-AI-CONTENT#46).
-- Palet UI produk v2: navy + deep teal + putih + slate (token di `app/globals.css`). Dicatat di `CLAU-AI-CONTENT/design/brand/brand-guideline.md` §3b.
+- Nama produk: **CLAU AI** (wordmark "CLAU AI" + deskriptor modul "Content Studio"; opsi B, keputusan owner 2026-10-09, clau-content#46).
+- Palet UI produk v2: navy + deep teal + putih + slate (token di `app/globals.css`). Dicatat di `clau-content/design/brand/brand-guideline.md` §3b.
 - Nama agent (Tara, Raka, Sekar, Bayu, Laras, Dimas, Ayu, Nara, Intan, Galih, Sari, Teguh) disetujui. Sumber nama: `agents/registry.json` (`display_name`). 2026-10-08: nama report-builder dan sales-assistant ditukar (Intan ↔ Galih) agar sesuai figur 3D.
 
 ## Batas

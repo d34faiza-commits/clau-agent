@@ -1,4 +1,4 @@
-// Logo konsep 2 "Terasering" (CLAU-AI-CONTENT/design/brand/logo-concept.md). Belum final: menunggu vektor desainer.
+// Logo konsep 2 "Terasering" (clau-content/design/brand/logo-concept.md). Belum final: menunggu vektor desainer.
 export function LogoMark({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">

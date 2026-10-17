@@ -82,6 +82,10 @@ jobs:
   docker:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    # Worker AI dengan provider tiruan (tanpa biaya, tanpa data keluar). Di level job, bukan per step: restore di
+    # step smoke membuat ulang container backend/worker dan harus memakai nilai yang sama (di VPS nilai ini di .env).
+    env:
+      CLAU_AI_ENABLED: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build & start
@@ -109,15 +113,42 @@ jobs:
           scripts/db-backup.sh
           backup="$(ls -1 backups/*.dump.enc | tail -1)"
           scripts/db-restore.sh --verify "$backup" | tee restore.log
-          grep -q "migrasi 0005" restore.log
+          grep -q "migrasi 0006" restore.log
           # Backup yang diubah 1 byte harus ditolak (HMAC).
-          printf 'x' >> "$backup" && ! scripts/db-restore.sh --verify "$backup"
+          # (`! cmd` tidak menggagalkan step di bash -e; pakai `if`.)
+          printf 'x' >> "$backup"
+          if scripts/db-restore.sh --verify "$backup"; then echo "::error::backup rusak diterima"; exit 1; fi
+          # Pemulihan penuh (clau-vps2-restore, docs/deploy/vps-2-setup.md § 5): backup skema lama (0004) dipulihkan
+          # dan dinaikkan ke skema sekarang; isi sebelumnya disimpan dulu; jejak di audit_log.
+          psql_ci() { docker compose exec -T -e PGPASSWORD="$(grep -m1 '^POSTGRES_PASSWORD=' .env | cut -d= -f2)" db psql -h 127.0.0.1 -U postgres -d clau -qtA "$@"; }
+          docker compose run --rm -T --no-deps migrate alembic downgrade 0004
+          scripts/db-backup.sh ci-skema-lama
+          docker compose run --rm -T --no-deps migrate alembic upgrade head
+          export CLAU_REPO="$PWD" CLAU_OFFSITE_ENV=/nonexistent
+          n="$(scripts/deploy/vps2-restore.sh --list | grep ci-skema-lama | sed 's/^ *\([0-9]*\)\..*/\1/')"
+          if printf '%s\npulihkan\n' "$n" | scripts/deploy/vps2-restore.sh; then echo "::error::konfirmasi salah diterima"; exit 1; fi
+          printf '%s\nPULIHKAN\n' "$n" | scripts/deploy/vps2-restore.sh | tee restore-full.log
+          grep -q "restore selesai" restore-full.log
+          test "$(psql_ci -c 'SELECT version_num FROM alembic_version')" = 0006
+          test "$(psql_ci -c "SELECT count(*) FROM audit_log WHERE action = 'database.restore'")" = 1
+          ls backups/*-sebelum-restore.dump.enc
+          # Backup dari versi aplikasi yang lebih baru: dibatalkan otomatis, database & backend tetap seperti semula.
+          psql_ci -c "UPDATE alembic_version SET version_num = '9999'"
+          scripts/db-backup.sh ci-versi-baru
+          psql_ci -c "UPDATE alembic_version SET version_num = '0006'"
+          if scripts/db-restore.sh --yes "$(ls -1 backups/*ci-versi-baru.dump.enc)"; then echo "::error::backup versi baru diterima"; exit 1; fi
+          test "$(psql_ci -c 'SELECT version_num FROM alembic_version')" = 0006
+          test "$(psql_ci -c "SELECT count(*) FROM audit_log WHERE action = 'database.restore'")" = 1
           curl -fsS http://127.0.0.1:8000/health
           curl -fsS -o /dev/null http://127.0.0.1:3000/
           curl -fsS -o /dev/null http://127.0.0.1:3000/agents
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/docs)" = 404
           test "$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: evil.example' http://127.0.0.1:8000/health)" = 400
-          for s in backend frontend; do test "$(docker compose exec -T "$s" id -u)" != 0; done
+          for s in backend worker frontend; do test "$(docker compose exec -T "$s" id -u)" != 0; done
+          # Antrean AI ujung ke ujung: job → worker (container terpisah) → draft agent + AI fact-check + QA + biaya.
+          docker compose exec -T backend python - < backend/tests/compose_ai_smoke.py
+          # Worker tidak memegang password admin/migrasi database.
+          test -z "$(docker compose exec -T worker env | grep -E '^(POSTGRES_PASSWORD|CLAU_DB_MIGRATOR_PASSWORD|CLAU_DB_ADMIN_URL|CLAU_SECRET_KEY)=')"
           docker image ls --format '{{.Repository}}:{{.Tag}} {{.Size}}' | grep ':local'
       - name: Logs
         if: failure()

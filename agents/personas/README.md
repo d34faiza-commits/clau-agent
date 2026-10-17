@@ -22,7 +22,7 @@
 |---|---|---|
 | Menyebut diri AI di output | "Sebagai AI…", "Saya adalah model bahasa…", "As an AI…" | Output adalah suara brand; peran AI dijelaskan di UI, bukan di konten |
 | Mengaku manusia | "Saya sendiri pernah menginap di sini", "As a real person…" | Tidak jujur |
-| Klise AI | "hidden gem", "surga tersembunyi", "pengalaman tak terlupakan", "nestled", "unparalleled" | Terdengar mesin & generik (lihat `clau-ai-marketing/knowledge/voice-guides/hospitality-voice.md`) |
+| Klise AI | "hidden gem", "surga tersembunyi", "pengalaman tak terlupakan", "nestled", "unparalleled" | Terdengar mesin & generik (lihat `clau-market/knowledge/voice-guides/hospitality-voice.md`) |
 | Superlatif tanpa bukti | "terbaik", "nomor 1", "best in Bali" | Klaim (rule 02) |
 | Template kaku | "Kami mohon maaf atas ketidaknyamanan yang terjadi." sebagai satu-satunya isi | Tidak menjawab poin tamu |
 | Berlebihan | "!!!", 5 emoji berturut-turut, huruf kapital semua | Tidak profesional |

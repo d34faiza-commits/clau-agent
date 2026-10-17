@@ -1,40 +1,72 @@
-Proprietary License — CLAU-AI-CONTENT
+Source-Available License (View Only) — clau-agent
 
 Copyright © 2026 Dea Karisna / AI Marketing. All rights reserved.
 
+Ringkasan (bukan pengganti teks lengkap): repository ini public agar isinya
+BISA DILIHAT. Ini BUKAN lisensi open source. Tanpa izin tertulis pemilik, isi
+repository ini tidak boleh disalin, diunduh untuk dipakai, dijalankan, diubah,
+disebarkan, dijual, atau dipakai melatih AI.
+
+Summary (not a substitute for the full text): this repository is public so it
+can be VIEWED. It is NOT open source. Without the owner's written permission,
+you may not copy, download for use, run, modify, redistribute, sell, or use its
+contents to train AI.
+
 1. Status
    Repository ini dan seluruh isinya (dokumen, rules, prompt, skill, knowledge,
-   template, QA checklist, schema, dan script) adalah materi proprietary dan
-   confidential milik pemilik repository.
+   template, QA checklist, schema, kode, script, gambar, dan riwayat commit)
+   adalah materi proprietary milik pemilik repository. Dibuat public tidak
+   berarti hak apa pun dialihkan atau dilepaskan.
 
-2. Penggunaan yang diizinkan
-   Penggunaan hanya diizinkan untuk:
+2. Yang diizinkan untuk siapa saja
+   a. Melihat dan membaca isi repository di GitHub.com.
+   b. Fork di dalam GitHub hanya sejauh diwajibkan Ketentuan Layanan GitHub,
+      tanpa hak tambahan apa pun di luar itu.
+
+3. Larangan (tanpa izin tertulis pemilik repository)
+   a. Menyalin, mengunduh, meng-clone, atau menyimpan isi repository untuk
+      dipakai, di luar sekadar melihat di GitHub.com;
+   b. Menjalankan, memasang, memodifikasi, atau membuat karya turunan;
+   c. Mendistribusikan, menjual, menyewakan, mempublikasikan ulang, atau
+      membuat mirror, sebagian maupun seluruhnya, termasuk dalam bentuk
+      tangkapan layar, foto, atau kutipan panjang;
+   d. Memakai isi repository untuk produk atau layanan, komersial maupun
+      non-komersial;
+   e. Memakai isi repository untuk melatih, menyetel, atau mengevaluasi model
+      AI, atau mengambilnya secara otomatis (scraping/crawling) untuk tujuan
+      itu;
+   f. Menghapus pemberitahuan copyright, acknowledgment, atau lisensi ini.
+
+4. Pengguna yang diizinkan
+   Penggunaan di luar pasal 2 hanya untuk:
    a. pemilik repository;
-   b. anggota tim, kontraktor, atau partner yang diberi akses tertulis oleh
+   b. anggota tim, kontraktor, atau partner yang diberi izin tertulis oleh
       pemilik repository, terbatas pada tujuan pekerjaan yang disetujui.
 
-3. Larangan
-   Tanpa izin tertulis dari pemilik repository, dilarang:
-   a. menyalin, mendistribusikan, menjual, menyewakan, atau mempublikasikan
-      sebagian maupun seluruh isi repository;
-   b. membuat repository public, fork public, atau mirror dari repository ini;
-   c. memakai isi repository untuk melatih model AI pihak ketiga;
-   d. menghapus pemberitahuan copyright, acknowledgment, atau lisensi ini.
+5. Kontribusi
+   Issue atau pull request dari pihak luar tidak diterima kecuali diminta.
+   Kontribusi yang tetap dikirim memberi pemilik repository hak penuh untuk
+   memakai, mengubah, atau menolaknya tanpa kewajiban apa pun.
 
-4. Output untuk client
+6. Output untuk client
    Konten marketing final yang dibuat untuk client dengan bantuan repository ini
    tunduk pada perjanjian kerja antara pemilik repository dan client tersebut.
    Lisensi ini tidak mengalihkan hak atas materi milik client (foto, logo,
    brand asset, data properti) kepada siapa pun.
 
-5. Materi pihak ketiga
+7. Materi pihak ketiga
    Merek, nama platform, dan materi pihak ketiga tetap milik pemiliknya
    masing-masing. Lihat ACKNOWLEDGMENT.md.
 
-6. Tanpa jaminan
+8. Pelanggaran
+   Pelanggaran atas lisensi ini mengakhiri izin pada pasal 2 secara otomatis.
+   Pemilik repository dapat meminta penghapusan (termasuk permintaan takedown
+   ke GitHub atau platform lain) dan menempuh upaya hukum lain.
+
+9. Tanpa jaminan
    Repository ini disediakan "as is" tanpa jaminan apa pun. Repository ini
    bukan nasihat hukum; klaim legal, pajak, halal, dan sertifikasi tetap wajib
    diverifikasi oleh pihak yang berwenang.
 
-7. Hukum yang berlaku
-   Lisensi ini tunduk pada hukum Republik Indonesia.
+10. Hukum yang berlaku
+    Lisensi ini tunduk pada hukum Republik Indonesia.
