@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Pengerasan VPS 1 tahap 2 (docs/deploy/vps-1-setup.md § 8). Jalankan sekali, lalu setiap kali file di
+# Pengerasan VPS 1 tahap 2 (docs/deploy/vps-1-setup.md § 8) untuk VPS 1 yang dipasang manual (§ 3–6).
+# VPS baru/pengganti: pakai vps1-setup.sh (§ 0), yang memasang semuanya termasuk isi script ini.
+# Jalankan sekali, lalu setiap kali file di
 # scripts/deploy/ berubah (aman diulang):
 #   sudo bash /srv/clau/clau-ai-agents/scripts/deploy/vps1-harden.sh
 #
