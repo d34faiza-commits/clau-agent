@@ -2,7 +2,7 @@
 
 > Panduan dan catatan status VPS 2 (`clau-vps2`): database PostgreSQL, backend, dan frontend dengan login. IP server **tidak** ditulis di repo; gunakan `<IP_VPS_2>`. VPS 1 tetap pratinjau tanpa login ([`vps-1-setup.md`](./vps-1-setup.md)).
 
-## 1. Status (diperbarui 2026-10-15)
+## 1. Status (diperbarui 2026-10-19)
 
 | Bagian | Status |
 |---|---|
@@ -11,7 +11,7 @@
 | A–E di bawah | DATA FINAL — 2026-10-15: dijalankan owner. `clau-vps2-check`: db/backend/frontend sehat, backend 0.8.0, login 200, halaman kerja 307, `/docs` 404, container bukan root, HTTPS Tailscale `https://clau-vps2.<tailnet>.ts.net` → frontend, Funnel mati, UFW aktif, SSH tanpa root/password, backup pertama + HMAC, rilis = `release/vps1` (`8b4d0c0`), disk 17%, RAM tersedia 3,1 GB. Satu GAGAL "port publik" = alarm palsu alat cek (alamat Tailscale/loopback ber-akhiran `%tailscale0`/`%lo`), diperbaiki setelahnya |
 | F–H di bawah | DATA FINAL — 2026-10-15: SSH publik ditutup (UFW hanya `tailscale0` + 41641/udp, `/etc/clau/ssh-locked`; `--lock-ssh` diperbaiki di #53), akun owner dibuat + login lewat HTTPS Tailscale + 2FA aktif, kode cadangan dibuat ulang setelah sempat terlihat di screenshot, `CLAU_BACKUP_PASSPHRASE` disimpan owner di password manager. `clau-vps2-check`: 0 gagal, 1 perlu dicek (backup luar server) |
 | Domain + HTTPS publik | Ditunda (owner belum beli domain). Sampai itu aplikasi **hanya** bisa dibuka anggota tailnet |
-| Backup tiap 6 jam + salinan Backblaze B2 + `clau-vps2-restore` | Kode siap (dites dengan database sungguhan + B2 tiruan). NEXT ACTION: jalankan ulang langkah E di server, simpan juga `CLAU_SECRET_KEY` (langkah H baru), lalu langkah I (akun B2). FIELD VERIFICATION: kirim/ambil ke B2 asli + uji Object Lock di server owner |
+| Backup tiap 6 jam + salinan Backblaze B2 + `clau-vps2-restore` | DATA FINAL — 2026-10-17/19: paket backup terpasang (langkah E diulang, versi 0.9.0, worker AI sehat), bucket B2 privat + Object Lock Compliance 30 hari + lifecycle `vps2/` 60 hari, `clau-vps2-offsite setup` OK, `clau-vps2-backup --verify` OK (22 tabel, migrasi 0006). `clau-vps2-check` = **0 gagal, 0 perlu dicek**. NEXT ACTION: uji coba "VPS 2 hilang total" (§ 5) di VPS sementara |
 
 ## 2. Keputusan
 
