@@ -89,6 +89,41 @@ def test_vps1_only_deploys_ci_green_release_branch():
     assert 'fetch --quiet origin "$BRANCH"' in deploy and "FETCH_HEAD" in deploy and not re.search(r"git .*\bpull\b", deploy)
 
 
+
+def test_vps1_setup_installs_same_as_harden_and_everything_is_checked():
+    # vps1-setup.sh (VPS baru/pengganti, § 0) harus menghasilkan server yang sama dengan VPS 1 sekarang (§ 8).
+    setup = (DEPLOY / "vps1-setup.sh").read_text()
+    harden = (DEPLOY / "vps1-harden.sh").read_text()
+    check = (DEPLOY / "vps1-check.sh").read_text()
+    pattern = r"for u in ([^;]+); do\n  install -m 644"
+    assert re.search(pattern, setup).group(1).split() == re.search(pattern, harden).group(1).split()
+    tools = r'install -m 755 -o root -g root "\$SRC/(\S+)" (\S+)'
+    assert re.findall(tools, setup) == re.findall(tools, harden)
+    rule = re.search(r"echo '(clau-deploy ALL=\(root\) NOPASSWD: [^']+)'", setup).group(1)
+    assert f"'^{rule}$'" in check
+    assert "nginx/clau.conf" in setup and "/etc/nginx/sites-available/clau" in setup
+    for timer in ("clau-deploy.timer", "clau-config-backup.timer"):
+        assert timer in setup and timer in check
+
+
+def test_vps1_setup_opens_only_checked_ports_and_never_locks_admin_out():
+    setup = (DEPLOY / "vps1-setup.sh").read_text()
+    allowed = set(re.findall(r"^ufw allow (\S+)", setup, re.M))
+    assert allowed == {"OpenSSH", "80/tcp", "443/tcp"}, "clau-vps1-check hanya menerima 22, 80, 443"
+    # Login password dimatikan: script harus berhenti dulu bila admin belum punya SSH key.
+    assert setup.index("authorized_keys") < setup.index("PasswordAuthentication no")
+    assert "PermitRootLogin no" in setup
+
+
+def test_vps1_setup_deploys_only_ci_green_release_and_reads_repo_without_secrets():
+    setup = (DEPLOY / "vps1-setup.sh").read_text()
+    assert "fetch --quiet origin release/vps1" in setup and "FETCH_HEAD" in setup
+    assert "systemctl start clau-deploy.service" in setup, "rilis pertama lewat unit yang sama dengan timer"
+    assert re.search(r'REPO_URL="\$\{CLAU_REPO_URL:-https://github\.com/d34faiza-commits/clau-agent\.git\}"', setup)
+    assert not re.search(r"\| *(ba)?sh\b", setup), "tidak menjalankan script langsung dari internet"
+    # Script yang dijalankan root disalin milik root, bukan dijalankan dari repo milik clau-deploy.
+    assert "/usr/local/sbin/clau-vps1-check" in setup
+
 # --- VPS 2 (docs/deploy/vps-2-setup.md) ----------------------------------------------------------------
 
 

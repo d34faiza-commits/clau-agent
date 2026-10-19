@@ -25,7 +25,7 @@ done
 judul "Aplikasi"
 pid=$(systemctl show -p MainPID --value clau-frontend 2>/dev/null)
 web_user=$( [ -n "$pid" ] && [ "$pid" != 0 ] && ps -o user= -p "$pid" | tr -d ' ')
-[ "$web_user" = clau-web ] && ok "frontend jalan sebagai clau-web" || gagal "frontend jalan sebagai '${web_user:--}', seharusnya clau-web (jalankan vps1-harden.sh)"
+[ "$web_user" = clau-web ] && ok "frontend jalan sebagai clau-web" || gagal "frontend jalan sebagai '${web_user:--}', seharusnya clau-web (jalankan vps1-setup.sh)"
 code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1/)
 [ "$code" = 200 ] && ok "halaman utama lewat Nginx: 200" || gagal "halaman utama lewat Nginx: $code"
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1/)
@@ -44,7 +44,7 @@ release=$(awk '$2 == "refs/heads/release/vps1" {print $1}' <<<"$refs")
 branch=$(systemctl show -p Environment --value clau-deploy 2>/dev/null | grep -o 'CLAU_BRANCH=[^ ]*' | cut -d= -f2)
 if [ -z "$main_sha" ]; then gagal "tidak bisa membaca GitHub dengan deploy key (user clau-deploy)"
 else
-  [ "$branch" = release/vps1 ] && ok "deploy hanya dari release/vps1 (commit main yang CI-nya hijau)" || gagal "deploy dari '${branch:-main}', seharusnya release/vps1 (jalankan ulang vps1-harden.sh)"
+  [ "$branch" = release/vps1 ] && ok "deploy hanya dari release/vps1 (commit main yang CI-nya hijau)" || gagal "deploy dari '${branch:-main}', seharusnya release/vps1 (jalankan ulang vps1-setup.sh)"
   if [ -z "$release" ]; then gagal "branch release/vps1 belum ada (tunggu job CI release-vps1 di main)"
   elif [ "$live" = "$release" ]; then ok "rilis aktif = release/vps1 terbaru (${live:0:7})"
   else cek "rilis aktif ${live:0:7}, release/vps1 ${release:0:7} (normal bila < 5 menit lalu)"; fi
@@ -63,7 +63,7 @@ for f in "nginx/clau.conf:/etc/nginx/sites-available/clau" \
          "vps1-backup-config.sh:/usr/local/sbin/clau-backup-config"; do
   src="$REPO/scripts/deploy/${f%%:*}" dst="${f#*:}"
   if cmp -s "$src" "$dst"; then ok "$(basename "$dst") sama dengan repo"
-  else cek "$(basename "$dst") beda dengan repo (versi baru? jalankan ulang vps1-harden.sh)"; fi
+  else cek "$(basename "$dst") beda dengan repo (versi baru? jalankan ulang vps1-setup.sh, panduan § 0)"; fi
 done
 
 judul "Keamanan server"

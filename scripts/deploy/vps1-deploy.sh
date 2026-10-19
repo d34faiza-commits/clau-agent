@@ -60,7 +60,11 @@ if ! (cd "$dir/frontend" && npm ci --ignore-scripts --no-audit --no-fund && npm 
 fi
 echo "$new" > "$dir/.sha"
 
-prev=$(readlink -f "$CURRENT" 2>/dev/null || true)
+# First release: no previous one to roll back to (readlink -f of a missing link returns the path itself,
+# which made a failed first deploy point `current` at itself).
+prev=""
+[ -L "$CURRENT" ] && prev=$(readlink -f "$CURRENT")
+[ "$prev" = "$CURRENT" ] && prev=""
 ln -sfn "$dir" "$CURRENT.new" && mv -T "$CURRENT.new" "$CURRENT"
 $RESTART 9>&-
 

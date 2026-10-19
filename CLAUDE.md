@@ -27,13 +27,13 @@
 | `backend/app/db/` · `backend/migrations/` | Model SQLAlchemy (21 tabel `core/shared/database-schema.md`), bootstrap role (migrasi vs aplikasi), seed SIMULASI; migrasi Alembic + trigger Constraint Wajib. Ubah skema = migrasi baru |
 | `backend/tests/` | Test API, konsistensi registry ↔ `core/orchestrator/router.md` & tabel pilar `core/README.md`, persona & eval, `test_db.py` (Constraint Wajib ke PostgreSQL sungguhan; butuh `CLAU_TEST_DB_ADMIN_URL`), `test_workflow.py` (matriks izin, IDOR, aturan approval lewat API), `test_facts.py` (fact sheet & Konfirmasi Fakta) |
 | `frontend/` | Next.js App Router; halaman registry agent, `/login`, `/account`, `/users` (owner, juga tambah klien), `/requests` & `/requests/[id]` (draft, QA, keputusan), `/fact-sheets` & `/fact-sheets/[id]` (Konfirmasi Fakta), `/ai-usage` (owner: biaya & batas AI); `components/AiPanel.tsx` + `lib/ai.ts` = UI antrean AI; `app/api/[...path]` = jembatan ke backend; `proxy.ts` = penjaga halaman bila `CLAU_AUTH_ENABLED=1` |
-| `scripts/` | `init-env.sh`, `db-backup.sh` / `db-restore.sh` (backup terenkripsi + uji restore; `backup_hmac.py`, `db-summary.sql`), `sync-submodules.sh`, `check-core-pins.sh`, `deploy/` (VPS 1 `vps1-*`, VPS 2 `vps2-*`) |
+| `scripts/` | `init-env.sh`, `db-backup.sh` / `db-restore.sh` (backup terenkripsi + uji restore; `backup_hmac.py`, `db-summary.sql`), `sync-submodules.sh`, `check-core-pins.sh`, `deploy/` (VPS 1 `vps1-*`: `vps1-setup.sh` = VPS 1 baru/pengganti satu perintah; VPS 2 `vps2-*`) |
 | `.env.example` | Semua variabel environment + arti & default aman; tanpa secret (dites `backend/tests/test_env.py`) |
 | `docker-compose.yml` · `backend/Dockerfile` · `frontend/Dockerfile` · `.dockerignore` | Container backend + frontend: non-root, read-only, port 127.0.0.1; base image dipin digest; dicek job CI `docker` |
 | `SUBMODULE.md` | Panduan submodule & GitHub Actions |
 | `.github/workflows/` | `ci.yml` (`backend`, `frontend`, `audit`, `docker`, `release-vps1`), `cross-repo-validate.yml`, `sync-submodules.yml`, `notify-downstream.yml`, `main-guard.yml` |
 | `backend/README.md` · `frontend/README.md` | Detail backend (auth, database, backup) · halaman & data frontend |
-| `docs/deploy/vps-1-setup.md` | VPS 1 (pratinjau, tanpa login): setup, auto-deploy, user khusus, `clau-vps1-check` |
+| `docs/deploy/vps-1-setup.md` | VPS 1 (pratinjau, tanpa login, tanpa data): § 0 VPS baru/pengganti satu perintah (`vps1-setup.sh`), auto-deploy, user khusus, `clau-vps1-check` |
 | `docs/deploy/vps-2-setup.md` | VPS 2 (backend + database + login, tanpa domain: HTTPS Tailscale khusus tailnet): `scripts/deploy/vps2-setup.sh`, deploy otomatis dengan rollback skema, backup terenkripsi tiap 6 jam + Backblaze B2, pemulihan manual `clau-vps2-restore` (§ 5, termasuk server pengganti), `clau-vps2-check` |
 | `docs/security.md` | Audit & aturan keamanan: header, Nginx, sandbox systemd, supply chain; **aturan wajib sebelum login/DB/AI/WhatsApp di VPS 2** (§ 6) |
 | `docs/post-vps-checklist.md` | **Pengingat:** langkah wajib setelah VPS 1 & 2 siap (AI provider, eval 33 kasus, aktivasi pilar 2–4) |

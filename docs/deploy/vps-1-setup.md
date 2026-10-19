@@ -2,6 +2,51 @@
 
 > Panduan dan catatan status setup VPS 1 (`clau-vps1`), server untuk frontend Next.js. Keputusan dasar ada di [`../post-vps-checklist.md`](../post-vps-checklist.md). IP server **tidak** ditulis di repo; gunakan `<IP_VPS_1>`.
 
+## 0. VPS baru / pengganti: satu perintah (2026-10-18)
+
+VPS 1 **tidak menyimpan data atau secret** (database dan login ada di VPS 2), jadi mengganti VPS 1 tidak perlu memulihkan apa pun. Semua yang ada di § 3–8 dipasang oleh `scripts/deploy/vps1-setup.sh`: update sistem, Node.js 22, Nginx yang dikeraskan, firewall (hanya 22/80/443), SSH tanpa root/password, fail2ban, update keamanan + reboot otomatis 03:30 WITA, swap, user khusus `clau-web` & `clau-deploy`, rilis pertama dari `release/vps1`, deploy otomatis tiap 5 menit, cek, dan backup config mingguan. Aman diulang di VPS yang sudah jalan.
+
+Total ±20 menit. Login ke VPS baru, paste **satu perintah per baris**.
+
+**1. User admin `dea` + SSH key** (sebagai `root`, sekali; lewati bila `ssh dea@<IP_VPS_BARU>` sudah bisa):
+
+```bash
+adduser dea
+usermod -aG sudo dea
+mkdir -p /home/dea/.ssh
+cp /root/.ssh/authorized_keys /home/dea/.ssh/
+chown -R dea:dea /home/dea/.ssh
+chmod 700 /home/dea/.ssh
+chmod 600 /home/dea/.ssh/authorized_keys
+```
+
+Keluar, lalu login lagi sebagai `ssh dea@<IP_VPS_BARU>`. Langkah berikutnya sebagai `dea`.
+
+**2. Tailscale** (nama `clau-vps1`):
+
+```bash
+curl -fsSL https://tailscale.com/install.sh -o /tmp/tailscale-install.sh
+sudo sh /tmp/tailscale-install.sh
+sudo tailscale up --hostname=clau-vps1
+```
+
+Buka link yang muncul dan login dengan akun Tailscale owner. Di [admin Tailscale](https://login.tailscale.com/admin/machines): hapus mesin VPS 1 lama bila masih ada (supaya nama `clau-vps1` tidak jadi `clau-vps1-1`), lalu pada `clau-vps1` pilih **Disable key expiry**.
+
+**3. Setup** (±10–15 menit, build pertama paling lama):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/d34faiza-commits/clau-agent/main/scripts/deploy/vps1-setup.sh -o /tmp/vps1-setup.sh
+sudo bash /tmp/vps1-setup.sh
+```
+
+Hasil akhir = daftar `clau-vps1-check`; yang wajib: **0 gagal**. Dashboard tampil di `http://<IP_VPS_BARU>`.
+
+**4. Sesudahnya:** matikan/hapus VPS lama di panel provider. Bila nanti ada domain, arahkan DNS ke IP baru.
+
+Bila script berhenti dengan `GAGAL: ...`, jalankan ulang perintah `sudo bash /tmp/vps1-setup.sh` setelah penyebabnya diperbaiki (pesan menyebut langkahnya), atau kirim outputnya ke agent.
+
+**Repo kembali private?** Clone lewat HTTPS tanpa key hanya berlaku selama repo `clau-agent` public. Bila private: sebelum langkah 3, buat deploy key read-only untuk user `clau-deploy` (§ 5, key di `/var/lib/clau-deploy/.ssh/clau_agents_deploy`, alias `github-agents`) dan jalankan setup dengan `sudo CLAU_REPO_URL=git@github-agents:d34faiza-commits/clau-agent.git bash /tmp/vps1-setup.sh`.
+
 ## 1. Status (diperbarui 2026-10-13)
 
 | Bagian | Status |
@@ -16,6 +61,7 @@
 | 10. Domain + Cloudflare + SSL | Ditunda — domain belum ada (owner, 2026-10-13). Selama itu VPS 1 tetap pratinjau tanpa login |
 | 11. Backup config (tanpa `.env`) | DATA FINAL — 2026-10-13: dipasang owner (`vps1-harden.sh`), `sudo clau-vps1-check` = **0 gagal, 0 perlu dicek**: backup pertama `vps1-config-20261013T113858Z` (17 file config), lalu mingguan ke `/var/backups/clau/`. NEXT ACTION: salinan di luar server bersama Backblaze B2 (VPS 2) |
 | 13. User khusus, jaringan web dikunci, cek & backup rutin | DATA FINAL — 2026-10-13: dipasang owner (`vps1-harden.sh`), `sudo clau-vps1-check` = **0 gagal, 0 perlu dicek**: frontend sebagai `clau-web` (exposure 1.3), deploy sebagai `clau-deploy` (rilis `013f587`), deploy key lama di `~dea` dihapus, UFW/SSH/fail2ban/Tailscale OK, disk 12%, RAM tersedia 2,7 GB |
+| 15. Setup satu perintah untuk VPS baru / pengganti | DATA FINAL — 2026-10-18: `scripts/deploy/vps1-setup.sh` (§ 0), diuji di Ubuntu 24.04 baru (container systemd): 0 gagal di `clau-vps1-check` |
 | 14. Gerbang deploy `release/vps1` (AI-BOUNDARY 1.3.0) | DATA FINAL — 2026-10-13: job CI `release-vps1` membuat branch, `vps1-harden.sh` dijalankan ulang; `clau-vps1-check` = 0 gagal, 0 perlu dicek ("deploy hanya dari release/vps1", rilis aktif `130af9b`) |
 | 12. Pengerasan keamanan aplikasi (header, Nginx, sandbox systemd) | DATA FINAL — 2026-10-09: rilis `8acf7a4` live (CSP & `X-Frame-Options: DENY` ada, `X-Powered-By` hilang); Nginx `scripts/deploy/nginx/clau.conf` terpasang (`nginx -t` OK; `/` 200, POST 405, `/.env` 404); `clau-frontend.service` sandbox terpasang, `active`, `systemd-analyze security` = **1.4 OK**. Backup: `/etc/nginx/sites-available/clau.bak`, `/etc/systemd/system/clau-frontend.service.bak`. Proteksi `main` + Dependabot alerts: aktif (owner, 2026-10-09) |
 
