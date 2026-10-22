@@ -47,7 +47,9 @@ Bila script berhenti dengan `GAGAL: ...`, jalankan ulang perintah `sudo bash /tm
 
 **Repo kembali private?** Clone lewat HTTPS tanpa key hanya berlaku selama repo `clau-agent` public. Bila private: sebelum langkah 3, buat deploy key read-only untuk user `clau-deploy` (§ 5, key di `/var/lib/clau-deploy/.ssh/clau_agents_deploy`, alias `github-agents`) dan jalankan setup dengan `sudo CLAU_REPO_URL=git@github-agents:d34faiza-commits/clau-agent.git bash /tmp/vps1-setup.sh`.
 
-## 1. Status (diperbarui 2026-10-13)
+## 1. Status (diperbarui 2026-10-22)
+
+> **Server dimatikan owner 2026-10-22** (biaya). Tabel di bawah adalah riwayat server lama. Membuat lagi: § 0 (`vps1-setup.sh`), lalu hapus mesin lama di Tailscale dan deploy key lama di GitHub bila belum (kartu ClickUp TASK-065).
 
 | Bagian | Status |
 |---|---|
