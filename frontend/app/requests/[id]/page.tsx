@@ -10,9 +10,9 @@ import { draftAuthor, type AiJob } from "../../../lib/ai";
 import { api, errorText, type Me } from "../../../lib/auth";
 import { L, useL, useLang } from "../../../lib/i18n";
 import {
-  AGENCY_WRITERS, CLAIM_CATEGORIES, DECISIONS, EVIDENCE_LABELS, FACTUAL, LEVELS, QA_GATES, QA_RESULTS, REF_RE, SENIOR,
-  formatDate, memberFor, roleFor, useSession,
-  type Approval, type Claim, type Draft, type DraftSummary, type Fact, type FactSheet, type FactSheetDetail, type Page, type QARecord, type WfRequest,
+  AGENCY_WRITERS, CLAIM_CATEGORIES, CONTENT_FLAGS, DECISIONS, EVIDENCE_LABELS, FACTUAL, FLAG_LABEL, FLAG_LEVEL, FLAG_SOURCE_LABEL,
+  LEVELS, QA_GATES, QA_RESULTS, REF_RE, SENIOR, formatDate, levelReason, memberFor, roleFor, useSession,
+  type Approval, type Claim, type ContentFlag, type Draft, type DraftSummary, type Fact, type FactSheet, type FactSheetDetail, type Page, type QARecord, type WfRequest,
 } from "../../../lib/workflow";
 
 type Msg = { ok: boolean; text: string } | null;
@@ -96,9 +96,11 @@ export default function RequestDetail() {
           <div><dt>{tr("Deadline", "Tenggat")}</dt><dd>{formatDate(req.deadline, lang)}</dd></div>
           <div>
             <dt>{tr("Min. approval", "Approval min.")}</dt>
-            <dd>{req.approval_min}{req.approval_min === "L1" && <span className="muted"> · {tr("L2 if the draft has factual claims", "L2 bila draft memuat klaim fakta")}</span>}</dd>
+            <dd>{req.approval_min}<span className="muted"> · {tr("raised by the draft's content", "naik sesuai isi draft")}</span></dd>
           </div>
           <div><dt>Agent</dt><dd>{req.agent ?? "—"}</dd></div>
+          {req.review_rating != null && <div><dt>{tr("Review rating", "Rating review")}</dt><dd>{"★".repeat(req.review_rating)} ({req.review_rating})</dd></div>}
+          {req.source_draft_id != null && <div><dt>{tr("Source draft", "Draft asal")}</dt><dd>#{req.source_draft_id}</dd></div>}
         </dl>
         {!open && <p className="muted wf-hint">{tr("This request is finished. Changes need a new request.", "Permintaan ini sudah selesai. Perubahan perlu permintaan baru.")}</p>}
       </Card>
@@ -116,7 +118,7 @@ export default function RequestDetail() {
             {!draft ? (
               <p className="muted">{tr("No draft yet.", "Belum ada draft.")}</p>
             ) : (
-              <DraftView draft={draft} lang={lang} author={author} />
+              <DraftView draft={draft} lang={lang} author={author} canAdd={open && AGENCY_WRITERS.has(role)} canRemove={open && SENIOR.has(role)} onChange={() => load()} />
             )}
           </Card>
 
@@ -143,7 +145,7 @@ export default function RequestDetail() {
           {/* Pesan di luar form: form dipasang ulang dari versi terbaru setelah tersimpan. */}
           <Notice msg={saved} />
           {open && loaded && AGENCY_WRITERS.has(role) && (
-            <DraftForm key={latestDraft?.id ?? "new"} req={req} previous={latestDraft} onDone={(v) => { setSaved({ ok: true, text: tr(`Saved as version ${v}.`, `Tersimpan sebagai versi ${v}.`) }); load(true); }} />
+            <DraftForm key={`${latestDraft?.id ?? "new"}:${(latestDraft?.content_flags ?? []).map((f) => f.flag).join(",")}`} req={req} previous={latestDraft} onDone={(v) => { setSaved({ ok: true, text: tr(`Saved as version ${v}.`, `Tersimpan sebagai versi ${v}.`) }); load(true); }} />
           )}
           <p className="muted wf-hint">
             <L en="CLAU never publishes. After final approval, your team publishes in the official apps." id="CLAU tidak pernah mempublish. Setelah disetujui, tim kamu mempublish di aplikasi resmi." />
@@ -154,7 +156,9 @@ export default function RequestDetail() {
   );
 }
 
-function DraftView({ draft, lang, author }: { draft: Draft; lang: string; author: number | null }) {
+function DraftView({ draft, lang, author, canAdd, canRemove, onChange }: {
+  draft: Draft; lang: string; author: number | null; canAdd: boolean; canRemove: boolean; onChange: () => void;
+}) {
   const tr = useL();
   // Nilai fakta yang dijawab klien, berdampingan dengan klaim: reviewer & approver membandingkan teks klaim dengan
   // nilai yang benar (termasuk koreksi klien), bukan hanya fact key.
@@ -185,6 +189,7 @@ function DraftView({ draft, lang, author }: { draft: Draft; lang: string; author
         </p>
       )}
       <pre className="wf-content">{draft.content}</pre>
+      <ContentLevel draft={draft} canAdd={canAdd} canRemove={canRemove} onChange={onChange} />
       {draft.claims.length > 0 && (
         <div className="table-wrap">
           <table className="table">
@@ -245,9 +250,12 @@ function DecisionForm({ me, req, draft, author, onDone }: { me: Me; req: WfReque
   const member = memberFor(me, req.client_code);
   const role = member?.role ?? "";
   const max = LEVELS.indexOf((member?.max_level ?? "L1") as (typeof LEVELS)[number]);
-  // Sama dengan database (clau_draft_min_level): klaim fakta, atau draft AI untuk klien nyata, minimal L2.
+  // Level minimum dihitung database (clau_draft_min_level: intent, klaim fakta, draft AI, penanda isi, draft asal).
+  // Cadangan bila backend lama: aturan 0.9.0.
   const agentReal = draft.created_by === null && !!draft.agent_id && draft.mode === "NYATA";
-  const minimum = Math.max(LEVELS.indexOf(req.approval_min as (typeof LEVELS)[number]), draft.claims.some((c) => c.fact_key) || agentReal ? 1 : 0);
+  const minimum = draft.min_level
+    ? LEVELS.indexOf(draft.min_level as (typeof LEVELS)[number])
+    : Math.max(LEVELS.indexOf(req.approval_min as (typeof LEVELS)[number]), draft.claims.some((c) => c.fact_key) || agentReal ? 1 : 0);
   const levels = LEVELS.filter((_, i) => i >= minimum && i <= max);
   const [level, setLevel] = useState<string>(levels[0] ?? "");
   const [decision, setDecision] = useState<string>(draft.mode === "SIMULASI" ? "Revise" : "Approved");
@@ -359,6 +367,11 @@ function DraftForm({ req, previous, onDone }: { req: WfRequest; previous: Draft 
   const [sheets, setSheets] = useState<FactSheet[]>([]);
   const [sheetId, setSheetId] = useState<string>("");
   const [keys, setKeys] = useState<string[]>([]);
+  // Penanda isi konten (API 0.10.0): wajib dipilih, atau dinyatakan tidak ada (keputusan owner K5). Penanda versi
+  // sebelumnya diwarisi server; di sini ditampilkan sebagai sudah tercentang.
+  const inherited = new Set((previous?.content_flags ?? []).filter((f) => f.source !== "server").map((f) => f.flag));
+  const [picked, setPicked] = useState<Set<ContentFlag>>(new Set(inherited));
+  const [noneConfirmed, setNoneConfirmed] = useState(false);
   const [msg, setMsg] = useState<Msg>(null);
 
   useEffect(() => {
@@ -386,6 +399,7 @@ function DraftForm({ req, previous, onDone }: { req: WfRequest; previous: Draft 
       request_id: req.id,
       fact_sheet_id: sheetId ? Number(sheetId) : null,
       content,
+      content_flags: [...picked],
       claims: claims.map((c) => ({
         text: c.text, category: c.category, evidence_label: c.evidence_label,
         fact_key: (FACTUAL as readonly string[]).includes(c.category) ? c.fact_key || null : null,
@@ -442,9 +456,95 @@ function DraftForm({ req, previous, onDone }: { req: WfRequest; previous: Draft 
           )}
           <p className="muted wf-hint">{tr("Facts (facility, price, capacity, …) need a fact key from the client's approved fact sheet. Impressions use “experience”.", "Fakta (fasilitas, harga, kapasitas, …) wajib fact key dari fact sheet klien yang disetujui. Kesan memakai “experience”.")}</p>
         </fieldset>
+        <fieldset className="wf-claims">
+          <legend>{tr("What does this content contain?", "Isi konten ini memuat apa?")}</legend>
+          <p className="muted wf-hint">{tr("Each item raises the approval level (Rule 08). The system also detects prices and religious/cultural words by itself.", "Setiap pilihan menaikkan level approval (Rule 08). Sistem juga mendeteksi harga dan kata agama/adat sendiri.")}</p>
+          {CONTENT_FLAGS.map((f) => (
+            <label key={f} className="wf-check">
+              <input type="checkbox" checked={picked.has(f)} disabled={inherited.has(f)}
+                onChange={(e) => { setNoneConfirmed(false); setPicked((cur) => { const next = new Set(cur); if (e.target.checked) next.add(f); else next.delete(f); return next; }); }} />
+              {FLAG_LABEL[f][lang === "en" ? 0 : 1]} <span className="muted">· {FLAG_LEVEL[f]}</span>
+              {inherited.has(f) && <span className="muted"> · {tr("kept from the previous version", "diwarisi dari versi sebelumnya")}</span>}
+            </label>
+          ))}
+          <label className="wf-check">
+            <input type="checkbox" checked={noneConfirmed} disabled={picked.size > 0} onChange={(e) => setNoneConfirmed(e.target.checked)} />
+            {tr("None of the above (I checked the text and visuals)", "Tidak ada satu pun (sudah saya cek teks dan visualnya)")}
+          </label>
+        </fieldset>
         <Notice msg={msg} />
-        <button type="submit" className="btn btn--primary" disabled={!content.trim()}>{tr("Save version", "Simpan versi")}</button>
+        <button type="submit" className="btn btn--primary" disabled={!content.trim() || (picked.size === 0 && !noneConfirmed)}>{tr("Save version", "Simpan versi")}</button>
       </form>
     </Card>
+  );
+}
+
+function ContentLevel({ draft, canAdd, canRemove, onChange }: { draft: Draft; canAdd: boolean; canRemove: boolean; onChange: () => void }) {
+  const tr = useL();
+  const { lang } = useLang();
+  const en = lang === "en";
+  const [adding, setAdding] = useState<string>("");
+  const [removing, setRemoving] = useState<ContentFlag | null>(null);
+  const [reason, setReason] = useState("");
+  const [msg, setMsg] = useState<Msg>(null);
+  if (!draft.min_level) return null;
+  const active = draft.content_flags ?? [];
+  const missing = CONTENT_FLAGS.filter((f) => !active.some((a) => a.flag === f));
+
+  async function add() {
+    const r = await api(`drafts/${draft.id}/flags`, { method: "POST", body: { flag: adding } });
+    if (r.ok) { setAdding(""); setMsg(null); onChange(); } else setMsg({ ok: false, text: errorText(r, lang) });
+  }
+  async function remove(e: FormEvent) {
+    e.preventDefault();
+    if (!removing) return;
+    const r = await api(`drafts/${draft.id}/flags/${removing}/remove`, { method: "POST", body: { reason } });
+    if (r.ok) { setRemoving(null); setReason(""); setMsg(null); onChange(); } else setMsg({ ok: false, text: errorText(r, lang) });
+  }
+
+  return (
+    <div className="wf-level">
+      <p>
+        <strong>{tr("Minimum approval", "Approval minimal")}: {draft.min_level}</strong>
+        {draft.min_level_reasons && draft.min_level_reasons.length > 0 && (
+          <span className="muted"> · {draft.min_level_reasons.map((x) => `${levelReason(x.rule, en)} (${x.level})`).join(" · ")}</span>
+        )}
+      </p>
+      {active.length > 0 && (
+        <ul className="wf-flags">
+          {active.map((f) => (
+            <li key={f.flag}>
+              <span className={`badge badge--${FLAG_LEVEL[f.flag] === "L3" ? "warning" : "info"}`}>{FLAG_LABEL[f.flag][en ? 0 : 1]} · {FLAG_LEVEL[f.flag]}</span>
+              <span className="muted"> {FLAG_SOURCE_LABEL[f.source][en ? 0 : 1]}</span>
+              {canRemove && f.source !== "server" && (
+                <button type="button" className="btn btn--secondary btn--sm" onClick={() => { setRemoving(f.flag); setReason(""); }}>{tr("Remove", "Hapus")}</button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {canAdd && missing.length > 0 && (
+        <div className="wf-row">
+          <select aria-label={tr("Add a content flag", "Tambah penanda isi")} value={adding} onChange={(e) => setAdding(e.target.value)}>
+            <option value="">{tr("Add a flag…", "Tambah penanda…")}</option>
+            {missing.map((f) => <option key={f} value={f}>{FLAG_LABEL[f][en ? 0 : 1]} · {FLAG_LEVEL[f]}</option>)}
+          </select>
+          <button type="button" className="btn btn--secondary btn--sm" disabled={!adding} onClick={add}>{tr("Add", "Tambah")}</button>
+        </div>
+      )}
+      {removing && (
+        <form onSubmit={remove} className="auth-form">
+          <Field id="fl-reason" label={tr(`Why remove “${FLAG_LABEL[removing][0]}”?`, `Kenapa menghapus “${FLAG_LABEL[removing][1]}”?`)}
+            hint={tr("Written to the audit log. Automatic flags can't be removed.", "Tercatat di audit log. Penanda otomatis tidak bisa dihapus.")}>
+            <input id="fl-reason" value={reason} onChange={(e) => setReason(e.target.value)} minLength={10} maxLength={500} required />
+          </Field>
+          <div className="wf-row">
+            <button type="submit" className="btn btn--primary btn--sm" disabled={reason.trim().length < 10}>{tr("Remove flag", "Hapus penanda")}</button>
+            <button type="button" className="btn btn--secondary btn--sm" onClick={() => setRemoving(null)}>{tr("Cancel", "Batal")}</button>
+          </div>
+        </form>
+      )}
+      <Notice msg={msg} />
+    </div>
   );
 }

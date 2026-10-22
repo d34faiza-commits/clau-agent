@@ -130,7 +130,7 @@ def new_request(actor: Actor, client="CTH", intent="caption", **extra) -> dict:
 
 
 def new_draft(actor: Actor, request_id: int, claims=(), **extra) -> dict:
-    r = actor.post("/drafts", {"request_id": request_id, "content": "Pagi tenang di villa.", "claims": list(claims), **extra})
+    r = actor.post("/drafts", {"content_flags": [], "request_id": request_id, "content": "Pagi tenang di villa.", "claims": list(claims), **extra})
     assert r.status_code == 201, r.text
     return r.json()
 
@@ -224,7 +224,7 @@ def test_server_owned_fields_are_rejected(team, path, field, value):
 def test_planned_intent_request_ok_but_no_draft(team):
     req = new_request(team["staff"], intent="inquiry-reply")
     assert req["pillar"] == 2
-    r = team["staff"].post("/drafts", {"request_id": req["id"], "content": "x"})
+    r = team["staff"].post("/drafts", {"content_flags": [], "request_id": req["id"], "content": "x"})
     assert r.status_code == 409 and code(r) == "intent_not_active"
 
 
@@ -243,7 +243,7 @@ def test_who_can_create_request_for_cth(team, who, status):
 @pytest.mark.parametrize(("who", "status"), [("owner", 201), ("lead", 201), ("staff", 201), ("approver", 403), ("viewer", 403), ("other", 404)])
 def test_who_can_write_draft(team, who, status):
     req = new_request(team["staff"])
-    assert team[who].post("/drafts", {"request_id": req["id"], "content": "x"}).status_code == status
+    assert team[who].post("/drafts", {"content_flags": [], "request_id": req["id"], "content": "x"}).status_code == status
 
 
 @pytest.mark.parametrize(
@@ -315,9 +315,9 @@ def test_draft_cannot_use_other_clients_fact_sheet(factory, team):
         if s.get(Brief, "CTHB-202610-01") is None:
             s.add(Brief(brief_id="CTHB-202610-01", client_code="CTHB", schema_version="1.4", payload={"x": 1}))
     req = new_request(team["staff"])
-    r = team["staff"].post("/drafts", {"request_id": req["id"], "content": "x", "fact_sheet_id": other_sheet})
+    r = team["staff"].post("/drafts", {"content_flags": [], "request_id": req["id"], "content": "x", "fact_sheet_id": other_sheet})
     assert r.status_code == 409 and code(r) == "draft_client_mismatch"
-    r = team["staff"].post("/drafts", {"request_id": req["id"], "content": "x", "brief_id": "CTHB-202610-01"})
+    r = team["staff"].post("/drafts", {"content_flags": [], "request_id": req["id"], "content": "x", "brief_id": "CTHB-202610-01"})
     assert r.status_code == 409 and code(r) == "draft_client_mismatch"
 
 
@@ -326,9 +326,9 @@ def test_draft_cannot_use_other_clients_fact_sheet(factory, team):
 
 def test_claim_rules(team):
     req = new_request(team["staff"])
-    r = team["staff"].post("/drafts", {"request_id": req["id"], "content": "x", "claims": [{**POOL, "fact_key": None}]})
+    r = team["staff"].post("/drafts", {"content_flags": [], "request_id": req["id"], "content": "x", "claims": [{**POOL, "fact_key": None}]})
     assert r.status_code == 422 and code(r) == "claim_fact_key_required"
-    r = team["staff"].post("/drafts", {"request_id": req["id"], "content": "x", "claims": [{**POOL, "evidence_label": "DATA FINAL"}]})
+    r = team["staff"].post("/drafts", {"content_flags": [], "request_id": req["id"], "content": "x", "claims": [{**POOL, "evidence_label": "DATA FINAL"}]})
     assert r.status_code == 422 and code(r) == "claim_source_required"
     ok = new_draft(team["staff"], req["id"], claims=[{"text": "Suasana tenang", "category": "experience", "evidence_label": "ASSUMPTION"}])
     assert ok["claims"][0]["fact_key"] is None
@@ -401,7 +401,7 @@ def test_concurrent_drafts_get_distinct_versions(team):
     results: list = []
 
     def write(actor):
-        results.append(actor.post("/drafts", {"request_id": req["id"], "content": "paralel"}))
+        results.append(actor.post("/drafts", {"content_flags": [], "request_id": req["id"], "content": "paralel"}))
 
     threads = [threading.Thread(target=write, args=(a,)) for a in writers]
     for t in threads:
@@ -453,7 +453,7 @@ def test_finished_request_accepts_no_new_draft_or_decision(team):
     req = new_request(team["staff"])
     draft = new_draft(team["staff"], req["id"])
     assert team["approver"].post("/approvals", {"draft_id": draft["id"], "level": "L1", "decision": "Approved"}).status_code == 201
-    r = team["staff"].post("/drafts", {"request_id": req["id"], "content": "revisi setelah approved"})
+    r = team["staff"].post("/drafts", {"content_flags": [], "request_id": req["id"], "content": "revisi setelah approved"})
     assert r.status_code == 409 and code(r) == "request_closed"
     r = team["approver"].post("/approvals", {"draft_id": draft["id"], "level": "L1", "decision": "Rejected"})
     assert r.status_code == 409 and code(r) == "request_closed"
@@ -478,7 +478,7 @@ def test_blank_or_nul_text_is_rejected(team, text):
 
 def test_large_unicode_draft_fits_body_limit(team):
     req = new_request(team["staff"])
-    r = team["staff"].post("/drafts", {"request_id": req["id"], "content": "\U0001F334" * 10_000})
+    r = team["staff"].post("/drafts", {"content_flags": [], "request_id": req["id"], "content": "\U0001F334" * 10_000})
     assert r.status_code == 201, r.text
 
 
@@ -492,3 +492,168 @@ def test_role_and_level_come_from_the_same_membership(factory, team):
     r = lead.post("/approvals", {"draft_id": draft["id"], "level": "L2", "decision": "Approved", **EVIDENCE})
     assert r.status_code == 201, r.text
     assert r.json()["approver_role"] == "content_lead"
+
+
+# --- Penanda isi konten & level approval otomatis (kontrak core 0.10.0, TASK-032) -----------------------
+
+
+def reasons(draft: dict) -> set[str]:
+    return {x["rule"] for x in draft["min_level_reasons"]}
+
+
+def flags(draft: dict) -> dict[str, str]:
+    return {f["flag"]: f["source"] for f in draft["content_flags"]}
+
+
+def test_draft_must_state_content_flags(team):
+    req = new_request(team["staff"])
+    r = team["staff"].post("/drafts", {"request_id": req["id"], "content": "x"})
+    assert r.status_code == 422 and code(r) == "content_flags_required"
+    r = team["staff"].post("/drafts", {"request_id": req["id"], "content": "x", "content_flags": ["bukan-penanda"]})
+    assert r.status_code == 422
+    plain = new_draft(team["staff"], req["id"])
+    assert (plain["min_level"], plain["content_flags"], plain["min_level_reasons"]) == ("L1", [], [])
+
+
+def test_negative_review_reply_is_l3_and_positive_stays_l1(team):
+    """Celah 1: balasan review negatif = L3 (Rule 08), dari rating, tanpa bergantung staf mengisi risk 3."""
+    r = team["staff"].post("/requests", {"client_code": "CTH", "intent": "review-reply", "text": "Balas review Google"})
+    assert r.status_code == 422 and code(r) == "review_rating_required"
+    negative = new_draft(team["staff"], new_request(team["staff"], intent="review-reply", review_rating=2)["id"])
+    assert negative["min_level"] == "L3" and flags(negative) == {"negative_review": "server"}
+    r = team["approver"].post("/approvals", {"draft_id": negative["id"], "level": "L2", "decision": "Revise"})
+    assert r.status_code == 409 and code(r) == "approval_level_too_low"
+    positive = new_draft(team["staff"], new_request(team["staff"], intent="review-reply", review_rating=5)["id"])
+    assert positive["min_level"] == "L1" and positive["content_flags"] == []
+
+
+def test_localize_follows_source_draft_level(team):
+    """Celah 2: terjemahan balasan review negatif tetap L3."""
+    source = new_draft(team["staff"], new_request(team["staff"], intent="review-reply", review_rating=1)["id"])
+    r = team["staff"].post("/requests", {"client_code": "CTH", "intent": "localize", "text": "Terjemahkan ke EN"})
+    assert r.status_code == 422 and code(r) == "source_draft_required"
+    other = new_draft(team["staff"], new_request(team["staff"], client="CTHB")["id"])
+    r = team["staff"].post("/requests", {"client_code": "CTH", "intent": "localize", "text": "x", "source_draft_id": other["id"]})
+    assert r.status_code == 409 and code(r) == "source_draft_invalid"
+    req = new_request(team["staff"], intent="localize", source_draft_id=source["id"])
+    assert req["source_draft_id"] == source["id"]
+    translated = new_draft(team["staff"], req["id"])
+    assert translated["min_level"] == "L3" and f"source_draft:{source['id']}" in reasons(translated)
+    r = team["approver"].post("/approvals", {"draft_id": translated["id"], "level": "L2", "decision": "Revise"})
+    assert r.status_code == 409 and code(r) == "approval_level_too_low"
+
+
+@pytest.mark.parametrize(
+    ("content", "flag", "level"),
+    [
+        ("Promo menginap Rp 1.500.000 per malam", "price_promo", "L2"),  # celah 3: harga di teks tanpa klaim
+        ("Diskon 20% untuk tamu bulan ini", "price_promo", "L2"),
+        ("Best rate langsung di website", "price_promo", "L2"),
+        ("Upacara Melasti di pantai depan villa", "religion_culture", "L3"),  # celah 6
+        ("Buka puasa Ramadan bersama keluarga", "religion_culture", "L3"),
+    ],
+)
+def test_server_safety_net_flags_content(team, content, flag, level):
+    draft = new_draft(team["staff"], new_request(team["staff"])["id"], content=content)
+    assert flags(draft).get(flag) == "server" and draft["min_level"] == level
+
+
+@pytest.mark.parametrize("content", [
+    "Pagi tenang di villa, kopi hangat di teras.",
+    "Upacara pernikahan di tepi tebing, momen sakral saat matahari terbenam.",  # bahasa wedding biasa, bukan topik agama
+    "Rated 4.8 oleh tamu kami",
+])
+def test_plain_caption_is_not_flagged(team, content):
+    draft = new_draft(team["staff"], new_request(team["staff"])["id"], content=content)
+    assert draft["content_flags"] == [] and draft["min_level"] == "L1"
+
+
+@pytest.mark.parametrize(("flag", "level"), [("people", "L2"), ("paid_ads", "L3"), ("influencer", "L3"), ("crisis", "L3")])
+def test_author_flags_raise_level(team, flag, level):
+    """Celah 4–5: konten dengan orang = L2; iklan berbayar & influencer = L3 (Rule 08)."""
+    draft = new_draft(team["staff"], new_request(team["staff"])["id"], content_flags=[flag])
+    assert flags(draft) == {flag: "author"} and draft["min_level"] == level and f"flag:{flag}" in reasons(draft)
+
+
+def test_ota_listing_intent_gets_server_flag(team):
+    draft = new_draft(team["staff"], new_request(team["staff"], intent="ota-listing")["id"])
+    assert flags(draft) == {"ota_listing": "server"} and draft["min_level"] == "L2"
+
+
+def test_author_flag_same_as_server_flag_is_not_duplicated(team):
+    draft = new_draft(team["staff"], new_request(team["staff"])["id"], content="Diskon 10%", content_flags=["price_promo", "price_promo"])
+    assert draft["content_flags"] and flags(draft) == {"price_promo": "server"} and len(draft["content_flags"]) == 1
+
+
+def test_adding_and_removing_flags(team):
+    draft = new_draft(team["staff"], new_request(team["staff"])["id"], content="Diskon 15% weekday")
+    path = f"/drafts/{draft['id']}/flags"
+    r = team["staff"].post(path, {"flag": "people"})
+    assert r.status_code == 201 and r.json()["source"] == "staff"
+    assert code(team["staff"].post(path, {"flag": "people"})) == "flag_exists"
+    for who in ("approver", "viewer"):
+        assert team[who].post(path, {"flag": "crisis"}).status_code == 403
+    assert team["other"].post(path, {"flag": "crisis"}).status_code == 404
+    # QA reviewer menambah penanda: sumber qa.
+    assert team["lead"].post("/qa-records", {"draft_id": draft["id"], "gate": "content-review", "result": "Conditional", "independent": True}).status_code == 201
+    r = team["lead"].post(path, {"flag": "paid_ads"})
+    assert r.status_code == 201 and r.json()["source"] == "qa"
+    assert team["staff"].get(f"/drafts/{draft['id']}").json()["min_level"] == "L3"
+    # Hapus: hanya owner/content lead, dengan alasan; penanda server tidak bisa dihapus; sekali saja.
+    assert team["staff"].post(f"{path}/paid_ads/remove", {"reason": "bukan iklan berbayar, organik"}).status_code == 403
+    assert team["lead2"].post(f"{path}/paid_ads/remove", {"reason": "pendek"}).status_code == 422
+    r = team["lead2"].post(f"{path}/paid_ads/remove", {"reason": "bukan iklan berbayar, post organik"})
+    assert r.status_code == 200 and r.json()["removed_by"] == team["lead2"].id and r.json()["removed_at"]
+    assert code(team["lead2"].post(f"{path}/paid_ads/remove", {"reason": "bukan iklan berbayar, post organik"})) == "flag_not_active"
+    assert code(team["lead2"].post(f"{path}/price_promo/remove", {"reason": "diskon ini sudah disetujui"})) == "flag_not_removable"
+    after = team["staff"].get(f"/drafts/{draft['id']}").json()
+    assert flags(after) == {"price_promo": "server", "people": "staff"} and after["min_level"] == "L2"
+
+
+def test_no_new_flags_after_request_finished(factory, team):
+    draft = new_draft(team["staff"], new_request(team["staff"])["id"])
+    assert team["approver"].post("/approvals", {"draft_id": draft["id"], "level": "L1", "decision": "Rejected"}).status_code == 201
+    r = team["staff"].post(f"/drafts/{draft['id']}/flags", {"flag": "people"})
+    assert r.status_code == 409 and code(r) == "request_closed"
+
+
+def test_database_guards_flags_directly(factory, team):
+    """Aturan penanda dijaga database, bukan hanya API (kontrak core database-schema § Constraint Wajib)."""
+    from sqlalchemy import text
+    from sqlalchemy.exc import IntegrityError, ProgrammingError
+
+    draft = new_draft(team["staff"], new_request(team["staff"])["id"], content="Harga spesial Rp 900.000", content_flags=["people"])
+    cases = [
+        ("UPDATE draft_flags SET removed_by = :u, removed_at = now(), removed_reason = 'dihapus langsung' WHERE draft_id = :d AND flag = 'price_promo'",
+         team["owner"].id, "flag_not_removable"),
+        ("UPDATE draft_flags SET removed_by = :u, removed_at = now(), removed_reason = 'dihapus langsung' WHERE draft_id = :d AND flag = 'people'",
+         team["staff"].id, "approval_role_mismatch"),
+        ("UPDATE draft_flags SET flag = 'crisis' WHERE draft_id = :d AND flag = 'people' AND :u > 0", team["owner"].id, "decision_record_append_only"),
+    ]
+    for sql, user, rule in cases:
+        with factory() as s:
+            with pytest.raises(IntegrityError, match=rule):
+                s.execute(text(sql), {"d": draft["id"], "u": user})
+                s.flush()
+    with factory() as s:  # hak DELETE dicabut dari role aplikasi (lapis kedua: trigger append-only)
+        with pytest.raises(ProgrammingError, match="permission denied"):
+            s.execute(text("DELETE FROM draft_flags WHERE draft_id = :d"), {"d": draft["id"]})
+    with factory() as s, s.begin():  # rating & draft asal tidak bisa diubah setelah request dibuat
+        req_id = new_request(team["staff"], intent="review-reply", review_rating=4)["id"]
+        with pytest.raises(IntegrityError, match="decision_record_append_only"):
+            s.execute(text("UPDATE requests SET review_rating = 5 WHERE id = :r"), {"r": req_id})
+            s.flush()
+
+
+def test_new_version_inherits_human_flags(team):
+    """Versi baru tidak bisa menurunkan level dengan diam-diam: penanda manusia versi sebelumnya ikut."""
+    req = new_request(team["staff"])
+    v1 = new_draft(team["staff"], req["id"], content_flags=["people"])
+    assert team["lead"].post(f"/drafts/{v1['id']}/flags", {"flag": "influencer"}).status_code == 201
+    v2 = new_draft(team["staff"], req["id"], content="Versi baru tanpa centang")
+    assert flags(v2) == {"people": "author", "influencer": "staff"} and v2["min_level"] == "L3"
+    assert {f["added_by"] for f in v2["content_flags"]} == {team["staff"].id, team["lead"].id}
+    # Dihapus dengan alasan di v2 → v3 tidak mewarisinya lagi.
+    assert team["lead2"].post(f"/drafts/{v2['id']}/flags/influencer/remove", {"reason": "bukan kolaborasi, foto staf sendiri"}).status_code == 200
+    v3 = new_draft(team["staff"], req["id"])
+    assert flags(v3) == {"people": "author"} and v3["min_level"] == "L2"

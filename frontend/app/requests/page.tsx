@@ -6,7 +6,7 @@ import { Card, PageHeader } from "../../components/ui";
 import { Field, Notice, SessionGate, StatusPill } from "../../components/WorkflowUi";
 import { api, errorText } from "../../lib/auth";
 import { L, useL, useLang } from "../../lib/i18n";
-import { AGENCY_WRITERS, formatDate, roleFor, useSession, type Agent, type Client, type Page, type WfRequest } from "../../lib/workflow";
+import { AGENCY_WRITERS, formatDate, roleFor, useSession, type Agent, type Client, type DraftSummary, type Page, type WfRequest } from "../../lib/workflow";
 
 export default function RequestsPage() {
   const tr = useL();
@@ -104,6 +104,10 @@ function NewRequest({ clients, onCreated }: { clients: Client[]; onCreated: () =
   const [deadline, setDeadline] = useState("");
   const [impact, setImpact] = useState(1);
   const [risk, setRisk] = useState(1);
+  // API 0.10.0: rating untuk balasan review (≤ 3 = L3) dan draft asal untuk terjemahan (level ikut draft asal).
+  const [rating, setRating] = useState("");
+  const [sourceDraft, setSourceDraft] = useState("");
+  const [drafts, setDrafts] = useState<DraftSummary[]>([]);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   useEffect(() => {
     api<{ agents: Agent[] }>("agents").then((r) => {
@@ -113,10 +117,20 @@ function NewRequest({ clients, onCreated }: { clients: Client[]; onCreated: () =
       setIntent(active[0]?.intents[0] ?? "");
     });
   }, []);
+  useEffect(() => {
+    setSourceDraft("");
+    if (intent !== "localize" || !client) return setDrafts([]);
+    api<Page<DraftSummary>>(`drafts?client_code=${encodeURIComponent(client)}&limit=100`).then((r) => setDrafts(r.ok ? r.data.items.filter((d) => d.latest) : []));
+  }, [intent, client]);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    const r = await api<WfRequest>("requests", { method: "POST", body: { client_code: client, intent, text, deadline: deadline || null, impact, risk } });
+    const body = {
+      client_code: client, intent, text, deadline: deadline || null, impact, risk,
+      ...(intent === "review-reply" ? { review_rating: Number(rating) } : {}),
+      ...(intent === "localize" ? { source_draft_id: Number(sourceDraft) } : {}),
+    };
+    const r = await api<WfRequest>("requests", { method: "POST", body });
     if (r.ok) {
       setMsg({ ok: true, text: tr(`Request #${r.data.id} created (minimum approval ${r.data.approval_min}).`, `Permintaan #${r.data.id} dibuat (approval minimal ${r.data.approval_min}).`) });
       setText("");
@@ -137,6 +151,26 @@ function NewRequest({ clients, onCreated }: { clients: Client[]; onCreated: () =
             {agents.flatMap((a) => a.intents.map((i) => <option key={i} value={i}>{i} · {a.display_name}</option>))}
           </select>
         </Field>
+        {intent === "review-reply" && (
+          <Field id="rq-rating" label={tr("Review rating (stars)", "Rating review (bintang)")}>
+            <select id="rq-rating" value={rating} onChange={(e) => setRating(e.target.value)} required>
+              <option value="">{tr("Choose…", "Pilih…")}</option>
+              {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{"★".repeat(n)} ({n})</option>)}
+            </select>
+          </Field>
+        )}
+        {intent === "review-reply" && rating !== "" && Number(rating) <= 3 && (
+          <p className="muted wf-hint">{tr("Rating 3 or lower = negative review: the reply needs L3 approval (owner/GM of the client).", "Rating 3 ke bawah = review negatif: balasannya butuh approval L3 (owner/GM klien).")}</p>
+        )}
+        {intent === "localize" && (
+          <Field id="rq-source" label={tr("Draft to translate", "Draft yang diterjemahkan")}>
+            <select id="rq-source" value={sourceDraft} onChange={(e) => setSourceDraft(e.target.value)} required>
+              <option value="">{drafts.length ? tr("Choose…", "Pilih…") : tr("No drafts for this client yet", "Belum ada draft untuk klien ini")}</option>
+              {drafts.map((d) => <option key={d.id} value={d.id}>#{d.id} · request #{d.request_id} · v{d.version}</option>)}
+            </select>
+          </Field>
+        )}
+        {intent === "localize" && <p className="muted wf-hint">{tr("The translation needs at least the same approval level as the source draft.", "Terjemahan butuh level approval minimal sama dengan draft asal.")}</p>}
         <Field id="rq-text" label={tr("What is needed", "Kebutuhan")}>
           <textarea id="rq-text" value={text} onChange={(e) => setText(e.target.value)} required maxLength={4000} rows={4} />
         </Field>
@@ -157,7 +191,7 @@ function NewRequest({ clients, onCreated }: { clients: Client[]; onCreated: () =
         </div>
         {risk === 3 && <p className="muted wf-hint">{tr("Risk 3 (crisis, legal, negative review) always needs L3 approval.", "Risiko 3 (krisis, legal, review negatif) selalu butuh approval L3.")}</p>}
         <Notice msg={msg} />
-        <button type="submit" className="btn btn--primary" disabled={!client || !intent || !text.trim()}>{tr("Create request", "Buat permintaan")}</button>
+        <button type="submit" className="btn btn--primary" disabled={!client || !intent || !text.trim() || (intent === "review-reply" && !rating) || (intent === "localize" && !sourceDraft)}>{tr("Create request", "Buat permintaan")}</button>
       </form>
     </Card>
   );

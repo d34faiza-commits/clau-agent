@@ -543,6 +543,9 @@ button { font: inherit; color: inherit; }
 .wf-check { display: flex; gap: 8px; align-items: center; font-size: 13px; }
 .wf-claims { display: grid; gap: 8px; border: 1px solid var(--color-border-input); border-radius: var(--radius-sm); padding: 10px; margin: 0; min-width: 0; }
 .wf-claims legend { font-size: 12px; font-weight: 600; color: var(--color-text-secondary); padding: 0 4px; }
+.wf-level { display: grid; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--color-border-input); }
+.wf-flags { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.wf-flags li { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; }
 .wf-claim { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 6px; align-items: center; }
 .wf-claim input, .wf-claim select { height: 34px; padding: 0 8px; border: 1px solid var(--color-border-input); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); font: inherit; font-size: 13px; min-width: 0; }
 .wf-facts { list-style: none; margin: 0; padding: 0; }

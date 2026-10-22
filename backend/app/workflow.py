@@ -1,4 +1,5 @@
-"""Workflow request → draft → QA → approval (Tahap 1 PR 3, kontrak core/shared/api-contracts.md 0.7.0).
+"""Workflow request → draft → QA → approval (Tahap 1 PR 3, kontrak core/shared/api-contracts.md 0.7.0; penanda isi
+konten & level approval otomatis 0.10.0, TASK-032).
 
 Pembagian tugas pengamanan:
 - Database (migrasi 0001 & 0004) menegakkan aturan data: fakta dikonfirmasi, versi terbaru, level minimum,
@@ -16,7 +17,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.auth.access import AGENCY, LEVEL_ORDER, can_access_client, visible_client_codes
@@ -24,6 +25,7 @@ from app.auth.deps import AuthContext, current_user, get_db
 from app.db.models import (
     APPROVAL_DECISIONS,
     CLAIM_CATEGORIES,
+    CONTENT_FLAGS,
     EVIDENCE_LABELS,
     FACT_KEY_RE,
     FACTUAL_CATEGORIES,
@@ -39,6 +41,7 @@ from app.db.models import (
     Claim,
     Client,
     Draft,
+    DraftFlag,
     FactSheet,
     QARecord,
     Request,
@@ -89,6 +92,12 @@ class RequestIn(Body):
     deadline: date | None = None
     impact: int = Field(default=1, ge=0, le=3)
     risk: int = Field(default=1, ge=0, le=3)
+    # 0.10.0: rating review (wajib untuk review-reply; ≤ 3 = L3) dan draft asal (wajib untuk localize).
+    review_rating: int | None = Field(default=None, ge=1, le=5)
+    source_draft_id: int | None = Field(default=None, ge=1)
+
+
+Flag = Literal[CONTENT_FLAGS]  # type: ignore[valid-type]
 
 
 class ClaimIn(Body):
@@ -107,6 +116,16 @@ class DraftIn(Body):
     fact_sheet_id: int | None = Field(default=None, ge=1)
     content: str = Field(min_length=1, max_length=10_000)
     claims: list[ClaimIn] = Field(default_factory=list, max_length=30)
+    # 0.10.0: wajib dikirim (daftar kosong = pembuat menyatakan tidak ada penanda); None = field tidak dikirim.
+    content_flags: list[Flag] | None = Field(default=None, max_length=len(CONTENT_FLAGS))
+
+
+class FlagIn(Body):
+    flag: Flag
+
+
+class FlagRemoveIn(Body):
+    reason: str = Field(min_length=10, max_length=500)
 
 
 class QAIn(Body):
@@ -220,6 +239,7 @@ def request_json(r: Request) -> dict:
         "deadline": iso(r.deadline), "impact": r.impact, "risk": r.risk, "priority": r.priority,
         "priority_score": priority_score(r), "status": r.status, "requested_by": r.requested_by,
         "requested_by_role": r.requested_by_role, "created_at": iso(r.created_at),
+        "review_rating": r.review_rating, "source_draft_id": r.source_draft_id,
     }
 
 
@@ -236,6 +256,31 @@ def draft_json(d: Draft, client_code: str, latest: bool, claims: list[Claim] | N
              "source_date": iso(c.source_date), "implied": c.implied, "fact_key": c.fact_key}
             for c in claims
         ]
+    return out
+
+
+def flag_json(f: DraftFlag) -> dict:
+    return {"flag": f.flag, "source": f.source, "added_by": f.added_by, "added_at": iso(f.added_at),
+            "removed_by": f.removed_by, "removed_at": iso(f.removed_at), "removed_reason": f.removed_reason}
+
+
+def active_flags(db: Session, draft_id: int) -> list[DraftFlag]:
+    return list(db.scalars(select(DraftFlag).where(DraftFlag.draft_id == draft_id, DraftFlag.removed_at.is_(None)).order_by(DraftFlag.id)))
+
+
+def level_reasons(db: Session, draft_id: int) -> list[dict]:
+    """Alasan level minimum dari fungsi database yang sama dengan trigger approval (satu sumber kebenaran)."""
+    rows = db.execute(text(
+        "SELECT x.rule, x.level FROM drafts d JOIN requests r ON r.id = d.request_id,"
+        " LATERAL clau_draft_level_reasons(d, r) AS x WHERE d.id = :id"), {"id": draft_id}).all()
+    return [{"rule": rule, "level": level} for rule, level in rows]
+
+
+def with_levels(db: Session, out: dict, draft_id: int) -> dict:
+    reasons = level_reasons(db, draft_id)
+    out["content_flags"] = [flag_json(f) for f in active_flags(db, draft_id)]
+    out["min_level"] = max((x["level"] for x in reasons), key=LEVEL_ORDER.__getitem__)
+    out["min_level_reasons"] = [x for x in reasons if LEVEL_ORDER[x["level"]] > 1]
     return out
 
 
@@ -271,6 +316,14 @@ def create_request(body: RequestIn, ctx: AuthContext = Depends(current_user), db
     agent = agent_for_intent(body.intent)
     if agent is None:
         raise ApiError(422, "unknown_intent", f"Intent '{body.intent}' tidak dikenal (core/orchestrator/router.md).")
+    if body.intent == "review-reply" and body.review_rating is None:
+        raise ApiError(422, "review_rating_required", "Request balasan review wajib rating review 1–5.")
+    if body.intent == "localize" and body.source_draft_id is None:
+        raise ApiError(422, "source_draft_required", "Request terjemahan wajib menunjuk draft asal.")
+    if body.source_draft_id is not None:
+        source = db.execute(select(Request.client_code).join(Draft, Draft.request_id == Request.id).where(Draft.id == body.source_draft_id)).scalar()
+        if source != body.client_code:  # klien lain dijawab sama dengan yang tidak ada (trigger juga menolak)
+            raise ApiError(409, "source_draft_invalid", "Draft asal tidak ditemukan untuk klien ini.")
     # Risiko 3 (legal, privacy, keselamatan, krisis, review negatif) = L3 (rule 08), apa pun minimum intent-nya.
     approval_min = "L3" if body.risk == 3 else agent["approval_min"]
     req = Request(
@@ -278,6 +331,7 @@ def create_request(body: RequestIn, ctx: AuthContext = Depends(current_user), db
         text=body.text, deadline=body.deadline, impact=body.impact, risk=body.risk,
         priority=priority_of(urgency(body.deadline, datetime.now(WITA).date()) + body.impact + body.risk, body.risk),
         status="open", requested_by=ctx.user.id, requested_by_role=role,
+        review_rating=body.review_rating, source_draft_id=body.source_draft_id,
     )
     db.add(req)
     db.flush()
@@ -316,6 +370,8 @@ def get_request(request_id: int, ctx: AuthContext = Depends(current_user), db: S
 
 @router.post("/drafts", status_code=201)
 def create_draft(body: DraftIn, ctx: AuthContext = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    if body.content_flags is None:
+        raise ApiError(422, "content_flags_required", "Pilih penanda isi konten, atau nyatakan tidak ada (daftar kosong).")
     for i, claim in enumerate(body.claims, start=1):
         if claim.category in FACTUAL_CATEGORIES and not claim.fact_key:
             raise ApiError(422, "claim_fact_key_required", f"Klaim #{i} ({claim.category}) wajib fact_key dari fact sheet klien.")
@@ -343,11 +399,17 @@ def create_draft(body: DraftIn, ctx: AuthContext = Depends(current_user), db: Se
     db.flush()
     claims = [Claim(draft_id=draft.id, **c.model_dump()) for c in body.claims]
     db.add_all(claims)
+    # Trigger sudah menambah penanda server dan mewarisi penanda manusia versi sebelumnya (migrasi 0007); penanda
+    # pembuat yang sama tidak diduplikasi.
+    present = {f.flag for f in active_flags(db, draft.id)}
+    db.add_all(DraftFlag(draft_id=draft.id, flag=f, source="author", added_by=ctx.user.id)
+               for f in dict.fromkeys(body.content_flags) if f not in present)
     req.status = "in_progress"
     db.flush()
-    audit(db, ctx, "draft.create", "draft", draft.id, request_id=req.id, version=draft.version, claims=len(claims), mode=draft.mode)
+    audit(db, ctx, "draft.create", "draft", draft.id, request_id=req.id, version=draft.version, claims=len(claims), mode=draft.mode,
+          flags=sorted(f.flag for f in active_flags(db, draft.id)))
     db.commit()
-    return draft_json(draft, req.client_code, True, claims)
+    return with_levels(db, draft_json(draft, req.client_code, True, claims), draft.id)
 
 
 @router.get("/drafts")
@@ -380,7 +442,43 @@ def list_drafts(
 def get_draft(draft_id: int, ctx: AuthContext = Depends(current_user), db: Session = Depends(get_db)) -> dict:
     draft, req = visible_draft(db, ctx, draft_id)
     claims = list(db.scalars(select(Claim).where(Claim.draft_id == draft.id).order_by(Claim.id)))
-    return draft_json(draft, req.client_code, draft.version == latest_version(db, req.id), claims)
+    return with_levels(db, draft_json(draft, req.client_code, draft.version == latest_version(db, req.id), claims), draft.id)
+
+
+@router.post("/drafts/{draft_id}/flags", status_code=201)
+def add_flag(draft_id: int, body: FlagIn, ctx: AuthContext = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    """Menambah penanda (hanya menaikkan level). Request selesai ditolak trigger (request_closed)."""
+    draft, req = visible_draft(db, ctx, draft_id)
+    if role_for(ctx, req.client_code) not in AGENCY_WRITERS:
+        raise forbidden("Hanya staf agency yang menambah penanda.")
+    if any(f.flag == body.flag for f in active_flags(db, draft.id)):
+        raise ApiError(409, "flag_exists", "Penanda ini sudah ada di draft.")
+    reviewed = db.scalar(select(func.count()).select_from(QARecord).where(QARecord.draft_id == draft.id, QARecord.reviewer_id == ctx.user.id))
+    flag = DraftFlag(draft_id=draft.id, flag=body.flag, source="qa" if reviewed else "staff", added_by=ctx.user.id)
+    db.add(flag)
+    db.flush()
+    audit(db, ctx, "draft_flag.add", "draft", draft.id, flag=flag.flag, source=flag.source)
+    db.commit()
+    return flag_json(flag)
+
+
+@router.post("/drafts/{draft_id}/flags/{flag}/remove")
+def remove_flag(draft_id: int, flag: Flag, body: FlagRemoveIn, ctx: AuthContext = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    """Menghapus penanda: hanya owner/content lead, dengan alasan, sekali; penanda server tidak bisa dihapus."""
+    draft, req = visible_draft(db, ctx, draft_id)
+    if role_for(ctx, req.client_code) not in SENIOR:
+        raise forbidden("Hanya owner/content lead yang menghapus penanda.")
+    row = next((f for f in active_flags(db, draft.id) if f.flag == flag), None)
+    if row is None:
+        raise ApiError(409, "flag_not_active", "Penanda ini tidak aktif di draft.")
+    if row.source == "server":
+        raise ApiError(409, "flag_not_removable", "Penanda dari jaring pengaman server tidak bisa dihapus; buat draft versi baru.")
+    row.removed_by, row.removed_at, row.removed_reason = ctx.user.id, func.now(), body.reason
+    db.flush()
+    db.refresh(row)
+    audit(db, ctx, "draft_flag.remove", "draft", draft.id, flag=row.flag, source=row.source)
+    db.commit()
+    return flag_json(row)
 
 
 # --- QA ------------------------------------------------------------------------------------------

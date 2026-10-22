@@ -1,4 +1,4 @@
-// Tipe & helper workflow (kontrak core/shared/api-contracts.md 0.7.0–0.8.0). Aturan di sini hanya untuk
+// Tipe & helper workflow (kontrak core/shared/api-contracts.md 0.7.0–0.10.0). Aturan di sini hanya untuk
 // menampilkan tombol yang relevan; keputusan sebenarnya selalu dicek backend dan database (rule 08).
 import { useEffect, useState } from "react";
 import { api, type Me, type Membership } from "./auth";
@@ -9,13 +9,19 @@ export type WfRequest = {
   id: number; client_code: string; intent: string; pillar: number; agent: string | null; approval_min: string; text: string;
   deadline: string | null; impact: number; risk: number; priority: string; priority_score: number; status: string;
   requested_by: number | null; requested_by_role: string; created_at: string;
+  review_rating?: number | null; source_draft_id?: number | null;
 };
 export type Claim = { id?: number; text: string; category: string; evidence_label: string; source?: string | null; source_date?: string | null; implied?: boolean; fact_key?: string | null };
 export type DraftSummary = {
   id: number; request_id: number; client_code: string; brief_id: string | null; fact_sheet_id: number | null; skill: string;
   version: number; mode: "NYATA" | "SIMULASI"; created_by: number | null; agent_id: string | null; created_at: string; latest: boolean;
 };
-export type Draft = DraftSummary & { content: string; claims: Claim[] };
+export type DraftFlag = { flag: ContentFlag; source: "author" | "server" | "staff" | "qa"; added_by: number | null; added_at: string; removed_by: number | null; removed_at: string | null; removed_reason: string | null };
+export type Draft = DraftSummary & {
+  content: string; claims: Claim[];
+  // API 0.10.0: penanda aktif + level minimum dari database (alasan = aturan yang menaikkan level di atas L1).
+  content_flags?: DraftFlag[]; min_level?: string; min_level_reasons?: { rule: string; level: string }[];
+};
 export type QARecord = { id: number; draft_id: number; gate: string; result: string; reviewer_id: number | null; reviewer_role: string; independent: boolean; created_at: string };
 export type Approval = { id: number; draft_id: number; level: string; decision: string; approver_id: number; approver_role: string; channel_ref: string | null; mode: string; decided_at: string };
 export type FactAnswer = {
@@ -32,6 +38,36 @@ export type FactSheetDetail = FactSheet & { facts: Fact[] };
 export type Agent = { id: string; display_name: string; intents: string[]; status: string; approval_min: string; pillar: number };
 
 export const LEVELS = ["L1", "L2", "L3"] as const;
+// Penanda isi konten (kontrak core 0.10.0 § Penanda Isi Konten; Rule 08). Level di sini hanya untuk tampilan.
+export const CONTENT_FLAGS = ["price_promo", "people", "ota_listing", "negative_review", "paid_ads", "influencer", "religion_culture", "crisis"] as const;
+export type ContentFlag = (typeof CONTENT_FLAGS)[number];
+export const FLAG_LEVEL: Record<ContentFlag, string> = {
+  price_promo: "L2", people: "L2", ota_listing: "L2", negative_review: "L3", paid_ads: "L3", influencer: "L3", religion_culture: "L3", crisis: "L3",
+};
+export const FLAG_LABEL: Record<ContentFlag, [string, string]> = {
+  price_promo: ["Price, discount or promo", "Harga, diskon, atau promo"],
+  people: ["Identifiable people (guests, staff, couples)", "Orang yang bisa dikenali (tamu, staf, pengantin)"],
+  ota_listing: ["OTA listing text", "Teks listing OTA"],
+  negative_review: ["Reply to a negative review or complaint", "Balasan review/keluhan negatif"],
+  paid_ads: ["Paid ad or boosted post", "Iklan berbayar atau post di-boost"],
+  influencer: ["Influencer, endorsement or barter stay", "Influencer, endorse, atau barter menginap"],
+  religion_culture: ["Religion, custom, temple or ceremony", "Agama, adat, tempat suci, atau upacara"],
+  crisis: ["Crisis, disaster, incident, legal/health/safety issue", "Krisis, bencana, insiden, isu hukum/kesehatan/keselamatan"],
+};
+export const FLAG_SOURCE_LABEL: Record<DraftFlag["source"], [string, string]> = {
+  author: ["set by author", "dari pembuat"], server: ["automatic", "otomatis"], staff: ["added by staff", "ditambah staf"], qa: ["added in QA", "ditambah saat QA"],
+};
+
+/** Alasan level minimum dalam bahasa manusia (rule dari backend: intent:…, fact_claims, agent_draft, flag:…, source_draft:…). */
+export function levelReason(rule: string, en: boolean): string {
+  const [kind, value] = rule.split(":", 2);
+  if (kind === "flag" && value in FLAG_LABEL) return FLAG_LABEL[value as ContentFlag][en ? 0 : 1];
+  if (kind === "fact_claims") return en ? "Factual claims from the fact sheet" : "Ada klaim fakta dari fact sheet";
+  if (kind === "agent_draft") return en ? "AI draft for a real client" : "Draft AI untuk klien nyata";
+  if (kind === "source_draft") return en ? `Follows source draft #${value}` : `Mengikuti draft asal #${value}`;
+  if (kind === "intent") return en ? `Minimum for ${value}` : `Minimum intent ${value}`;
+  return rule;
+}
 export const EVIDENCE_LABELS = ["DATA FINAL", "ASSUMPTION", "CLIENT CONFIRMATION", "FIELD VERIFICATION", "RISK", "NEXT ACTION"] as const;
 export const CLAIM_CATEGORIES = [
   "facility", "location", "price", "rating", "certification", "halal-dietary", "food-beverage",

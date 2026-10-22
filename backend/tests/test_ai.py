@@ -474,7 +474,7 @@ def test_agent_draft_for_real_client_needs_running_job(factory, team, ai):
 def test_succeeded_job_must_point_to_its_own_agent_draft(factory, team, ai):
     staff = team["staff"]
     req = new_request(staff, client="CTHSIM")
-    human = staff.post("/drafts", {"request_id": req["id"], "content": "manual"}).json()
+    human = staff.post("/drafts", {"content_flags": [], "request_id": req["id"], "content": "manual"}).json()
     job_id = ask_ai(staff, req["id"]).json()["id"]
     with factory() as s:
         lease = worker.claim(s, "w")
