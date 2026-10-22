@@ -207,6 +207,37 @@ def test_owner_must_enable_mfa_before_anything_else(factory):
     assert stale.get("/auth/me").status_code == 401
 
 
+def test_content_lead_must_enable_mfa_too(factory):
+    """TASK-054 (0.9.1): content_lead bisa review independen & approve semua klien, jadi 2FA wajib seperti owner."""
+    lead = make_user(factory, role="content_lead", level="L3")
+    c = client()
+    me = login(c, lead).json()
+    assert me["next"] == "mfa_setup" and me["mfa_required"] is True
+    assert c.get("/requests").json()["error"]["code"] == "mfa_setup_required"
+    setup = c.post("/auth/mfa/setup", headers=csrf(c)).json()
+    r = c.post("/auth/mfa/confirm", json={"code": pyotp.TOTP(setup["secret"]).now()}, headers=csrf(c))
+    assert r.status_code == 200 and r.json()["next"] == "ready"
+    assert c.get("/requests").status_code == 200
+
+
+@pytest.mark.parametrize("role,scope", [("content_staff", "agency"), ("viewer", "agency"), ("client_approver", "CTH"), ("viewer", "CTH")])
+def test_other_roles_do_not_require_mfa(factory, role, scope):
+    user = make_user(factory, role=role, scope=scope)
+    me = login(client(), user).json()
+    assert me["next"] == "ready" and me["mfa_required"] is False
+
+
+def test_session_from_before_mfa_rule_is_blocked_until_mfa(factory):
+    """Sesi yang dibuat saat peran belum wajib 2FA (mfa_ok = true) tidak lolos setelah peran itu wajib 2FA."""
+    user = make_user(factory, role="content_staff")
+    c = client()
+    assert login(c, user).json()["next"] == "ready"
+    with factory() as s, s.begin():  # langsung di database: lewat API, ganti peran mencabut semua sesi user
+        s.execute(update(Membership).where(Membership.user_id == user.id).values(role="content_lead", max_level="L3"))
+    assert c.get("/auth/me").json()["next"] == "mfa_setup"
+    assert c.get("/requests").json()["error"]["code"] == "mfa_setup_required"
+
+
 def test_totp_login_rejects_missing_wrong_and_replayed_codes(factory):
     secret = pyotp.random_base32()
     owner = make_user(factory, role="owner", level="L3", mfa_secret=secret)
@@ -274,9 +305,10 @@ def test_temporary_password_must_be_changed(factory):
 
 
 def test_non_owner_cannot_manage_users(factory):
-    user = make_user(factory, role="content_lead")
+    secret = pyotp.random_base32()
+    user = make_user(factory, role="content_lead", mfa_secret=secret)
     c = client()
-    login(c, user)
+    assert login(c, user, totp_code=pyotp.TOTP(secret).now()).status_code == 200
     assert c.get("/users").json()["error"]["code"] == "forbidden"
     assert c.post("/users", json={}, headers=csrf(c)).status_code in (403, 422)
 

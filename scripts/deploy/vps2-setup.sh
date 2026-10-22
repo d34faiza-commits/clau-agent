@@ -163,8 +163,8 @@ if ! tailscale serve --bg --https=443 http://127.0.0.1:3000; then
 fi
 tailscale serve status
 
-log "8/8 Deploy otomatis, backup tiap 6 jam, alat cek & pemulihan"
-for u in clau2-deploy.service clau2-deploy.timer clau2-backup.service clau2-backup.timer; do
+log "8/8 Deploy otomatis, backup tiap 6 jam, pembersihan sesi harian, alat cek & pemulihan"
+for u in clau2-deploy.service clau2-deploy.timer clau2-backup.service clau2-backup.timer clau2-purge-sessions.service clau2-purge-sessions.timer; do
   install -m 644 -o root -g root "$SRC/systemd/$u" "/etc/systemd/system/$u"
 done
 # Salinan milik root di luar repo: yang dijalankan timer tidak berubah sebelum script ini diulang.
@@ -174,7 +174,7 @@ install -m 755 -o root -g root "$SRC/vps2-check.sh" /usr/local/sbin/clau-vps2-ch
 install -m 755 -o root -g root "$SRC/vps2-offsite.sh" /usr/local/sbin/clau-vps2-offsite
 install -m 755 -o root -g root "$SRC/vps2-restore.sh" /usr/local/sbin/clau-vps2-restore
 systemctl daemon-reload
-systemctl enable --now clau2-deploy.timer clau2-backup.timer >/dev/null
+systemctl enable --now clau2-deploy.timer clau2-backup.timer clau2-purge-sessions.timer >/dev/null
 /usr/local/sbin/clau-vps2-backup || echo "(backup pertama/salinan B2 belum berhasil: lihat pesan di atas, lalu sudo clau-vps2-check)"
 
 printf '\n\033[32mSelesai.\033[0m Buka https://%s dari laptop/HP yang tersambung Tailscale.\n' "$dns"

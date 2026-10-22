@@ -161,7 +161,24 @@ Harus muncul `salinan B2 terakhir 0 jam lalu`. Biaya: ±10 GB pertama gratis; un
 | `sudo clau-vps2-offsite setup` | Isi/ganti key Backblaze B2 (langkah I) |
 | `sudo bash /srv/clau/clau-ai-agents/scripts/deploy/vps2-setup.sh` | Pasang ulang setelah file di `scripts/deploy/` berubah |
 
-Update keamanan otomatis; reboot otomatis 03:30 WITA bila kernel baru (aplikasi mati ±2 menit, container hidup lagi sendiri).
+Update keamanan otomatis; reboot otomatis 03:30 WITA bila kernel baru (aplikasi mati ±2 menit, container hidup lagi sendiri). Sesi login yang sudah habis/dicabut dibersihkan otomatis setiap hari 04:30 WITA (`clau2-purge-sessions.timer`, dicek `clau-vps2-check`; sejak backend 0.9.1). Server yang dipasang sebelum itu: ulangi `vps2-setup.sh` sekali agar timer terpasang.
+
+## 4a. Rotasi secret
+
+Kapan: secret bocor atau diduga bocor (terlihat di screenshot/chat, laptop hilang, orang yang memegangnya keluar), atau berkala setahun sekali. Semua perintah di VPS 2 lewat SSH Tailscale. Nilai baru dibuat dengan `openssl rand -hex 32`, **langsung disimpan di password manager owner**, dan tidak pernah ditempel di chat, issue, atau repo. Setelah selesai: `sudo clau-vps2-check` harus 0 gagal, lalu catat tanggal rotasi (tanpa nilainya) di `docs/status.md` clau-content.
+
+Ubah `.env` dengan `sudo nano /srv/clau/clau-ai-agents/.env` (file milik root, izin 600; jangan pakai `echo` agar nilai tidak tersimpan di riwayat shell).
+
+| Secret | Langkah | Dampak |
+|---|---|---|
+| `CLAU_DB_APP_PASSWORD`, `CLAU_DB_MIGRATOR_PASSWORD` | Ganti nilai di `.env` → `cd /srv/clau/clau-ai-agents && sudo docker compose run --rm migrate` (bootstrap menyetel ulang password kedua role) → `sudo docker compose up -d --wait` | Backend & worker tersambung ulang (±1 menit); data tetap |
+| `POSTGRES_PASSWORD` (admin database) | Nilai di `.env` hanya dipakai saat volume database pertama dibuat. Ganti di database: `cd /srv/clau/clau-ai-agents && sudo docker compose exec db psql -U postgres -c '\password postgres'` (prompt tersembunyi: pertama password lama dari `.env`, lalu password baru dua kali) → samakan nilai di `.env` → `sudo docker compose run --rm migrate` untuk menguji | Tidak ada downtime |
+| `CLAU_SECRET_KEY` | Ganti nilai di `.env` → `cd /srv/clau/clau-ai-agents && sudo docker compose up -d --wait` → untuk **setiap** user yang memakai 2FA: `sudo docker compose run --rm backend python -m app.auth.cli reset-mfa --email <email>` → masing-masing login dan mengaktifkan 2FA lagi | **Semua sesi keluar** dan semua data 2FA + kode cadangan tidak terbaca lagi (dienkripsi dengan key ini). **Simpan key lama** (beri tanggal) selama masih ada backup sebelum rotasi: 14 hari di server, sampai 60 hari di B2; restore backup lama di server pengganti butuh key lama |
+| `CLAU_BACKUP_PASSPHRASE` | Ganti nilai di `.env` → `sudo clau-vps2-backup --verify` (backup baru memakai passphrase baru) | Backup lama tetap terenkripsi dengan passphrase lama: **simpan passphrase lama** (beri tanggal) sampai backup lama habis masa simpannya (60 hari di B2). `clau-vps2-restore` (§ 5) menanyakan passphrase lama bila backup yang dipilih tidak cocok dengan passphrase sekarang |
+| Key Backblaze B2 | Di B2: buat application key baru (bucket yang sama, akses yang sama) → `sudo clau-vps2-offsite setup` → `sudo clau-vps2-backup --verify` → hapus key lama di B2 | Tidak ada downtime |
+| API key provider AI (setelah PR 4c) | Buat key baru di konsol provider → ganti di `.env` → `sudo docker compose up -d --wait worker` → cabut key lama di konsol | Job yang sedang berjalan bisa gagal dan perlu diulang |
+| Token GitHub `SUBMODULE_TOKEN` / `SUBMODULE_READ_TOKEN` | Ikuti `SUBMODULE.md` § Setup GitHub Actions (buat token baru, ganti secret repo, hapus token lama) | Sinkronisasi submodule berhenti sampai token baru dipasang |
+| Perangkat Tailscale | Perangkat hilang/bocor: hapus mesin itu di admin console Tailscale; server: `sudo tailscale logout && sudo tailscale up` lalu matikan lagi key expiry | Akses dari perangkat itu langsung putus |
 
 ## 5. Pemulihan database (selalu manual)
 

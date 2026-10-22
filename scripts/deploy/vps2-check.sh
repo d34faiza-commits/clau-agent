@@ -26,9 +26,16 @@ judul "Layanan"
 for u in docker fail2ban ssh tailscaled; do
   systemctl is-active --quiet "$u" && ok "$u aktif" || gagal "$u tidak aktif (journalctl -u $u -n 30)"
 done
-for t in clau2-deploy.timer clau2-backup.timer apt-daily-upgrade.timer; do
+for t in clau2-deploy.timer clau2-backup.timer clau2-purge-sessions.timer apt-daily-upgrade.timer; do
   systemctl is-active --quiet "$t" && ok "$t terjadwal" || gagal "$t tidak aktif"
 done
+# Hasil run terakhir pembersihan sesi (systemd melaporkan "success" juga sebelum run pertama 04.30 WITA).
+purge=$(systemctl show -p Result --value clau2-purge-sessions.service 2>/dev/null || true)
+case "$purge" in
+  success) ok "pembersihan sesi terakhir berhasil" ;;
+  "") cek "status pembersihan sesi tidak terbaca (journalctl -u clau2-purge-sessions -n 20)" ;;
+  *) gagal "pembersihan sesi terakhir: $purge (journalctl -u clau2-purge-sessions -n 20)" ;;
+esac
 
 judul "Aplikasi (docker compose)"
 for s in db backend worker frontend; do

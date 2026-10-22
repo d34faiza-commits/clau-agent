@@ -22,9 +22,13 @@ def is_owner(memberships: Iterable[Membership]) -> bool:
     return agency_role(memberships) == "owner"
 
 
+MFA_ROLES = frozenset({"owner", "content_lead"})
+
+
 def mfa_required(memberships: Iterable[Membership]) -> bool:
-    """2FA wajib untuk owner (keputusan owner 2026-10-12); diperluas ke content_lead di tahap berikutnya."""
-    return is_owner(memberships)
+    """2FA wajib untuk owner (keputusan owner 2026-10-12) dan content_lead (0.9.1, TASK-054): keduanya bisa
+    melakukan review independen dan mencatat approval semua klien."""
+    return agency_role(memberships) in MFA_ROLES
 
 
 def visible_client_codes(memberships: Iterable[Membership]) -> set[str] | None:

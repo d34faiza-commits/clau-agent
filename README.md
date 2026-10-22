@@ -2,7 +2,7 @@
 
 **Platform CLAU AI**: tempat agent menjalankan skill dari repo pilar untuk bisnis hospitality Indonesia. Repo ini berisi kode (frontend Next.js, backend FastAPI) dan **registry agent**. Aturan isi konten tidak ditulis di sini; aturan ada di [clau-core](https://github.com/d34faiza-commits/clau-core) (submodule `core/`) dan repo pilar.
 
-> **Status:** Public, hanya untuk dilihat ([LICENSE](./LICENSE)). Backend v0.9.0: PostgreSQL 16 (migrasi 0001–0006), login + 2FA (QR & kode cadangan) + `/users`, backup terenkripsi tiap 6 jam + Backblaze B2, workflow request → draft → QA → approval dan fact sheet + Konfirmasi Fakta oleh klien (aturan Rule 08 dicek server & database), antrean AI menulis draft dengan AI fact-check & batas biaya (provider tiruan; provider Claude menyusul), dengan halaman UI-nya (`/requests`, `/fact-sheets`, `/ai-usage`). Status kerja terkini: [status & handoff](https://github.com/d34faiza-commits/clau-content/blob/main/docs/status.md).
+> **Status:** Public, hanya untuk dilihat ([LICENSE](./LICENSE)). Backend v0.9.1: PostgreSQL 16 (migrasi 0001–0006), login + 2FA wajib owner & content lead (QR & kode cadangan) + `/users`, backup terenkripsi tiap 6 jam + Backblaze B2, workflow request → draft → QA → approval dan fact sheet + Konfirmasi Fakta oleh klien (aturan Rule 08 dicek server & database), antrean AI menulis draft dengan AI fact-check & batas biaya (provider tiruan; provider Claude menyusul), dengan halaman UI-nya (`/requests`, `/fact-sheets`, `/ai-usage`). Status kerja terkini: [status & handoff](https://github.com/d34faiza-commits/clau-content/blob/main/docs/status.md).
 
 ## Prinsip Platform
 
@@ -57,7 +57,7 @@ scripts/db-backup.sh                       # backup terenkripsi; uji: scripts/db
 docker compose down                        # data tetap di volume db-data (hapus total: down -v)
 ```
 
-- **Login:** semua halaman wajib login (`CLAU_AUTH_ENABLED=1`). Browser hanya bicara ke frontend; `/api/*` diteruskan server Next.js ke backend lewat jaringan internal (keputusan VPS #1). Sesi cookie aman + CSRF, 2FA wajib owner (QR + kode cadangan), tanpa pendaftaran publik; owner mengelola akun di `/users`. Detail: [backend/README.md](./backend/README.md#login--hak-akses-050-diperkuat-060). VPS 1 (tanpa backend) tetap pratinjau SIMULASI tanpa login.
+- **Login:** semua halaman wajib login (`CLAU_AUTH_ENABLED=1`). Browser hanya bicara ke frontend; `/api/*` diteruskan server Next.js ke backend lewat jaringan internal (keputusan VPS #1). Sesi cookie aman + CSRF, 2FA wajib owner & content lead (QR + kode cadangan), tanpa pendaftaran publik; owner mengelola akun di `/users`. Detail: [backend/README.md](./backend/README.md#login--hak-akses-050-diperkuat-060). VPS 1 (tanpa backend) tetap pratinjau SIMULASI tanpa login.
 - **Database:** PostgreSQL 16 tanpa port host. Service `migrate` (sekali jalan) membuat role & database lalu menjalankan migrasi Alembic; backend memakai **role aplikasi** tanpa hak DDL dan tidak pernah menerima password admin. Skema = `core/shared/database-schema.md`; Constraint Wajib ditegakkan di database (CHECK + trigger). Detail: [backend/README.md](./backend/README.md#database).
 
 - **Environment:** semua variabel ada di [`.env.example`](./.env.example) beserta artinya. `.env` tidak di-commit; secret (password database, API key AI, WhatsApp) hanya di `.env` lokal/server, tidak pernah di repo ([docs/security.md](./docs/security.md) § 6). Test `backend/tests/test_env.py` memastikan setiap variabel yang dibaca kode tercantum dan tidak ada secret di template.
