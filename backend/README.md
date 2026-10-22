@@ -81,7 +81,7 @@ Kontrak endpoint: [`core/shared/api-contracts.md`](../core/shared/api-contracts.
 ```bash
 # Owner pertama (sekali), dari root repo:
 docker compose run --rm backend python -m app.auth.cli create-owner --email owner@contoh.id --name "Nama Owner"
-# Login di http://127.0.0.1:3000 → aktifkan 2FA (wajib owner) → kelola user lewat API /users
+# Login di http://127.0.0.1:3000 → aktifkan 2FA (wajib owner & content lead) → kelola user lewat API /users
 ```
 
 Test: `tests/test_auth.py` (53 test ke PostgreSQL sungguhan, termasuk replay kode 2FA, rotasi sesi, CSRF, Origin, penguncian, owner terakhir, timing email, kode cadangan). Audit keamanan menyeluruh 2026-10-13: 22 temuan, semua ditutup di 0.6.0.

@@ -1,0 +1,10 @@
+[Unit]
+Description=Bersihkan sesi login lama CLAU setiap hari (04.30 WITA, setelah jendela reboot keamanan 03.30)
+
+[Timer]
+OnCalendar=*-*-* 04:30:00 Asia/Makassar
+RandomizedDelaySec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

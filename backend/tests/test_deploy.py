@@ -236,6 +236,18 @@ def test_vps2_backup_runs_every_six_hours_and_copies_offsite():
         assert f'"$SRC/vps2-{tool}.sh" /usr/local/sbin/clau-vps2-{tool}' in setup
 
 
+def test_vps2_purges_old_sessions_daily_with_app_role():
+    """TASK-054: sesi habis/dicabut dibersihkan harian lewat container backend (role aplikasi), dan dicek clau-vps2-check."""
+    timer = unit("clau2-purge-sessions.timer")
+    assert timer["OnCalendar"] == ["*-*-* 04:30:00 Asia/Makassar"] and timer["Persistent"] == ["true"]
+    service = unit("clau2-purge-sessions.service")
+    assert service["ExecStart"] == ["/usr/bin/docker compose exec -T backend python -m app.auth.cli purge-sessions"]
+    assert service["WorkingDirectory"] == ["/srv/clau/clau-ai-agents"]
+    setup = (DEPLOY / "vps2-setup.sh").read_text()
+    assert "clau2-purge-sessions.timer >/dev/null" in setup, "timer wajib di-enable, bukan hanya dipasang"
+    assert "clau2-purge-sessions.service" in (DEPLOY / "vps2-check.sh").read_text()
+
+
 def test_restore_is_never_automatic():
     """Pemulihan hanya lewat clau-vps2-restore yang diketik manusia: tidak ada timer/deploy/backup yang memanggilnya."""
     for path in [*DEPLOY.glob("*.sh"), *UNITS.iterdir()]:

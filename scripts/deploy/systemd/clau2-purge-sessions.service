@@ -1,0 +1,15 @@
+[Unit]
+Description=CLAU VPS 2 hapus sesi login yang sudah habis/dicabut lebih dari 1 hari (purge-sessions)
+After=docker.service
+Requires=docker.service
+
+# Lewat container backend yang sedang jalan (role aplikasi database, tanpa hak admin/migrasi). Login juga
+# membersihkan sesi lama per user; timer ini membersihkan sesi user yang tidak pernah login lagi (TASK-054).
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/clau/clau-ai-agents
+ExecStart=/usr/bin/docker compose exec -T backend python -m app.auth.cli purge-sessions
+TimeoutStartSec=5min
+Nice=10
+PrivateTmp=true
+UMask=0077

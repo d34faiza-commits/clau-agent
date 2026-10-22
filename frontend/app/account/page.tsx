@@ -82,7 +82,7 @@ export default function AccountPage() {
         <p className="auth-notice" role="status">
           {me.next === "password_change"
             ? tr("Change your temporary password to continue.", "Ganti password sementara untuk melanjutkan.")
-            : tr("Two-factor authentication is required for owners. Turn it on to continue.", "2FA wajib untuk owner. Aktifkan untuk melanjutkan.")}
+            : tr("Two-factor authentication is required for owners and content leads. Turn it on to continue.", "2FA wajib untuk owner dan content lead. Aktifkan untuk melanjutkan.")}
         </p>
       )}
       {codes && <RecoveryCodes codes={codes} onDone={() => setCodes(null)} />}

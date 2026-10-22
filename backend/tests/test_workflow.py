@@ -70,13 +70,13 @@ class Actor:
 
     def __init__(self, factory, role: str, scope: str = "agency", level: str = "L3") -> None:
         n = next(counter)
-        secret = pyotp.random_base32() if role == "owner" else None
+        secret = pyotp.random_base32() if role in ("owner", "content_lead") else None
         with factory() as s, s.begin():
             user = User(display_name=f"{role} {n}", email=f"wf{n}@contoh.test", password_hash=crypto.hash_password(PASSWORD))
             s.add(user)
             s.flush()
             s.add(Membership(user_id=user.id, scope=scope, role=role, max_level=level))
-            if secret:  # 2FA wajib untuk owner
+            if secret:  # 2FA wajib untuk owner & content_lead
                 user.totp_secret_enc = crypto.encrypt_totp_secret(SECRET.encode(), user.id, secret)
                 user.totp_enabled = True
         self.id = user.id

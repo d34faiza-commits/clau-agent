@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.auth import crypto
-from app.auth.access import is_owner
+from app.auth.access import is_owner, mfa_required
 from app.auth.config import CSRF_HEADER, AuthSettings, auth_settings
 from app.db.models import Membership, User, UserSession
 from app.errors import ApiError
@@ -68,7 +68,9 @@ class AuthContext:
         """Langkah wajib yang belum selesai; selama ada, hanya endpoint akun yang boleh dipakai."""
         if self.user.must_change_password:
             return "password_change"
-        if not self.session.mfa_ok:
+        # mfa_ok dihitung saat login; cek ulang di sini agar sesi yang dibuat sebelum 2FA diwajibkan untuk
+        # perannya (mis. content_lead sebelum 0.9.1) tidak bisa dipakai tanpa mengaktifkan 2FA.
+        if not self.session.mfa_ok or (mfa_required(self.memberships) and not self.user.totp_enabled):
             return "mfa_setup"
         return None
 
