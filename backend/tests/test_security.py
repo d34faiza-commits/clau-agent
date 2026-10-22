@@ -107,6 +107,8 @@ ENDPOINTS = {
     # Workflow (Tahap 1 PR 3): request → draft → QA → approval; tidak ada publish/kirim.
     ("POST", "/requests"), ("GET", "/requests"), ("GET", "/requests/{request_id}"),
     ("POST", "/drafts"), ("GET", "/drafts"), ("GET", "/drafts/{draft_id}"),
+    # Penanda isi konten (0.10.0): hanya menaikkan level / menghapus dengan alasan; tidak ada publish/kirim.
+    ("POST", "/drafts/{draft_id}/flags"), ("POST", "/drafts/{draft_id}/flags/{flag}/remove"),
     ("POST", "/qa-records"), ("GET", "/qa-records"), ("GET", "/qa-records/{record_id}"),
     ("POST", "/approvals"), ("GET", "/approvals"), ("GET", "/approvals/{approval_id}"),
     # Klien & fact sheet (Tahap 1 PR 3b): konfirmasi fakta oleh klien; tidak ada publish/kirim.

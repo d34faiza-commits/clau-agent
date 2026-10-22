@@ -786,3 +786,31 @@ def test_upgrade_0004_legacy_confirmations_never_back_an_approval(database):
                     approve(c, draft, approver, level="L2")
     finally:
         db.drop()
+
+
+def test_upgrade_0006_to_0007_flags_existing_drafts(database):
+    """Draft lama mendapat penanda server dari jaring pengaman yang sama (hanya menaikkan level), termasuk draft
+    di request yang sudah selesai; draft tanpa kata kunci tetap tanpa penanda."""
+    from tests.conftest import TempDatabase
+
+    db = TempDatabase(database.admin_url)
+    try:
+        db.alembic("upgrade", "0006")
+        with psycopg.connect(db.app_conninfo) as c:
+            insert(c, "clients", client_code="CTHLAMA", vertical="accommodation", business_type="villa", approver_role="owner")
+            staff = insert(c, "users", display_name="Staf", email="staf@contoh.test")
+            ids = {}
+            for name, content, status in (("promo", "Promo Rp 750.000 per malam", "closed"), ("biasa", "Pagi tenang di villa", "open")):
+                req = insert(c, "requests", client_code="CTHLAMA", intent="caption", pillar=1, approval_min="L1", text="x",
+                             requested_by_role="content_staff")
+                ids[name] = insert(c, "drafts", request_id=req, skill="draft-caption", version=1, content=content, mode="NYATA", created_by=staff)
+                c.execute("UPDATE requests SET status = %s WHERE id = %s", (status, req))
+            c.commit()
+        db.alembic("upgrade", "head")
+        with psycopg.connect(db.app_conninfo) as c:
+            rows = c.execute("SELECT draft_id, flag, source FROM draft_flags ORDER BY draft_id").fetchall()
+            assert rows == [(ids["promo"], "price_promo", "server")]
+            level = c.execute("SELECT clau_draft_min_level(d, r) FROM drafts d JOIN requests r ON r.id = d.request_id WHERE d.id = %s", (ids["biasa"],)).fetchone()
+            assert level == ("L1",)  # tanpa kata kunci: level tidak naik
+    finally:
+        db.drop()

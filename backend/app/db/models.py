@@ -60,6 +60,10 @@ TIMEZONES = ("Asia/Jakarta", "Asia/Makassar", "Asia/Jayapura")
 NOTIFICATION_CHANNELS = ("in_app", "email", "whatsapp")
 FACT_DECISIONS = ("confirmed", "corrected")
 REQUEST_STATUSES = ("open", "in_progress", "approved", "rejected", "closed")
+# Penanda isi konten (migrasi 0007, kontrak core 0.10.0 § Penanda Isi Konten; Rule 08).
+CONTENT_FLAGS = ("price_promo", "people", "ota_listing", "negative_review", "paid_ads", "influencer", "religion_culture", "crisis")
+FLAG_LEVELS = {f: ("L2" if f in ("price_promo", "people", "ota_listing") else "L3") for f in CONTENT_FLAGS}
+FLAG_SOURCES = ("author", "server", "staff", "qa")
 # Antrean AI Tahap 2 (migrasi 0006, kontrak core 0.9.0).
 AI_JOB_STATUSES = ("queued", "running", "succeeded", "failed", "cancelled")
 AI_JOB_KINDS = ("draft",)
@@ -301,8 +305,12 @@ class Request(Base):
     requested_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), index=True)  # null = sistem/seed
     requested_by_role: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = created_at()
+    # Migrasi 0007: rating review (wajib untuk review-reply) dan draft asal (wajib untuk localize, klien sama).
+    review_rating: Mapped[int | None] = mapped_column(SmallInteger)
+    source_draft_id: Mapped[int | None] = mapped_column(ForeignKey("drafts.id", use_alter=True), index=True)
     __table_args__ = (
         CheckConstraint(f"intent ~ '{SLUG_RE}'", name="intent_format"),
+        CheckConstraint("review_rating IS NULL OR review_rating BETWEEN 1 AND 5", name="review_rating_range"),
         CheckConstraint("pillar BETWEEN 1 AND 5", name="pillar_range"),
         CheckConstraint(one_of("priority", PRIORITIES), name="priority"),
         CheckConstraint(one_of("approval_min", LEVELS), name="approval_min"),
@@ -332,6 +340,31 @@ class Draft(Base):
         CheckConstraint(one_of("mode", MODES), name="mode"),
         CheckConstraint("created_by IS NOT NULL OR agent_id IS NOT NULL", name="has_author"),
         CheckConstraint(f"agent_id IS NULL OR agent_id ~ '{SLUG_RE}'", name="agent_id_format"),
+    )
+
+
+class DraftFlag(Base):
+    """Penanda isi konten draft (migrasi 0007). Hanya removed_* yang boleh diisi, sekali (trigger)."""
+
+    __tablename__ = "draft_flags"
+    id: Mapped[int] = pk()
+    draft_id: Mapped[int] = mapped_column(ForeignKey("drafts.id"), nullable=False, index=True)
+    flag: Mapped[str] = mapped_column(Text, nullable=False)
+    source: Mapped[str] = mapped_column(Text, nullable=False)
+    added_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), index=True)  # null = server / agent
+    added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    removed_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), index=True)
+    removed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    removed_reason: Mapped[str | None] = mapped_column(Text)
+    __table_args__ = (
+        CheckConstraint(one_of("flag", CONTENT_FLAGS), name="flag"),
+        CheckConstraint(one_of("source", FLAG_SOURCES), name="source"),
+        CheckConstraint(
+            "(removed_at IS NULL AND removed_by IS NULL AND removed_reason IS NULL)"
+            " OR (removed_at IS NOT NULL AND removed_by IS NOT NULL AND char_length(removed_reason) BETWEEN 10 AND 500)",
+            name="removed_fields"),
+        CheckConstraint("source IN ('server', 'author') OR added_by IS NOT NULL", name="added_by"),
+        Index("uq_draft_flags_active", "draft_id", "flag", unique=True, postgresql_where=text("removed_at IS NULL")),
     )
 
 

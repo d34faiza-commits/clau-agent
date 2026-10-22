@@ -2,7 +2,9 @@
 
 > Panduan dan catatan status VPS 2 (`clau-vps2`): database PostgreSQL, backend, dan frontend dengan login. IP server **tidak** ditulis di repo; gunakan `<IP_VPS_2>`. VPS 1 tetap pratinjau tanpa login ([`vps-1-setup.md`](./vps-1-setup.md)).
 
-## 1. Status (diperbarui 2026-10-19)
+## 1. Status (diperbarui 2026-10-22)
+
+> **Server dimatikan owner 2026-10-22** (biaya). Tabel di bawah adalah riwayat server lama. Data ada di backup terenkripsi Backblaze B2 dan **terhapus otomatis 60 hari setelah diupload** (lifecycle `vps2/`); unduh atau perpanjang lifecycle bila data perlu disimpan lebih lama. Membuat lagi: server baru → § 3 A–E → langkah I (`clau-vps2-offsite setup`) → § 5 *VPS 2 hilang total* (`clau-vps2-restore --server-pengganti`). Kartu ClickUp TASK-065.
 
 | Bagian | Status |
 |---|---|

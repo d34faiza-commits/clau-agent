@@ -136,6 +136,14 @@ const MESSAGES: Record<string, [en: string, id: string]> = {
   fact_sheet_approval_flow: ["Fact sheets can only be approved, not edited. Create a new version.", "Fact sheet hanya bisa disetujui, tidak diubah. Buat versi baru."],
   fact_sheet_version_sequence: ["Someone just saved a version. Reload and try again.", "Baru saja ada versi tersimpan. Muat ulang lalu coba lagi."],
   validation_error: ["Some fields are missing or invalid.", "Ada isian yang kosong atau tidak valid."],
+  // Penanda isi konten & level approval otomatis (API 0.10.0, TASK-032).
+  content_flags_required: ["Tick what this content contains, or confirm it has none of them.", "Centang isi konten ini, atau nyatakan tidak ada satu pun."],
+  review_rating_required: ["Enter the review's star rating (1–5).", "Isi rating bintang review (1–5)."],
+  source_draft_required: ["Choose the draft to translate.", "Pilih draft yang akan diterjemahkan."],
+  source_draft_invalid: ["That draft wasn't found for this client.", "Draft itu tidak ditemukan untuk klien ini."],
+  flag_exists: ["This flag is already on the draft.", "Penanda ini sudah ada di draft."],
+  flag_not_removable: ["Flags set automatically by the system can't be removed. Save a corrected new version instead.", "Penanda otomatis dari sistem tidak bisa dihapus. Simpan versi baru yang sudah diperbaiki."],
+  flag_not_active: ["This flag is no longer on the draft.", "Penanda ini sudah tidak ada di draft."],
 };
 
 /** Pesan error sesuai bahasa aktif. weak_password memakai alasan dari server (bahasa Indonesia). */

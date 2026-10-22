@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-# Kode aturan dari trigger database (migrasi 0001, 0004, 0005, 0006) yang boleh diteruskan ke klien apa adanya.
+# Kode aturan dari trigger database (migrasi 0001, 0004–0007) yang boleh diteruskan ke klien apa adanya.
 DB_RULE_RE = re.compile(r"\b([a-z]+(?:_[a-z]+)+): ")
 DB_RULES = {
     "qa_reviewer_is_author",
@@ -41,6 +41,11 @@ DB_RULES = {
     "ai_job_draft_mismatch",
     "ai_record_append_only",
     "ai_draft_without_job",
+    # Migrasi 0007 (penanda isi konten, kontrak core 0.10.0).
+    "review_rating_required",
+    "source_draft_required",
+    "source_draft_invalid",
+    "flag_not_removable",
 }
 
 
@@ -60,6 +65,7 @@ DB_CHECKS = {
     "ck_claims_fact_key_required": "claim_fact_key_required",
     "ck_claims_data_final_sourced": "claim_source_required",
     "uq_ai_jobs_one_active": "ai_job_active",
+    "uq_draft_flags_active": "flag_exists",
 }
 
 

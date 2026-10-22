@@ -2,7 +2,7 @@
 
 **Platform CLAU AI**: tempat agent menjalankan skill dari repo pilar untuk bisnis hospitality Indonesia. Repo ini berisi kode (frontend Next.js, backend FastAPI) dan **registry agent**. Aturan isi konten tidak ditulis di sini; aturan ada di [clau-core](https://github.com/d34faiza-commits/clau-core) (submodule `core/`) dan repo pilar.
 
-> **Status:** Public, hanya untuk dilihat ([LICENSE](./LICENSE)). Backend v0.9.1: PostgreSQL 16 (migrasi 0001–0006), login + 2FA wajib owner & content lead (QR & kode cadangan) + `/users`, backup terenkripsi tiap 6 jam + Backblaze B2, workflow request → draft → QA → approval dan fact sheet + Konfirmasi Fakta oleh klien (aturan Rule 08 dicek server & database), antrean AI menulis draft dengan AI fact-check & batas biaya (provider tiruan; provider Claude menyusul), dengan halaman UI-nya (`/requests`, `/fact-sheets`, `/ai-usage`). Status kerja terkini: [status & handoff](https://github.com/d34faiza-commits/clau-content/blob/main/docs/status.md).
+> **Status:** Public, hanya untuk dilihat ([LICENSE](./LICENSE)). Backend v0.10.0: PostgreSQL 16 (migrasi 0001–0007, termasuk level approval otomatis dari isi konten), login + 2FA wajib owner & content lead (QR & kode cadangan) + `/users`, backup terenkripsi tiap 6 jam + Backblaze B2, workflow request → draft → QA → approval dan fact sheet + Konfirmasi Fakta oleh klien (aturan Rule 08 dicek server & database), antrean AI menulis draft dengan AI fact-check & batas biaya (provider tiruan; provider Claude menyusul), dengan halaman UI-nya (`/requests`, `/fact-sheets`, `/ai-usage`). Status kerja terkini: [status & handoff](https://github.com/d34faiza-commits/clau-content/blob/main/docs/status.md).
 
 ## Prinsip Platform
 
@@ -74,7 +74,9 @@ docker compose down                        # data tetap di volume db-data (hapus
 | 1 · PR 2 / 2b | Login, hak akses, 2FA, `/users`, backup terenkripsi, audit keamanan | ✅ 0.5.0 / 0.6.0 |
 | 1 · PR 3 | Request → draft → QA → approval di API (Rule 08 dicek server & database) | ✅ 0.7.0 |
 | 1 · PR 3b | Kelola klien, fact sheet & Konfirmasi Fakta; UI workflow | ✅ 0.8.0 |
-| 2 | Pemanggilan AI model per skill, simpan draft + tabel klaim (VPS 2) | Planned |
+| 2 | Antrean AI menulis draft + AI fact-check + batas biaya (provider tiruan; provider Claude = PR 4c) | ✅ 0.9.0 (provider nyata belum) |
+| 2 · TASK-054 | 2FA wajib content lead, pembersihan sesi harian, rotasi secret | ✅ 0.9.1 |
+| 2 · TASK-032 | Penanda isi konten & level approval otomatis (Rule 08) | ✅ 0.10.0 |
 
 Setiap tahap tetap Level 1 otomasi (manusia yang publish), kecuali owner menyetujui level lebih tinggi lewat revisi Constitution.
 

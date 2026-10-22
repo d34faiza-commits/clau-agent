@@ -31,7 +31,7 @@ Input dibatasi, body ≤ 64 KB, Host divalidasi, header keamanan di setiap respo
 
 ## Database
 
-PostgreSQL 16 (SQLAlchemy 2 + Alembic + psycopg 3). Skema mengikuti kontrak [`core/shared/database-schema.md`](../core/shared/database-schema.md): 21 tabel di `app/db/models.py`, migrasi di `migrations/versions/`.
+PostgreSQL 16 (SQLAlchemy 2 + Alembic + psycopg 3). Skema mengikuti kontrak [`core/shared/database-schema.md`](../core/shared/database-schema.md): 22 tabel di `app/db/models.py`, migrasi di `migrations/versions/`.
 
 | Aturan (Constraint Wajib kontrak) | Ditegakkan oleh |
 |---|---|
@@ -125,6 +125,22 @@ Alur `design/user-flow/client-portal-flow.md` § Konfirmasi Fakta; kode `app/fac
 | Jejak | `audit_log` mencatat id, kunci fakta, dan keputusan; **tanpa** nilai fakta (data klien) |
 
 Test: `tests/test_facts.py` (alur utuh sampai approval L2, siapa boleh apa, isolasi klien, validasi, audit tanpa nilai) dan `tests/test_db.py` (aturan migrasi 0005, upgrade dari 0004 dengan fact sheet lama). Uji mutasi: 35 pengaman dirusak satu per satu, 34 tertangkap; satu lolos karena pengaman lapis kedua yang sudah dicakup aturan lain (persetujuan lewat alur klien).
+
+## Penanda Isi Konten & Level Approval Otomatis (0.10.0, TASK-032)
+
+Rule 08 menetapkan level approval dari **isi** konten. Kontrak: `core/shared/api-contracts.md` § Penanda Isi Konten; keputusan owner K1–K6 di `clau-content/docs/review-packet-task-032.md`. Aturan data di migrasi `0007`; API di `app/workflow.py`.
+
+| Hal | Cara |
+|---|---|
+| Penanda | `price_promo`, `people`, `ota_listing` = L2; `negative_review`, `paid_ads`, `influencer`, `religion_culture`, `crisis` = L3 (tabel `draft_flags`) |
+| Wajib dinyatakan | `POST /drafts` wajib `content_flags` (daftar kosong = pembuat menyatakan tidak ada); UI meminta centang eksplisit "tidak ada satu pun" |
+| Jaring pengaman | Trigger database menambah penanda `server` untuk setiap draft (API & worker AI): kata harga (`Rp`/`IDR` + angka, `%`, harga, diskon, promo, discount, price, rate, paket + angka), kata agama/adat yang spesifik (bukan "upacara"/"sakral" yang umum di konten wedding), `review-reply` rating ≤ 3, intent `ota-listing`. Daftar kata hanya di `clau_auto_flags` (migrasi 0007) |
+| Versi baru | Mewarisi penanda aktif non-server versi sebelumnya (trigger); level tidak bisa turun diam-diam |
+| Tambah / hapus | Tambah: staf agency (`staff`, atau `qa` bila sudah mencatat QA di draft itu). Hapus: owner/content lead, alasan 10–500 karakter, audit log; penanda `server` tidak bisa dihapus (`flag_not_removable`); DELETE dicabut dari role aplikasi |
+| Request | `review-reply` wajib `review_rating` 1–5; `localize` wajib `source_draft_id` (klien sama); keduanya tidak bisa diubah |
+| Level minimum | `clau_draft_level_reasons` / `clau_draft_min_level` (dipakai trigger approval dan `GET /drafts/{id}` → `min_level`, `min_level_reasons`): intent (risk 3 = L3), klaim fakta L2, draft AI klien nyata L2, penanda aktif, draft asal untuk `localize` |
+
+Test: `tests/test_workflow.py` (setiap celah di paket keputusan: review negatif, terjemahan, harga di teks, orang, iklan/influencer, agama/adat; tambah/hapus penanda; pewarisan versi; aturan langsung di database) dan `tests/test_db.py` (upgrade 0006 → 0007 memberi penanda pada draft lama).
 
 ## AI Menulis Draft (0.9.0, Tahap 2 PR 4b)
 
