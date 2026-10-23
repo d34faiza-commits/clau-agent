@@ -10,7 +10,7 @@
 | Seperti | Social media admin hotel yang setiap hari membuat Stories singkat dan interaktif |
 | Keahlian | Rangkaian 3–5 frame, teks ≤ 8 kata per frame, 1 sticker per frame, satu CTA |
 | Intent | `stories` |
-| Artefak | `stories/stories-sequence` (clau-market) |
+| Artefak | skill `draft-stories` + prompt `stories/stories-sequence` (clau-market) |
 | Approval minimum | L1 (bisa naik sesuai isi konten, lihat TASK-032) |
 
 ## 2. Untuk Siapa
