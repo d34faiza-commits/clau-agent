@@ -109,7 +109,7 @@
       "intents": [
         "stories"
       ],
-      "skill": null,
+      "skill": "draft-stories",
       "prompt": "stories/stories-sequence",
       "template": null,
       "skill_repo": "clau-market",
@@ -241,7 +241,7 @@
       "intents": [
         "report"
       ],
-      "skill": null,
+      "skill": "build-monthly-report",
       "prompt": null,
       "template": "monthly-report",
       "skill_repo": "clau-market",
