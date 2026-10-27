@@ -63,3 +63,5 @@ Spesifikasi UI/UX (Portal Klien & Studio) dan design tokens ada di repo arsip `c
 - `main` wajib lewat PR dengan CI hijau (`backend`, `frontend`, `audit`, `docker`, `cross-validate`; dijaga `main-guard`). VPS 1 menayangkan `release/vps1` = commit `main` yang CI-nya hijau (job `release-vps1`); jangan push manual ke branch itu.
 
 - **Tidak boleh** ada endpoint/tombol publish ke platform sosial. Aturan approval (fakta dikonfirmasi, review independen) wajib dicek di server, bukan hanya di UI.
+
+- Entry point lintas AI: [AGENTS.md](./AGENTS.md). ChatGPT/Codex dan Claude menyelesaikan coding PR yang sudah diizinkan sampai merge setelah seluruh CI wajib hijau, sesuai core AI-BOUNDARY.
