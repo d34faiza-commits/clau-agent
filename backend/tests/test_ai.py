@@ -75,7 +75,7 @@ def facts_of(**values) -> ClientFacts:
 def test_fact_check_labels_are_decided_by_the_worker_not_the_model():
     cf = facts_of(facility__pool_private="ya", location__ubud="10 menit ke Ubud")
     checked = check_claims((
-        ClaimOut("Kolam renang pribadi", "facility", "facility.pool_private"),  # berdasar (fakta ya/tidak)
+        ClaimOut("facility__pool_private: ya", "facility", "facility.pool_private"),  # kutipan berlabel
         ClaimOut("Nikmati pantai pribadi kami", "facility", "facility.pantai-pribadi"),  # tidak ada di fact sheet
         ClaimOut("Harga mulai 1 juta", "price", None),  # fakta tanpa kunci
         ClaimOut("Kolam pribadi", "location", "facility.pool_private"),  # kunci kategori lain tidak dipinjam
@@ -83,7 +83,7 @@ def test_fact_check_labels_are_decided_by_the_worker_not_the_model():
         ClaimOut("Klaim aneh", "bukan-kategori", "x"),  # kategori tak dikenal: ditandai, tidak pernah "aman"
         ClaimOut("Enjoy our private beach", "Facility", "facility.private-beach"),  # huruf besar: tetap dicek
         ClaimOut("Pantai pribadi", "amenity", None),
-        ClaimOut("Hanya 10 menit ke Ubud", "location", "location.ubud"),  # nilai fakta ada di teks
+        ClaimOut("10 menit ke Ubud", "location", "location.ubud"),  # nilai fakta utuh
         ClaimOut("Dekat pantai Kuta", "location", "location.ubud"),  # kunci benar, isi tidak sesuai nilai fakta
     ), cf)
     assert [(c.category, c.evidence_label, c.fact_key, c.grounded) for c in checked] == [
@@ -91,7 +91,7 @@ def test_fact_check_labels_are_decided_by_the_worker_not_the_model():
         ("facility", "RISK", "facility.pantai-pribadi", False),
         ("price", "RISK", "price.tanpa-fakta", False),
         ("location", "RISK", "location.tanpa-fakta", False),
-        ("experience", "ASSUMPTION", None, True),
+        ("experience", "ASSUMPTION", None, False),
         ("other", "RISK", "other.tanpa-kategori", False),
         ("facility", "RISK", "facility.private-beach", False),
         ("other", "RISK", "other.tanpa-kategori", False),
@@ -190,7 +190,7 @@ def test_ai_draft_end_to_end_on_simulasi_client(factory, team, ai):
     assert {c["evidence_label"] for c in draft["claims"]} == {"DATA FINAL"}
     assert all(c["source"].startswith("fact-sheet CTHSIM v") for c in draft["claims"])
     qa = staff.get("/qa-records", draft_id=draft["id"]).json()["items"]
-    assert [(q["gate"], q["result"], q["reviewer_id"], q["independent"]) for q in qa] == [("claim-verification", "Pass", None, False)]
+    assert [(q["gate"], q["result"], q["reviewer_id"], q["independent"]) for q in qa] == [("claim-verification", "Conditional", None, False)]
     assert staff.get(f"/requests/{req['id']}").json()["status"] == "in_progress"
 
     with factory() as s:
@@ -207,7 +207,7 @@ def test_private_beach_is_flagged_and_blocks_approval(factory, team, ai, monkeyp
     staff, lead, approver = team["staff"], team["lead"], team["approver"]
     req = new_request(staff, client="CTH")
     assert ask_ai(staff, req["id"]).status_code == 202
-    beach = StubProvider(claims=[ClaimOut("Kolam renang pribadi", "facility", "facility.pool-private"),
+    beach = StubProvider(claims=[ClaimOut("facility.pool-private: ya", "facility", "facility.pool-private"),
                                  ClaimOut("Enjoy our private beach", "facility", "facility.private-beach")])
     assert run_all(factory, beach) == ["succeeded"]
     draft = staff.get("/drafts", request_id=req["id"]).json()["items"][0]
@@ -223,7 +223,7 @@ def test_private_beach_is_flagged_and_blocks_approval(factory, team, ai, monkeyp
 
     # Versi berikutnya tanpa klaim pantai (AI diminta ulang): bisa direview & di-approve klien.
     assert ask_ai(staff, req["id"]).status_code == 202
-    grounded = StubProvider(claims=[ClaimOut("Kolam renang pribadi", "facility", "facility.pool-private")])
+    grounded = StubProvider(claims=[ClaimOut("facility.pool-private: ya", "facility", "facility.pool-private")])
     assert run_all(factory, grounded) == ["succeeded"]
     v2 = staff.get("/drafts", request_id=req["id"]).json()["items"][0]
     assert v2["version"] == 2 and v2["latest"]
@@ -578,6 +578,31 @@ def test_too_many_claims_fail_the_job_instead_of_dropping_claims(factory, team, 
     with factory() as s:
         assert [c.cost_micro_usd for c in s.scalars(select(AiCall).where(AiCall.job_id == job_id))] == [900]
         assert s.scalar(select(func.count()).select_from(Draft).where(Draft.request_id == req["id"])) == 0
+
+
+@pytest.mark.parametrize("content,claims", [
+    ("x" * 10_001, ()), (" ", ()),
+    ("Konten Contoh", (ClaimOut("x" * 301, "experience"),)),
+])
+def test_invalid_output_keeps_usage_without_creating_partial_draft(factory, team, ai, content, claims):
+    req = new_request(team["staff"], client="CTHSIM")
+    job_id = ask_ai(team["staff"], req["id"]).json()["id"]
+
+    class Invalid(StubProvider):
+        def generate(self, prompt):
+            return Generation(content, claims, Usage(model="stub", cost_micro_usd=901))
+
+    assert run_all(factory, Invalid()) == ["failed"]
+    assert job_row(factory, job_id).error_code == "invalid_output"
+    with factory() as s:
+        assert s.scalar(select(func.count()).select_from(Draft).where(Draft.request_id == req["id"])) == 0
+        assert [c.cost_micro_usd for c in s.scalars(select(AiCall).where(AiCall.job_id == job_id))] == [901]
+
+
+def test_omitted_claims_do_not_receive_automatic_qa_pass(factory, team, ai):
+    _, draft = agent_draft(factory, team, team["staff"], client="CTHSIM")
+    qa = team["staff"].get("/qa-records", draft_id=draft["id"]).json()["items"]
+    assert [(q["result"], q["independent"]) for q in qa] == [("Conditional", False)]
 
 
 def test_unexpected_error_while_saving_fails_the_job_and_keeps_the_cost(factory, team, ai, monkeypatch):

@@ -197,13 +197,16 @@ def save_result(db: Session, lease: Lease, ctx: Context, gen: Generation, provid
         return problem
     if len(gen.claims) > MAX_CLAIMS:
         return "invalid_output"  # tidak ada klaim (termasuk yang tidak berdasar) yang boleh terbuang diam-diam
+    content = clean(gen.content)
+    if not content.strip() or len(content) > 10_000 or len(content.encode("utf-8")) > 65_536:
+        return "invalid_output"
     client = db.get(Client, req.client_code)
     agent = agent_for_intent(job.intent)
     checked = check_claims(gen.claims, ctx.facts)
     version = (db.scalar(select(func.max(Draft.version)).where(Draft.request_id == req.id)) or 0) + 1
     draft = Draft(
         request_id=req.id, fact_sheet_id=ctx.facts.sheet_id, skill=agent["skill"] or agent["prompt"] or agent["template"],
-        version=version, content=clean(gen.content)[:10_000] or "(kosong)", mode="SIMULASI" if client.simulation else "NYATA",
+        version=version, content=content, mode="SIMULASI" if client.simulation else "NYATA",
         created_by=None, agent_id=job.agent_id,
     )
     db.add(draft)
@@ -211,7 +214,10 @@ def save_result(db: Session, lease: Lease, ctx: Context, gen: Generation, provid
     db.add_all(Claim(draft_id=draft.id, text=c.text, category=c.category, evidence_label=c.evidence_label, source=c.source,
                      source_date=c.source_date, implied=c.implied, fact_key=c.fact_key) for c in checked)
     flagged = sum(not c.grounded for c in checked)
-    db.add(QARecord(draft_id=draft.id, gate="claim-verification", result="Fail" if flagged else "Pass",
+    # Claim lists are untrusted and may omit content or evade categories. Until whole-content
+    # reconciliation is implemented, no automatic Pass, including an empty claim list.
+    result = "Fail" if any(c.evidence_label == "RISK" for c in checked) else "Conditional"
+    db.add(QARecord(draft_id=draft.id, gate="claim-verification", result=result,
                     reviewer_id=None, reviewer_role="agent", independent=False))
     record_call(db, job.id, provider, gen.usage, prompt_version, latency_ms)
     req.status = "in_progress"

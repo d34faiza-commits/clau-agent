@@ -2,8 +2,8 @@
 
 Fakta yang berlaku = fact sheet versi terbaru yang DISETUJUI klien; nilainya = koreksi terakhir klien bila ada.
 Fact-check deterministik di worker (model tidak menentukan label bukti):
-- klaim faktual dengan fact_key yang ada di fakta itu, dan (untuk fakta bernilai teks/angka) nilainya muncul di teks
-  klaim → DATA FINAL (sumber = fact sheet, tanggal = jawaban klien WITA);
+- klaim faktual dengan fact_key yang sesuai dan teks persis nilai atau `label: nilai`
+  → DATA FINAL untuk kutipan fakta itu, bukan bukti bahwa seluruh caption benar;
 - klaim faktual tanpa fakta yang cocok → RISK dengan kunci itu, sehingga approval terkunci (facts_unconfirmed);
 - klaim experience/other → ASSUMPTION; kategori yang tidak dikenal = ditandai (tidak pernah dianggap aman).
 Fact-check hanya melihat klaim yang DILAPORKAN model. Karena itu draft agent untuk klien NYATA selalu butuh review
@@ -24,8 +24,7 @@ from app.db.models import CLAIM_CATEGORIES, FACT_KEY_RE, FACTUAL_CATEGORIES, Fac
 
 KEY_RE = re.compile(FACT_KEY_RE)
 WITA = timezone(timedelta(hours=8))
-# Nilai fakta "ya/tidak" (fasilitas ada/tidak) tidak bisa dicocokkan ke teks klaim; nilai lain (angka, nama, jarak)
-# harus muncul di klaim supaya klaim berlabel DATA FINAL.
+# Nilai boolean tanpa subjek tidak membuktikan fasilitas mana yang dibicarakan.
 YES_NO = {"ya", "yes", "ada", "tersedia", "true", "tidak", "no", "tidak ada", "false"}
 
 
@@ -81,18 +80,33 @@ class CheckedClaim:
 
 
 def norm(text: str) -> str:
-    return " ".join(re.sub(r"[^\w]+", " ", text.casefold()).split())
+    # Preserve punctuation: 1.5 != 15, -2 != 2, and prices/conditions must remain intact.
+    return " ".join(text.casefold().split())
 
 
 def value_in_claim(value: str, claim_text: str) -> bool:
     v = norm(value)
-    return v in YES_NO or (bool(v) and v in norm(claim_text))
+    return bool(v) and v not in YES_NO and v == norm(claim_text)
+
+
+def fact_matches_claim(fact: FactForPrompt, claim_text: str) -> bool:
+    """Conservative quotation check, not natural-language entailment.
+
+    A substring, yes/no bypass or guessed negation cannot certify a factual claim.
+    Paraphrases require human verification; a canonical label/value preserves scope.
+    """
+    return value_in_claim(fact.value, claim_text) or (
+        bool(fact.label.strip()) and bool(fact.value.strip())
+        and norm(claim_text) == norm(f"{fact.label}: {fact.value}")
+    )
 
 
 def check_claims(claims: tuple[ClaimOut, ...], cf: ClientFacts) -> list[CheckedClaim]:
     out: list[CheckedClaim] = []
     for c in claims:
-        text = c.text.replace("\x00", "").strip()[:300] or "(klaim kosong)"
+        text = c.text.replace("\x00", "").strip()
+        if not text or len(text) > 300:
+            raise ValueError("invalid_output")  # never discard conditions at the end of a claim
         key = (c.fact_key or "").replace("\x00", "").strip()
         category = (c.category or "").strip().lower()
         if category not in CLAIM_CATEGORIES:
@@ -103,10 +117,10 @@ def check_claims(claims: tuple[ClaimOut, ...], cf: ClientFacts) -> list[CheckedC
             out.append(CheckedClaim(text, "other", "RISK", "other.tanpa-kategori", None, None, c.implied, False))
             continue
         if category not in FACTUAL_CATEGORIES:
-            out.append(CheckedClaim(text, category, "ASSUMPTION", None, None, None, c.implied, True))
+            out.append(CheckedClaim(text, category, "ASSUMPTION", None, None, None, c.implied, False))
             continue
         fact = cf.facts.get(key)
-        if fact is not None and fact.category == category and value_in_claim(fact.value, text):
+        if fact is not None and fact.category == category and fact_matches_claim(fact, text):
             out.append(CheckedClaim(
                 text, category, "DATA FINAL", key, f"fact-sheet {cf.client_code} v{cf.version}",
                 cf.answered_on[key], c.implied, True,
