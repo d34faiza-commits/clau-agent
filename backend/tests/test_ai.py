@@ -207,7 +207,7 @@ def test_private_beach_is_flagged_and_blocks_approval(factory, team, ai, monkeyp
     staff, lead, approver = team["staff"], team["lead"], team["approver"]
     req = new_request(staff, client="CTH")
     assert ask_ai(staff, req["id"]).status_code == 202
-    beach = StubProvider(claims=[ClaimOut("Kolam renang pribadi", "facility", "facility.pool-private"),
+    beach = StubProvider(claims=[ClaimOut("facility.pool-private: ya", "facility", "facility.pool-private"),
                                  ClaimOut("Enjoy our private beach", "facility", "facility.private-beach")])
     assert run_all(factory, beach) == ["succeeded"]
     draft = staff.get("/drafts", request_id=req["id"]).json()["items"][0]
@@ -223,7 +223,7 @@ def test_private_beach_is_flagged_and_blocks_approval(factory, team, ai, monkeyp
 
     # Versi berikutnya tanpa klaim pantai (AI diminta ulang): bisa direview & di-approve klien.
     assert ask_ai(staff, req["id"]).status_code == 202
-    grounded = StubProvider(claims=[ClaimOut("Kolam renang pribadi", "facility", "facility.pool-private")])
+    grounded = StubProvider(claims=[ClaimOut("facility.pool-private: ya", "facility", "facility.pool-private")])
     assert run_all(factory, grounded) == ["succeeded"]
     v2 = staff.get("/drafts", request_id=req["id"]).json()["items"][0]
     assert v2["version"] == 2 and v2["latest"]
