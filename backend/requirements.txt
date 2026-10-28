@@ -9,3 +9,4 @@ cryptography==50.0.2
 segno==1.6.6
 httpx2==2.13.1
 pytest==9.1.1
+jsonschema==4.26.0
